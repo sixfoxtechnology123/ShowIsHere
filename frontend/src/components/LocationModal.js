@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import API from '../utils/api';
 import { indianCities } from '../utils/indianCities';
 
-import ahmedabadImg from '../assets/ahmedabad.png';
-import bangaluruImg from '../assets/bangaluru.png';
-import chennaiImg from '../assets/chennai.png';
-import delhiImg from '../assets/delhi.png';
-import hyderabadImg from '../assets/hyderabad.png';
-import kolkataImg from '../assets/kolkata.png';
-import mumbaiImg from '../assets/mumbai.png';
-import puneImg from '../assets/pune.png';
+import ahmedabadImg from '../assets/cityLogo/ahmedabad.png';
+import bangaluruImg from '../assets/cityLogo/bangaluru.png';
+import chennaiImg from '../assets/cityLogo/chennai.png';
+import delhiImg from '../assets/cityLogo/delhi.png';
+import hyderabadImg from '../assets/cityLogo/hyderabad.png';
+import kolkataImg from '../assets/cityLogo/kolkata.png';
+import mumbaiImg from '../assets/cityLogo/mumbai.png';
+import puneImg from '../assets/cityLogo/pune.png';
 
 import {
   modalOverlay,

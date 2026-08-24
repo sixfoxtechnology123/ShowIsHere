@@ -2,16 +2,22 @@
 // SHOWISHERE - MASTER CSS CLASS DEFINITIONS
 // ==========================================
 
-// Layout & Core
-export const mainContainer = "min-h-screen bg-slate-50 text-slate-900 font-sans antialiased";
+// Layout & Core (Soft off-white background to make white containers pop)
+export const mainContainer = "min-h-screen bg-[#f4f5f7] text-slate-900 font-sans antialiased";
 
-// Navbar
-export const navbar = "bg-[#111827] text-white px-6 py-4 flex items-center justify-between shadow-md sticky top-0 z-50";
+// Navbar (Crisp white background with subtle border)
+export const navbar = "bg-white text-slate-800 px-6 py-3 flex items-center justify-between border-b border-slate-200/80 sticky top-0 z-50 shadow-xs";
 export const logoContainer = "flex items-center space-x-3 cursor-pointer";
-export const logoImage = "h-10 w-auto object-contain bg-white rounded-md p-1 shadow-sm";
-export const brandTitle = "text-xl font-bold tracking-tight text-white";
+export const logoImage = "h-9 w-auto object-contain rounded-md";
+export const brandTitle = "text-xl font-bold tracking-tight text-slate-900";
 export const navRightContainer = "flex items-center space-x-4";
-export const locationButton = "flex items-center space-x-1.5 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl transition shadow-sm border border-slate-700";
+export const locationButton = "flex items-center space-x-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition border border-slate-200";
+
+// Navbar Search & Actions
+export const navSearchWrapper = "flex-1 max-w-xl mx-8 hidden md:flex items-center bg-slate-100 border border-slate-200 rounded-full px-4 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-rose-500 transition shadow-inner";
+export const navSearchInput = "w-full text-xs font-medium bg-transparent focus:outline-none text-slate-800 placeholder-slate-400";
+export const signInButton = "bg-[#ed384e] hover:bg-[#d62d42] text-white text-xs font-semibold px-4 py-1.5 rounded-md transition shadow-xs cursor-pointer";
+export const menuIconButton = "text-slate-700 hover:text-slate-900 focus:outline-none ml-1 cursor-pointer";
 
 // Sub-Navbar
 export const subNavbarContainer = "bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between shadow-xs overflow-x-auto";
@@ -77,18 +83,29 @@ export const redSticker = "absolute top-3 left-3 bg-red-600 text-white text-xs f
 export const trendingBadge = "absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md z-10";
 export const emptyState = "col-span-full text-center py-16 text-slate-500 font-medium bg-white rounded-2xl border border-dashed border-slate-300 shadow-xs";
 
-export const footerWrapper = "bg-[#f8f9fc] border-t border-slate-200 mt-20 text-slate-700 text-sm";
-export const footerTopBar = "bg-[#1f242d] text-white py-3 px-6 flex flex-col sm:flex-row items-center justify-around text-xs font-medium tracking-wide";
+// Footer
+export const footerWrapper = "bg-[#f8f9fc] border-t border-slate-200 mt-1 text-slate-700 text-sm";
+export const footerTopBar = "bg-[#1f242d] text-white py-2 px-6 flex flex-col sm:flex-row items-center justify-around text-xs font-medium tracking-wide";
 export const footerTopItem = "flex items-center space-x-2 cursor-pointer hover:text-slate-300 transition py-0.5";
 export const footerMainContent = "max-w-7xl mx-auto px-6 py-6 relative overflow-hidden";
 export const footerWatermark = "absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden opacity-[0.08] select-none";
-export const footerWatermarkText = "text-[10rem] sm:text-[8rem] font-black  tracking-widest text-slate-500 whitespace-nowrap";
+export const footerWatermarkText = "text-[10rem] sm:text-[12rem] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap";
 export const footerGrid = "grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10 items-start";
 export const footerNewsletterCol = "md:col-span-5 space-y-2";
 export const footerHeading = "text-xs font-bold text-slate-400 uppercase tracking-widest mb-2";
 export const footerLinkList = "space-y-1 text-xs text-slate-600";
 export const footerLinkItem = "hover:text-blue-600 font-semibold cursor-pointer transition py-0.5";
-export const footerBottomBar = " mt-3 pt-4 pb-4 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 relative z-10";
+export const footerBottomBar = "mt-3 pt-2 pb-4 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 relative z-10";
 export const footerSocialIcons = "flex items-center space-x-3 my-2 md:my-0";
 export const socialCircleBtn = "w-7 h-7 rounded-full border border-slate-600 flex items-center justify-center hover:bg-slate-900 hover:text-white hover:border-slate-900 transition text-slate-800 cursor-pointer text-xs font-bold shadow-2xs";
 export const scrollToTopBtn = "absolute right-6 top-3 w-9 h-9 rounded-full bg-[#1f242d] text-white flex items-center justify-center shadow-lg hover:bg-blue-600 transition cursor-pointer z-20";
+
+// About Page
+export const aboutContainer = "max-w-full mx-auto px-6 py-8 text-slate-800";
+export const aboutSectionGrid = "grid grid-cols-1 md:grid-cols-12 gap-12 items-center mb-1";
+export const aboutHeadingTitle = "text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-6";
+export const aboutSubHeadingTitle = "text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-4";
+export const aboutParagraph = "text-slate-600 text-sm sm:text-base leading-relaxed mb-4";
+export const aboutStatsBar = "bg-[#1f242d] text-white py-5 px-6 my-1 grid grid-cols-1 md:grid-cols-3 text-center rounded-2xl shadow-lg relative";
+export const aboutStatNumber = "text-4xl sm:text-5xl font-black mb-1";
+export const aboutStatLabel = "text-xs font-bold text-slate-400 tracking-widest uppercase";

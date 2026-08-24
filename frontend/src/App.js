@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import API from './utils/api';
 import Navbar from './components/Navbar';
 import SubNavbar from './components/SubNavbar';
-import FeaturedEventBanner from './components/FeaturedEventBanner';
+import HomePage from './components/HomePage';
 import EventTabs from './components/EventTabs';
 import EventGrid from './components/EventGrid';
-import LocationModal from './components/LocationModal'; // 1. IMPORT MODAL
+import LocationModal from './components/LocationModal';
 import { mainContainer } from './styles/MasterCSSClass';
 import Footer from './components/Footer';
+import AboutPage from './components/AboutPage';
 
 const App = () => {
   const [events, setEvents] = useState([]);
@@ -15,12 +16,14 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
   
-  // 2. ADD MODAL OPEN/CLOSE STATE
+  const [currentView, setCurrentView] = useState('home'); // 'home' or 'about'
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchEvents();
-  }, [location, activeTab]);
+    if (currentView === 'home') {
+      fetchEvents();
+    }
+  }, [location, activeTab, currentView]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -46,7 +49,6 @@ const App = () => {
     }
   };
 
-  // 3. HANDLER FOR SELECTING A CITY FROM THE MODAL
   const handleSelectCity = (selectedCity) => {
     setLocation(selectedCity);
     setIsLocationModalOpen(false);
@@ -54,19 +56,33 @@ const App = () => {
 
   return (
     <div className={mainContainer}>
-      {/* 4. PASS MODAL OPEN TRIGGER TO NAVBAR */}
       <Navbar 
         location={location} 
         onDetectLocation={detectLocation} 
         onOpenLocationModal={() => setIsLocationModalOpen(true)} 
+        onNavigateHome={() => setCurrentView('home')}
+        onNavigateAbout={() => setCurrentView('about')}
       />
       
-      <SubNavbar />
-      <FeaturedEventBanner />
-      <EventTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      <EventGrid events={events} loading={loading} location={location} activeTab={activeTab} />
+      {/* PASS VIEW NAVIGATION PROPS HERE */}
+      <SubNavbar 
+        onNavigateHome={() => setCurrentView('home')} 
+        onNavigateAbout={() => setCurrentView('about')} 
+      />
+
+      {/* Conditional View Rendering */}
+      {currentView === 'home' ? (
+        <>
+          <HomePage />
+          <EventTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <EventGrid events={events} loading={loading} location={location} activeTab={activeTab} />
+        </>
+      ) : (
+        <AboutPage />
+      )}
+
       <Footer />
-      {/* 5. RENDER THE LOCATION MODAL COMPONENT */}
+
       <LocationModal 
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
