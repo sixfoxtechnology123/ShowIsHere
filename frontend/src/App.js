@@ -7,6 +7,7 @@ import EventTabs from './components/EventTabs';
 import EventGrid from './components/EventGrid';
 import LocationModal from './components/LocationModal'; // 1. IMPORT MODAL
 import { mainContainer } from './styles/MasterCSSClass';
+import Footer from './components/Footer';
 
 const App = () => {
   const [events, setEvents] = useState([]);
@@ -64,7 +65,7 @@ const App = () => {
       <FeaturedEventBanner />
       <EventTabs activeTab={activeTab} onTabChange={setActiveTab} />
       <EventGrid events={events} loading={loading} location={location} activeTab={activeTab} />
-
+      <Footer />
       {/* 5. RENDER THE LOCATION MODAL COMPONENT */}
       <LocationModal 
         isOpen={isLocationModalOpen}
