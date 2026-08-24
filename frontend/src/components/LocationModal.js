@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import API from '../utils/api';
 import { indianCities } from '../utils/indianCities';
+
+import ahmedabadImg from '../assets/ahmedabad.png';
+import bangaluruImg from '../assets/bangaluru.png';
+import chennaiImg from '../assets/chennai.png';
+import delhiImg from '../assets/delhi.png';
+import hyderabadImg from '../assets/hyderabad.png';
+import kolkataImg from '../assets/kolkata.png';
+import mumbaiImg from '../assets/mumbai.png';
+import puneImg from '../assets/pune.png';
+
 import {
   modalOverlay,
   modalContainer,
@@ -16,7 +26,6 @@ import {
   popularTitle,
   popularGridCompact,
   cityCardCompact,
-  cityIconCircle,
   cityNameCompact,
   otherCitiesContainer,
   otherCitiesGridMulti,
@@ -36,81 +45,15 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
     }
   }, [isOpen]);
 
-  // Professional Artistic Line-Art SVGs matching BookMyShow style
   const defaultPopularCities = [
-    { 
-      city: 'Bengaluru', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <text x="14" y="48" fontSize="42" fontFamily="serif" fontWeight="bold" fill="currentColor">B</text>
-          <path d="M44 14v30M40 18l8-4M42 44h4" />
-        </svg>
-      ) 
-    },
-    { 
-      city: 'Chennai', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <text x="12" y="48" fontSize="42" fontFamily="serif" fontWeight="bold" fill="currentColor">C</text>
-          <path d="M40 22c6 2 8 8 6 16" />
-        </svg>
-      ) 
-    },
-    { 
-      city: 'Coimbatore', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <text x="10" y="48" fontSize="42" fontFamily="serif" fontWeight="bold" fill="currentColor">C</text>
-          <rect x="36" y="22" width="16" height="12" rx="2" />
-          <path d="M40 28h8M40 32h8" />
-        </svg>
-      ) 
-    },
-    { 
-      city: 'Hyderabad', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M16 50V18h32v32M24 50V28h16v22M20 18l12-10 12 10" />
-        </svg>
-      ) 
-    },
-    { 
-      city: 'Kochi', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <text x="14" y="48" fontSize="42" fontFamily="serif" fontWeight="bold" fill="currentColor">K</text>
-          <circle cx="44" cy="22" r="5" />
-          <path d="M44 27v16" />
-        </svg>
-      ) 
-    },
-    { 
-      city: 'Kolkata', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <text x="12" y="48" fontSize="42" fontFamily="serif" fontWeight="bold" fill="currentColor">K</text>
-          <path d="M38 18l14 10-14 10" />
-        </svg>
-      ) 
-    },
-    { 
-      city: 'New Delhi', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <text x="10" y="48" fontSize="42" fontFamily="serif" fontWeight="bold" fill="currentColor">D</text>
-          <path d="M42 18v28M38 22h8" />
-        </svg>
-      ) 
-    },
-    { 
-      city: 'Mumbai', 
-      svg: (
-        <svg className="w-12 h-12 text-slate-800" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <text x="8" y="48" fontSize="42" fontFamily="serif" fontWeight="bold" fill="currentColor">M</text>
-          <path d="M40 20l12 6-12 6" />
-        </svg>
-      ) 
-    }
+    { city: 'Mumbai', image: mumbaiImg },
+    { city: 'Delhi-NCR', image: delhiImg },
+    { city: 'Bengaluru', image: bangaluruImg },
+    { city: 'Hyderabad', image: hyderabadImg },
+    { city: 'Ahmedabad', image: ahmedabadImg },
+    { city: 'Pune', image: puneImg },
+    { city: 'Chennai', image: chennaiImg },
+    { city: 'Kolkata', image: kolkataImg }
   ];
 
   const fetchPopularCities = async () => {
@@ -171,15 +114,13 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
   return (
     <div className={modalOverlay}>
       <div className={modalContainer}>
-        {/* Compact Header */}
         <div className={modalHeaderRow}>
           <div className="w-5"></div>
           <h2 className={modalHeaderTitle}>Select Your City to Continue</h2>
           <button onClick={onClose} className={modalCloseButton}>✕</button>
         </div>
 
-        {/* Compact Search Bar with Radar GPS Detect Button */}
-        <div className={searchBarWrapper}>
+      <div className={searchBarWrapper}>
           <div className={searchBarInner}>
             <span className={searchIcon}>🔍</span>
             <input 
@@ -201,25 +142,31 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
                 <circle cx="12" cy="12" r="3"></circle>
                 <path strokeLinecap="round" d="M12 3v2m0 14v2M3 12h2m14 0h2"></path>
               </svg>
+              <span className="text-xs font-semibold text-rose-500 ml-1.5 whitespace-nowrap">Detect Location</span>
             </button>
           </div>
         </div>
-
-        {/* Tight Compact Body */}
         <div className={modalBodyCompact}>
           <div>
             <h4 className={popularTitle}>Popular Cities</h4>
             <div className={popularGridCompact}>
               {popularCities.map((item, index) => {
                 const cityNameStr = typeof item === 'string' ? item : item.city;
-                const citySvg = item.svg || defaultPopularCities[index % defaultPopularCities.length].svg;
+                const cityImg = item.image || defaultPopularCities.find(c => c.city.toLowerCase() === cityNameStr.toLowerCase())?.image;
+                
                 return (
                   <div 
                     key={index} 
                     onClick={() => { onSelectCity(cityNameStr); onClose(); }}
                     className={cityCardCompact}
                   >
-                    <div className="w-14 h-14 flex items-center justify-center mb-1 bg-white rounded-xl">{citySvg}</div>
+                    <div className="w-14 h-14 flex items-center justify-center mb-1 bg-white rounded-2xl border border-slate-200/60 p-1 shadow-2xs">
+                      {cityImg ? (
+                        <img src={cityImg} alt={cityNameStr} className="w-full h-full object-contain" />
+                      ) : (
+                        <span className="text-xl font-serif font-bold text-slate-800">{cityNameStr.charAt(0)}</span>
+                      )}
+                    </div>
                     <span className={cityNameCompact}>{cityNameStr}</span>
                   </div>
                 );
@@ -227,7 +174,6 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
             </div>
           </div>
 
-          {/* Expandable Other Cities Section */}
           {showAllCities && (
             <div className={otherCitiesContainer}>
               <h4 className={popularTitle}>Other Cities</h4>
@@ -246,7 +192,6 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
           )}
         </div>
 
-        {/* Professional Bottom Toggle Footer */}
         <button 
           onClick={() => setShowAllCities(!showAllCities)}
           className={toggleAllCitiesBtn}
@@ -254,7 +199,7 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
           {showAllCities ? 'Hide all cities' : 'View all cities'}
         </button>
       </div>
-     </div>
+    </div>
   );
 };
 
