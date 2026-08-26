@@ -12,12 +12,14 @@ import AboutPage from './components/AboutPage';
 
 const App = () => {
   const [events, setEvents] = useState([]);
-  const [location, setLocation] = useState('Kolkata');
+  const [location, setLocation] = useState('');
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
   
   const [currentView, setCurrentView] = useState('home'); // 'home' or 'about'
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  
+  // INITIALIZED TO TRUE SO IT OPENS AUTOMATICALLY ON FIRST PAGE LOAD
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(true);
 
   useEffect(() => {
     if (currentView === 'home') {
@@ -64,7 +66,6 @@ const App = () => {
         onNavigateAbout={() => setCurrentView('about')}
       />
       
-      {/* PASS VIEW NAVIGATION PROPS HERE */}
       <SubNavbar 
         onNavigateHome={() => setCurrentView('home')} 
         onNavigateAbout={() => setCurrentView('about')} 
@@ -81,7 +82,7 @@ const App = () => {
         <AboutPage />
       )}
 
-      <Footer />
+      <Footer onNavigateAbout={() => setCurrentView('about')} />
 
       <LocationModal 
         isOpen={isLocationModalOpen}

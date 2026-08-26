@@ -37,10 +37,10 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
 
       {/* Right: Location, Sign In, Menu */}
       <div className={navRightContainer}>
-        <button onClick={onOpenLocationModal} className={locationButton}>
-          <span>{location}</span>
-          <span className="text-[10px] ml-1">▼</span>
-        </button>
+       <button onClick={onOpenLocationModal} className={locationButton}>
+            <span>{location || 'Select City'}</span>
+            <span className="text-[10px] font-bold ml-1">▼</span>
+          </button>
 
         <button className={signInButton}>
           Sign in

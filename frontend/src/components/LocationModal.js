@@ -47,7 +47,7 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
 
   const defaultPopularCities = [
     { city: 'Mumbai', image: mumbaiImg },
-    { city: 'Delhi-NCR', image: delhiImg },
+    { city: 'Delhi', image: delhiImg },
     { city: 'Bengaluru', image: bangaluruImg },
     { city: 'Hyderabad', image: hyderabadImg },
     { city: 'Ahmedabad', image: ahmedabadImg },
@@ -122,7 +122,7 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
 
       <div className={searchBarWrapper}>
           <div className={searchBarInner}>
-            <span className={searchIcon}>🔍</span>
+            <span className={searchIcon}></span>
             <input 
               type="text"
               placeholder={detecting ? "Detecting location..." : "Search For A Location..."}

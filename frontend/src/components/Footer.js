@@ -18,22 +18,39 @@ import {
   scrollToTopBtn
 } from '../styles/MasterCSSClass';
 
-const Footer = () => {
+const Footer = ({ onNavigateAbout }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const handleOurStoryClick = () => {
+    if (onNavigateAbout) {
+      onNavigateAbout();
+      scrollToTop();
+    }
+  };
+
+  // Fixed layout: using 'block w-max' instead of 'inline-block' so items stay stacked correctly
+  const linkHoverClass = `${footerLinkItem} relative block w-max after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-slate-900 after:scale-x-0 after:origin-center after:transition-transform after:duration-300 hover:after:scale-x-100 cursor-pointer`;
 
   return (
     <footer className={footerWrapper}>
       {/* Top Bar */}
       <div className={footerTopBar}>
-        <div className={footerTopItem}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.715m12 0v-.95a3 3 0 00-3-3h-6a3 3 0 00-3 3v.95M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        <a 
+          href="https://wa.me/919836858904?text=Hello%20ShowIsHere%20Support,%20I%20need%20help%20with%20my%20booking." 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className={`${footerTopItem} hover:text-emerald-400 transition-colors`}
+        >
+          <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
           </svg>
-          <span>24/7 CUSTOMER SUPPORT</span>
-        </div>
+          <span className="cursor-pointer">24/7 CUSTOMER SUPPORT</span>
+        </a>
+        
         <div className="hidden md:block border-r border-slate-700 h-4"></div>
+        
         <div className={footerTopItem}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
@@ -80,10 +97,10 @@ const Footer = () => {
           <div className="md:col-span-2">
             <h4 className={footerHeading}>EXPLORE</h4>
             <ul className={footerLinkList}>
-              <li className={footerLinkItem}>Our Story</li>
-              <li className={footerLinkItem}>Pricing</li>
-              <li className={footerLinkItem}>Contact</li>
-              <li className={footerLinkItem}>Event Buzz</li>
+              <li className={linkHoverClass} onClick={handleOurStoryClick}>Our Story</li>
+              <li className={linkHoverClass}>Pricing</li>
+              <li className={linkHoverClass}>Contact</li>
+              <li className={linkHoverClass}>Event Buzz</li>
             </ul>
           </div>
 
@@ -91,12 +108,12 @@ const Footer = () => {
           <div className="md:col-span-3">
             <h4 className={footerHeading}>POPULAR CITIES</h4>
             <ul className={footerLinkList}>
-              <li className={footerLinkItem}>Kolkata</li>
-              <li className={footerLinkItem}>Chennai</li>
-              <li className={footerLinkItem}>Bengaluru</li>
-              <li className={footerLinkItem}>Hyderabad</li>
-              <li className={footerLinkItem}>Mumbai</li>
-              <li className={footerLinkItem}>Goa</li>
+              <li className={linkHoverClass}>Kolkata</li>
+              <li className={linkHoverClass}>Chennai</li>
+              <li className={linkHoverClass}>Bengaluru</li>
+              <li className={linkHoverClass}>Hyderabad</li>
+              <li className={linkHoverClass}>Mumbai</li>
+              <li className={linkHoverClass}>Goa</li>
             </ul>
           </div>
 
@@ -104,12 +121,12 @@ const Footer = () => {
           <div className="md:col-span-2">
             <h4 className={footerHeading}>REFERENCES</h4>
             <ul className={footerLinkList}>
-              <li className={footerLinkItem}>The Way It Works</li>
-              <li className={footerLinkItem}>Terms of Use</li>
-              <li className={footerLinkItem}>Privacy</li>
-              <li className={footerLinkItem}>Refunds & Cancellations</li>
-              <li className={footerLinkItem}>FAQs</li>
-              <li className={footerLinkItem}>Raise a Concern</li>
+              <li className={linkHoverClass}>The Way It Works</li>
+              <li className={linkHoverClass}>Terms of Use</li>
+              <li className={linkHoverClass}>Privacy</li>
+              <li className={linkHoverClass}>Refunds & Cancellations</li>
+              <li className={linkHoverClass}>FAQs</li>
+              <li className={linkHoverClass}>Raise a Concern</li>
             </ul>
           </div>
         </div>

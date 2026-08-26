@@ -9,7 +9,7 @@ import {
 
 const SubNavbar = ({ onNavigateHome, onNavigateAbout }) => {
   const leftLinks = ['Movies', 'Events', 'Plays', 'Sports', 'Activities'];
-  const rightLinks = ['About Us', 'Create Events', 'Collaborate', 'Coupon', 'Find My Tickets'];
+  const rightLinks = ['Create Events', 'Collaborate', 'Coupon', 'Find My Tickets'];
 
   const handleLinkClick = (link) => {
     if (link === 'About Us' && onNavigateAbout) {

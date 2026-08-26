@@ -1,11 +1,5 @@
-// ==========================================
-// SHOWISHERE - MASTER CSS CLASS DEFINITIONS
-// ==========================================
-
-// Layout & Core (Soft off-white background to make white containers pop)
 export const mainContainer = "min-h-screen bg-[#f4f5f7] text-slate-900 font-sans antialiased";
 
-// Navbar (Crisp white background with subtle border)
 export const navbar = "bg-white text-slate-800 px-6 py-3 flex items-center justify-between border-b border-slate-200/80 sticky top-0 z-50 shadow-xs";
 export const logoContainer = "flex items-center space-x-3 cursor-pointer";
 export const logoImage = "h-9 w-auto object-contain rounded-md";
@@ -13,20 +7,17 @@ export const brandTitle = "text-xl font-bold tracking-tight text-slate-900";
 export const navRightContainer = "flex items-center space-x-4";
 export const locationButton = "flex items-center space-x-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition border border-slate-200";
 
-// Navbar Search & Actions
 export const navSearchWrapper = "flex-1 max-w-xl mx-8 hidden md:flex items-center bg-slate-100 border border-slate-200 rounded-full px-4 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-rose-500 transition shadow-inner";
 export const navSearchInput = "w-full text-xs font-medium bg-transparent focus:outline-none text-slate-800 placeholder-slate-400";
 export const signInButton = "bg-[#ed384e] hover:bg-[#d62d42] text-white text-xs font-semibold px-4 py-1.5 rounded-md transition shadow-xs cursor-pointer";
 export const menuIconButton = "text-slate-700 hover:text-slate-900 focus:outline-none ml-1 cursor-pointer";
 
-// Sub-Navbar
 export const subNavbarContainer = "bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between shadow-xs overflow-x-auto";
 export const subNavLeftLinks = "flex items-center space-x-6 text-sm font-medium text-slate-600";
 export const subNavLink = "hover:text-blue-600 transition-colors whitespace-nowrap cursor-pointer";
 export const subNavRightLinks = "flex items-center space-x-5 text-sm font-medium text-slate-700";
 export const subNavRightLink = "hover:text-blue-600 transition-colors whitespace-nowrap cursor-pointer";
 
-// Hero Banner
 export const heroBannerWrapper = "px-6 py-6 max-w-7xl mx-auto";
 export const ticketBannerContainer = "bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden relative flex flex-col lg:flex-row items-stretch";
 export const heroContentArea = "p-8 flex-grow flex flex-col justify-between";
@@ -44,8 +35,7 @@ export const primaryButton = "bg-blue-600 hover:bg-blue-700 text-white font-semi
 export const detailsButton = "bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold px-6 py-3 rounded-xl transition text-sm";
 export const heroArtSection = "lg:w-96 bg-gradient-to-br from-indigo-950 to-blue-900 p-6 relative flex items-center justify-center overflow-hidden";
 
-// Location Modal Styles
-export const modalOverlay = "fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4";
+export const modalOverlay = "fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start pt-4 z-50 p-4";
 export const modalContainer = "bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]";
 export const modalHeaderRow = "px-6 py-1 border-b border-slate-100 flex items-center justify-between";
 export const modalHeaderTitle = "text-lg font-bold text-slate-800 text-center flex-grow";
@@ -62,16 +52,14 @@ export const cityCardCompact = "flex flex-col items-center p-2 rounded-2xl hover
 export const cityIconCircle = "w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-xl mb-1 border border-slate-100";
 export const cityNameCompact = "text-xs font-semibold text-slate-700 truncate w-full";
 export const otherCitiesContainer = "mt-6 pt-6 border-t border-slate-100";
-export const otherCitiesGridMulti = "grid grid-cols-2 sm:grid-cols-5 gap-y-2 gap-x-4 text-xs text-slate-600 max-h-48 overflow-y-auto pr-2";
+export const otherCitiesGridMulti = "grid grid-cols-2 sm:grid-cols-5  gap-x-4 text-xs text-slate-600 max-h-48 overflow-y-auto pr-2";
 export const otherCityItemRow = "hover:text-rose-600 cursor-pointer transition py-1 truncate";
 export const toggleAllCitiesBtn = "w-full text-center py-3 text-rose-600 font-semibold text-sm hover:bg-rose-50 transition border-t border-slate-100 cursor-pointer";
 
-// Event Tabs
 export const tabsContainer = "flex space-x-6 px-6 pt-6 border-b border-slate-200 bg-white shadow-xs overflow-x-auto";
 export const tabButtonActive = "pb-3 font-semibold text-sm transition-colors border-b-2 border-blue-600 text-blue-600 whitespace-nowrap";
 export const tabButtonInactive = "pb-3 font-medium text-sm transition-colors border-b-2 border-transparent text-slate-500 hover:text-slate-800 whitespace-nowrap";
 
-// Event Cards & Grid
 export const eventGrid = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6 py-8 max-w-7xl mx-auto";
 export const eventCard = "bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-slate-100 cursor-pointer relative flex flex-col group";
 export const eventThumbnail = "w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300";
@@ -83,7 +71,6 @@ export const redSticker = "absolute top-3 left-3 bg-red-600 text-white text-xs f
 export const trendingBadge = "absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md z-10";
 export const emptyState = "col-span-full text-center py-16 text-slate-500 font-medium bg-white rounded-2xl border border-dashed border-slate-300 shadow-xs";
 
-// Footer
 export const footerWrapper = "bg-[#f8f9fc] border-t border-slate-200 mt-1 text-slate-700 text-sm";
 export const footerTopBar = "bg-[#1f242d] text-white py-2 px-6 flex flex-col sm:flex-row items-center justify-around text-xs font-medium tracking-wide";
 export const footerTopItem = "flex items-center space-x-2 cursor-pointer hover:text-slate-300 transition py-0.5";
@@ -100,7 +87,6 @@ export const footerSocialIcons = "flex items-center space-x-3 my-2 md:my-0";
 export const socialCircleBtn = "w-7 h-7 rounded-full border border-slate-600 flex items-center justify-center hover:bg-slate-900 hover:text-white hover:border-slate-900 transition text-slate-800 cursor-pointer text-xs font-bold shadow-2xs";
 export const scrollToTopBtn = "absolute right-6 top-3 w-9 h-9 rounded-full bg-[#1f242d] text-white flex items-center justify-center shadow-lg hover:bg-blue-600 transition cursor-pointer z-20";
 
-// About Page
 export const aboutContainer = "max-w-full mx-auto px-6 py-8 text-slate-800";
 export const aboutSectionGrid = "grid grid-cols-1 md:grid-cols-12 gap-12 items-center mb-1";
 export const aboutHeadingTitle = "text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-6";
