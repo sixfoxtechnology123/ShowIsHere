@@ -1,6 +1,11 @@
+const express = require('express');
 const app = require('./app');
 const connectDB = require('./config/db');
 require('dotenv').config();
+
+// Set 100MB limit directly if express is required here
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Import Artist Routes
 const artistRoutes = require('./routes/artistRoutes');

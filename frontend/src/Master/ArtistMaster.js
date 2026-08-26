@@ -79,7 +79,7 @@ const ArtistMaster = () => {
   const resetForm = () => {
     setEditId(null);
     setArtistName('');
-    setArtistType('SINGER');
+    setArtistType('ARTIST');
     setDescription('');
     setPhotoBase64('');
   };
@@ -105,7 +105,7 @@ const ArtistMaster = () => {
       }
       resetForm();
       fetchArtists();
-      setViewMode('list');
+      // Stays on the form page instead of redirecting to list view
     } catch (err) {
       alert(err?.response?.data?.error || 'SAVE FAILED - CHECK SERVER');
     } finally {
@@ -116,7 +116,7 @@ const ArtistMaster = () => {
   const handleEdit = (item) => {
     setEditId(item._id);
     setArtistName(item.artistName || '');
-    setArtistType(item.artistType || 'SINGER');
+    setArtistType(item.artistType || 'ARTIST');
     setDescription(item.description || '');
     setPhotoBase64(item.photoUrl || '');
     setViewMode('form');
