@@ -74,7 +74,7 @@ export const emptyState = "col-span-full text-center py-16 text-slate-500 font-m
 export const footerWrapper = "bg-[#f8f9fc] border-t border-slate-200 mt-1 text-slate-700 text-sm";
 export const footerTopBar = "bg-[#1f242d] text-white py-2 px-6 flex flex-col sm:flex-row items-center justify-around text-xs font-medium tracking-wide";
 export const footerTopItem = "flex items-center space-x-2 cursor-pointer hover:text-slate-300 transition py-0.5";
-export const footerMainContent = "max-w-7xl mx-auto px-6 py-6 relative overflow-hidden";
+export const footerMainContent = "max-w-7xl mx-auto px-6 py-1 relative overflow-hidden";
 export const footerWatermark = "absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden opacity-[0.08] select-none";
 export const footerWatermarkText = "text-[10rem] sm:text-[12rem] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap";
 export const footerGrid = "grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10 items-start";
@@ -95,3 +95,33 @@ export const aboutParagraph = "text-slate-600 text-sm sm:text-base leading-relax
 export const aboutStatsBar = "bg-[#1f242d] text-white py-5 px-6 my-1 grid grid-cols-1 md:grid-cols-3 text-center rounded-2xl shadow-lg relative";
 export const aboutStatNumber = "text-4xl sm:text-5xl font-black mb-1";
 export const aboutStatLabel = "text-xs font-bold text-slate-400 tracking-widest uppercase";
+
+
+
+// ==========================================
+// SEAT MAP CREATOR STYLES
+// ==========================================
+export const seatMapWrapper = "min-h-screen bg-[#f4f5f7] text-slate-900 font-sans flex flex-col justify-between select-none overflow-x-hidden";
+export const seatMapHeader = "bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-end sticky top-0 z-40 shadow-xs space-x-3";
+export const seatMapBody = "flex flex-1 overflow-hidden relative";
+export const seatMapSidebar = "w-48 bg-white border-r border-slate-200 p-4 overflow-y-auto flex flex-col space-y-6 shrink-0 text-xs";
+export const seatMapCanvasArea = "flex-1 bg-slate-100 relative overflow-auto flex flex-col items-center justify-center p-1";
+export const zoomToolbar = "absolute top-4 right-6 bg-white border border-slate-200 rounded-xl px-3 py-1.5 flex items-center space-x-3 shadow-xs z-20 text-xs";
+export const canvasBoard = "w-[1100px] h-[700px] bg-white rounded-3xl shadow-xl border border-slate-200 relative overflow-hidden transition-transform duration-150";
+export const canvasGridBg = "absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-60";
+export const stageBox = "absolute top-1 left-1/2 transform -translate-x-1/2 bg-white text-slate-800 rounded-2xl flex items-center justify-center font-extrabold text-xs tracking-widest shadow-sm border border-slate-300";
+export const sectionCard = "absolute bg-white/95 backdrop-blur-xs border-2 rounded-2xl p-4 shadow-lg transition-shadow cursor-move";
+export const propertiesSidebar = "w-64 bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 space-y-5 text-xs z-30";
+export const seatMapFooter = "bg-white border-t border-slate-200 px-6 py-2.5 flex items-center justify-between text-xs font-medium text-slate-600 z-40";
+export const sidebarToggleBtn = "bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer border border-slate-200 flex items-center space-x-1.5";
+
+// ==========================================
+// SIDEBAR ELEMENT & TEMPLATE STYLES
+// ==========================================
+export const sidebarSectionTitle = "font-bold text-slate-400 uppercase tracking-wider mb-1";
+export const sidebarListContainer = "text-slate-700 font-medium space-y-1";
+export const sidebarItemCard = "p-1 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center space-x-2 transition";
+export const sidebarTemplateCard = "p-1 hover:bg-blue-50 hover:text-blue-600 rounded-lg cursor-pointer transition";
+export const sidebarInstructionBox = "bg-slate-50 p-1 rounded-xl border border-slate-200 text-[11px] text-slate-500 space-y-1";
+export const sidebarInstructionTitle = "font-bold text-slate-700 block";
+export const sidebarDivider = "border-slate-100 my-1";

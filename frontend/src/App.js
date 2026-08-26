@@ -9,6 +9,7 @@ import LocationModal from './components/LocationModal';
 import { mainContainer } from './styles/MasterCSSClass';
 import Footer from './components/Footer';
 import AboutPage from './components/AboutPage';
+import SeatMap from './components/SeatMap';
 
 const App = () => {
   const [events, setEvents] = useState([]);
@@ -16,7 +17,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
   
-  const [currentView, setCurrentView] = useState('home'); // 'home' or 'about'
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'about', or 'seatmap'
   
   // INITIALIZED TO TRUE SO IT OPENS AUTOMATICALLY ON FIRST PAGE LOAD
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(true);
@@ -69,6 +70,7 @@ const App = () => {
       <SubNavbar 
         onNavigateHome={() => setCurrentView('home')} 
         onNavigateAbout={() => setCurrentView('about')} 
+        onNavigateSeatMap={() => setCurrentView('seatmap')}
       />
 
       {/* Conditional View Rendering */}
@@ -78,8 +80,10 @@ const App = () => {
           <EventTabs activeTab={activeTab} onTabChange={setActiveTab} />
           <EventGrid events={events} loading={loading} location={location} activeTab={activeTab} />
         </>
-      ) : (
+      ) : currentView === 'about' ? (
         <AboutPage />
+      ) : (
+        <SeatMap />
       )}
 
       <Footer onNavigateAbout={() => setCurrentView('about')} />

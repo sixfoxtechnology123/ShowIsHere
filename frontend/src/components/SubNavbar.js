@@ -7,7 +7,7 @@ import {
   subNavRightLink
 } from '../styles/MasterCSSClass';
 
-const SubNavbar = ({ onNavigateHome, onNavigateAbout }) => {
+const SubNavbar = ({ onNavigateHome, onNavigateAbout, onNavigateSeatMap }) => {
   const leftLinks = ['Movies', 'Events', 'Plays', 'Sports', 'Activities'];
   const rightLinks = ['Create Events', 'Collaborate', 'Coupon', 'Find My Tickets'];
 
@@ -16,6 +16,8 @@ const SubNavbar = ({ onNavigateHome, onNavigateAbout }) => {
       onNavigateAbout();
     } else if ((link === 'Events' || link === 'Movies') && onNavigateHome) {
       onNavigateHome();
+    } else if (link === 'Create Events' && onNavigateSeatMap) {
+      onNavigateSeatMap(); // Opens the Seat Map Creator
     }
   };
 
