@@ -125,3 +125,33 @@ export const sidebarTemplateCard = "p-1 hover:bg-blue-50 hover:text-blue-600 rou
 export const sidebarInstructionBox = "bg-slate-50 p-1 rounded-xl border border-slate-200 text-[11px] text-slate-500 space-y-1";
 export const sidebarInstructionTitle = "font-bold text-slate-700 block";
 export const sidebarDivider = "border-slate-100 my-1";
+
+
+// ==========================================
+// COMPACT ARTIST MASTER STYLES
+// ==========================================
+export const artistPageWrapper = "flex flex-col h-full w-full overflow-hidden bg-[#f4f5f7]";
+export const artistWorkspace = "flex-1 w-full p-3 flex flex-col overflow-y-auto space-y-2";
+export const artistFormBox = "bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-2 w-full";
+export const artistFormHeader = "flex justify-between items-center border-b border-slate-100 pb-1.5";
+export const artistFormHeading = "text-xs font-extrabold uppercase tracking-wide text-slate-800";
+export const artistFormGrid = "grid grid-cols-1 md:grid-cols-2 gap-2";
+export const artistLabelStyle = "block text-[10px] font-bold text-slate-700 mb-0.5";
+export const artistInputStyle = "w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium uppercase";
+export const artistTextareaStyle = "w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium uppercase resize-none";
+export const artistListCard = "bg-white rounded-2xl shadow-sm border border-slate-100 p-3 space-y-2 flex-1 flex flex-col w-full";
+export const artistListHeaderRow = "grid grid-cols-1 sm:grid-cols-3 items-center gap-2 border-b border-slate-100 pb-2";
+export const artistSearchInputCenter = "w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1 text-xs font-medium uppercase text-center focus:outline-none";
+export const artistTableHeadStyle = "border-b border-slate-200 text-slate-400 uppercase text-[10px]";
+export const artistTableRowStyle = "hover:bg-slate-50 transition border-b border-slate-100 text-xs text-slate-700 uppercase";
+export const artistAvatarCircle = "w-7 h-7 object-cover rounded-full border border-slate-200";
+export const artistAvatarFallback = "w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400 text-[9px]";
+export const artistActionBtnEditClass = "text-blue-600 hover:text-blue-800 font-bold cursor-pointer text-[11px]";
+export const artistActionBtnDeleteClass = "text-rose-600 hover:text-rose-800 font-bold cursor-pointer text-[11px]";
+export const artistThSlNo = "py-0.5 px-2 w-12 text-center";
+export const artistTdSlNo = "py-0.5 px-2 text-center font-medium text-slate-500";
+export const artistThPhoto = "py-0.5 px-2 w-16";
+export const artistThName = "py-0.5 px-2";
+export const artistThType = "py-0.5 px-2 w-28";
+export const artistThDesc = "py-0.5 px-2";
+export const artistThAction = "py-0.5 px-2 text-right w-24";

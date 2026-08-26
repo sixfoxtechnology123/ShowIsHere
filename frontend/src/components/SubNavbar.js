@@ -7,9 +7,9 @@ import {
   subNavRightLink
 } from '../styles/MasterCSSClass';
 
-const SubNavbar = ({ onNavigateHome, onNavigateAbout, onNavigateSeatMap }) => {
+const SubNavbar = ({ onNavigateHome, onNavigateAbout, onNavigateSeatMap, onNavigateArtistMaster }) => {
   const leftLinks = ['Movies', 'Events', 'Plays', 'Sports', 'Activities'];
-  const rightLinks = ['Create Events', 'Collaborate', 'Coupon', 'Find My Tickets'];
+  const rightLinks = ['Create Events', 'Artists', 'Collaborate', 'Coupon', 'Find My Tickets'];
 
   const handleLinkClick = (link) => {
     if (link === 'About Us' && onNavigateAbout) {
@@ -18,6 +18,8 @@ const SubNavbar = ({ onNavigateHome, onNavigateAbout, onNavigateSeatMap }) => {
       onNavigateHome();
     } else if (link === 'Create Events' && onNavigateSeatMap) {
       onNavigateSeatMap(); // Opens the Seat Map Creator
+    } else if (link === 'Artists' && onNavigateArtistMaster) {
+      onNavigateArtistMaster(); // Opens the Artist Master Page
     }
   };
 

@@ -10,6 +10,7 @@ import { mainContainer } from './styles/MasterCSSClass';
 import Footer from './components/Footer';
 import AboutPage from './components/AboutPage';
 import SeatMap from './components/SeatMap';
+import ArtistMaster from './Master/ArtistMaster';
 
 const App = () => {
   const [events, setEvents] = useState([]);
@@ -17,7 +18,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
   
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'about', or 'seatmap'
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'about', 'seatmap', or 'artistmaster'
   
   // INITIALIZED TO TRUE SO IT OPENS AUTOMATICALLY ON FIRST PAGE LOAD
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(true);
@@ -71,6 +72,7 @@ const App = () => {
         onNavigateHome={() => setCurrentView('home')} 
         onNavigateAbout={() => setCurrentView('about')} 
         onNavigateSeatMap={() => setCurrentView('seatmap')}
+        onNavigateArtistMaster={() => setCurrentView('artistmaster')}
       />
 
       {/* Conditional View Rendering */}
@@ -82,8 +84,10 @@ const App = () => {
         </>
       ) : currentView === 'about' ? (
         <AboutPage />
-      ) : (
+      ) : currentView === 'seatmap' ? (
         <SeatMap />
+      ) : (
+        <ArtistMaster />
       )}
 
       <Footer onNavigateAbout={() => setCurrentView('about')} />
