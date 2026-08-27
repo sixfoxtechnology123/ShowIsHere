@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import LogoImg from '../assets/Logo.jpeg';
 import {
   footerWrapper,
@@ -18,16 +19,9 @@ import {
   scrollToTopBtn
 } from '../styles/MasterCSSClass';
 
-const Footer = ({ onNavigateAbout }) => {
+const Footer = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleOurStoryClick = () => {
-    if (onNavigateAbout) {
-      onNavigateAbout();
-      scrollToTop();
-    }
   };
 
   // Fixed layout: using 'block w-max' instead of 'inline-block' so items stay stacked correctly
@@ -97,7 +91,11 @@ const Footer = ({ onNavigateAbout }) => {
           <div className="md:col-span-2">
             <h4 className={footerHeading}>EXPLORE</h4>
             <ul className={footerLinkList}>
-              <li className={linkHoverClass} onClick={handleOurStoryClick}>Our Story</li>
+              <li>
+                <Link to="/about" onClick={scrollToTop} className={linkHoverClass} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  Our Story
+                </Link>
+              </li>
               <li className={linkHoverClass}>Pricing</li>
               <li className={linkHoverClass}>Contact</li>
               <li className={linkHoverClass}>Event Buzz</li>

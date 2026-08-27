@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import API from './utils/api';
 import Navbar from './components/Navbar';
 import SubNavbar from './components/SubNavbar';
@@ -13,22 +14,18 @@ import SeatMap from './components/SeatMap';
 import ArtistMaster from './Master/ArtistMaster';
 import { Toaster } from 'react-hot-toast';
 
-const App = () => {
+const AppContent = () => {
   const [events, setEvents] = useState([]);
   const [location, setLocation] = useState('');
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
   
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'about', 'seatmap', or 'artistmaster'
-  
   // INITIALIZED TO TRUE SO IT OPENS AUTOMATICALLY ON FIRST PAGE LOAD
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(true);
 
   useEffect(() => {
-    if (currentView === 'home') {
-      fetchEvents();
-    }
-  }, [location, activeTab, currentView]);
+    fetchEvents();
+  }, [location, activeTab]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -125,33 +122,25 @@ const App = () => {
         location={location} 
         onDetectLocation={detectLocation} 
         onOpenLocationModal={() => setIsLocationModalOpen(true)} 
-        onNavigateHome={() => setCurrentView('home')}
-        onNavigateAbout={() => setCurrentView('about')}
       />
       
-      <SubNavbar 
-        onNavigateHome={() => setCurrentView('home')} 
-        onNavigateAbout={() => setCurrentView('about')} 
-        onNavigateSeatMap={() => setCurrentView('seatmap')}
-        onNavigateArtistMaster={() => setCurrentView('artistmaster')}
-      />
+      <SubNavbar />
 
-      {/* Conditional View Rendering */}
-      {currentView === 'home' ? (
-        <>
-          <HomePage />
-          <EventTabs activeTab={activeTab} onTabChange={setActiveTab} />
-          <EventGrid events={events} loading={loading} location={location} activeTab={activeTab} />
-        </>
-      ) : currentView === 'about' ? (
-        <AboutPage />
-      ) : currentView === 'seatmap' ? (
-        <SeatMap />
-      ) : (
-        <ArtistMaster />
-      )}
+      {/* URL-based Routing View Rendering */}
+      <Routes>
+        <Route path="/" element={
+          <>
+            <HomePage />
+            <EventTabs activeTab={activeTab} onTabChange={setActiveTab} />
+            <EventGrid events={events} loading={loading} location={location} activeTab={activeTab} />
+          </>
+        } />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/seatmap" element={<SeatMap />} />
+        <Route path="/artist-master" element={<ArtistMaster />} />
+      </Routes>
 
-      <Footer onNavigateAbout={() => setCurrentView('about')} />
+      <Footer />
 
       <LocationModal 
         isOpen={isLocationModalOpen}
@@ -159,6 +148,14 @@ const App = () => {
         onSelectCity={handleSelectCity}
       />
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 };
 

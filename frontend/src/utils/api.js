@@ -1,12 +1,9 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5005/api';
+const API_BASE_URL = 'http://localhost:5005/api';
 
 const request = async (endpoint, options = {}) => {
-  const tenantKey = localStorage.getItem('tenantKey') || 'showishere-default';
   const token = localStorage.getItem('token');
-
   const headers = {
     'Content-Type': 'application/json',
-    'x-tenant-key': tenantKey,
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };

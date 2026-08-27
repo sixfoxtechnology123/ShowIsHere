@@ -1,7 +1,7 @@
 const express = require('express');
 const app = require('./app');
 const connectDB = require('./config/db');
-require('dotenv').config();
+require('dotenv').config({ path: __dirname + '/.env' });
 
 // Set 100MB limit directly if express is required here
 app.use(express.json({ limit: '100mb' }));

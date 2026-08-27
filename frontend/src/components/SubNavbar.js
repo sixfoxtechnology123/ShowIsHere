@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   subNavbarContainer,
   subNavLeftLinks,
@@ -7,44 +8,47 @@ import {
   subNavRightLink
 } from '../styles/MasterCSSClass';
 
-const SubNavbar = ({ onNavigateHome, onNavigateAbout, onNavigateSeatMap, onNavigateArtistMaster }) => {
-  const leftLinks = ['Movies', 'Events', 'Plays', 'Sports', 'Activities'];
-  const rightLinks = ['Create Events', 'Artists', 'Collaborate', 'Coupon', 'Find My Tickets'];
+const SubNavbar = () => {
+  const leftLinks = [
+    { name: 'Movies', path: '/' },
+    { name: 'Events', path: '/' },
+    { name: 'Plays', path: '/' },
+    { name: 'Sports', path: '/' },
+    { name: 'Activities', path: '/' }
+  ];
 
-  const handleLinkClick = (link) => {
-    if (link === 'About Us' && onNavigateAbout) {
-      onNavigateAbout();
-    } else if ((link === 'Events' || link === 'Movies') && onNavigateHome) {
-      onNavigateHome();
-    } else if (link === 'Create Events' && onNavigateSeatMap) {
-      onNavigateSeatMap(); // Opens the Seat Map Creator
-    } else if (link === 'Artists' && onNavigateArtistMaster) {
-      onNavigateArtistMaster(); // Opens the Artist Master Page
-    }
-  };
+  const rightLinks = [
+    { name: 'Create Events', path: '/seatmap' },
+    { name: 'Artists', path: '/artist-master' },
+    { name: 'Collaborate', path: '#' },
+    { name: 'Coupon', path: '#' },
+    { name: 'Find My Tickets', path: '#' }
+  ];
 
   return (
     <div className={subNavbarContainer}>
       <div className={subNavLeftLinks}>
-        {leftLinks.map((link) => (
-          <span 
-            key={link} 
+        {leftLinks.map((item) => (
+          <Link 
+            key={item.name} 
+            to={item.path}
             className={subNavLink}
-            onClick={() => handleLinkClick(link)}
+            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            {link}
-          </span>
+            {item.name}
+          </Link>
         ))}
       </div>
       <div className={subNavRightLinks}>
-        {rightLinks.map((link) => (
-          <span 
-            key={link} 
+        {rightLinks.map((item) => (
+          <Link 
+            key={item.name} 
+            to={item.path}
             className={subNavRightLink}
-            onClick={() => handleLinkClick(link)}
+            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            {link}
-          </span>
+            {item.name}
+          </Link>
         ))}
       </div>
     </div>

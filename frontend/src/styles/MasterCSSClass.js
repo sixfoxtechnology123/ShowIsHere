@@ -46,13 +46,13 @@ export const searchIcon = "text-rose-500 mr-3 text-lg";
 export const searchInputClean = "w-full focus:outline-none text-slate-800 text-sm bg-transparent placeholder-slate-400";
 export const detectIconBtn = "text-rose-500 hover:text-rose-600 pl-3 border-l border-slate-200 ml-2 cursor-pointer flex items-center";
 export const modalBodyCompact = "px-8 py-1 overflow-y-auto space-y-1";
-export const popularTitle = "text-center text-xs font-bold text-slate-400 uppercase tracking-wider mb-4";
+export const popularTitle = "text-center text-xs font-bold text-slate-400 tracking-wider mb-4";
 export const popularGridCompact = "grid grid-cols-4 sm:grid-cols-8 gap-3 text-center justify-items-between w-full";
-export const cityCardCompact = "flex flex-col items-center p-1 rounded-2xl hover:bg-slate-50 transition cursor-pointer  hover:border-slate-100 bg-white shadow-xs";
+export const cityCardCompact = "flex flex-col items-center p-1 rounded-2xl hover:bg-slate-50 transition cursor-pointer hover:border-slate-100 bg-white shadow-xs";
 export const cityIconCircle = "w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-xl mb-1 border border-slate-100";
 export const cityNameCompact = "text-xs font-semibold text-slate-700 truncate w-full";
 export const otherCitiesContainer = "mt-6 pt-2 border-t border-slate-100";
-export const otherCitiesGridMulti = "grid grid-cols-2 sm:grid-cols-5  gap-x-4 text-xs text-slate-600 max-h-48 overflow-y-auto pr-2";
+export const otherCitiesGridMulti = "grid grid-cols-2 sm:grid-cols-5 gap-x-4 text-xs text-slate-600 max-h-48 overflow-y-auto pr-2";
 export const otherCityItemRow = "hover:text-rose-600 cursor-pointer transition py-1 truncate";
 export const toggleAllCitiesBtn = "w-full text-center py-3 text-rose-600 font-semibold text-sm hover:bg-rose-50 transition border-t border-slate-100 cursor-pointer";
 
@@ -67,8 +67,8 @@ export const eventTitle = "font-bold text-lg text-slate-800 truncate px-4 pt-3";
 export const eventSubText = "text-sm text-slate-500 px-4 pb-4 flex-grow";
 export const cardFooter = "px-4 pb-4 flex justify-between items-center border-t border-slate-50 pt-3 mt-auto";
 export const salesBadge = "text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md";
-export const redSticker = "absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md z-10";
-export const trendingBadge = "absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md z-10";
+export const redSticker = "absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-md z-10";
+export const trendingBadge = "absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-md z-10";
 export const emptyState = "col-span-full text-center py-16 text-slate-500 font-medium bg-white rounded-2xl border border-dashed border-slate-300 shadow-xs";
 
 export const footerWrapper = "bg-[#f8f9fc] border-t border-slate-200 mt-1 text-slate-700 text-sm";
@@ -76,10 +76,10 @@ export const footerTopBar = "bg-[#1f242d] text-white py-2 px-6 flex flex-col sm:
 export const footerTopItem = "flex items-center space-x-2 cursor-pointer hover:text-slate-300 transition py-0.5";
 export const footerMainContent = "max-w-7xl mx-auto px-6 py-1 relative overflow-hidden";
 export const footerWatermark = "absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden opacity-[0.08] select-none";
-export const footerWatermarkText = "text-[10rem] sm:text-[12rem] font-black uppercase tracking-widest text-slate-400 whitespace-nowrap";
+export const footerWatermarkText = "text-[10rem] sm:text-[12rem] font-black tracking-widest text-slate-400 whitespace-nowrap";
 export const footerGrid = "grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10 items-start";
 export const footerNewsletterCol = "md:col-span-5 space-y-2";
-export const footerHeading = "text-xs font-bold text-slate-400 uppercase tracking-widest mb-2";
+export const footerHeading = "text-xs font-bold text-slate-400 tracking-widest mb-2";
 export const footerLinkList = "space-y-1 text-xs text-slate-600";
 export const footerLinkItem = "hover:text-blue-600 font-semibold cursor-pointer transition py-0.5";
 export const footerBottomBar = "mt-3 pt-2 pb-4 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 relative z-10";
@@ -94,9 +94,7 @@ export const aboutSubHeadingTitle = "text-2xl sm:text-3xl font-extrabold text-sl
 export const aboutParagraph = "text-slate-600 text-sm sm:text-base leading-relaxed mb-4";
 export const aboutStatsBar = "bg-[#1f242d] text-white py-5 px-6 my-1 grid grid-cols-1 md:grid-cols-3 text-center rounded-2xl shadow-lg relative";
 export const aboutStatNumber = "text-4xl sm:text-5xl font-black mb-1";
-export const aboutStatLabel = "text-xs font-bold text-slate-400 tracking-widest uppercase";
-
-
+export const aboutStatLabel = "text-xs font-bold text-slate-400 tracking-widest";
 
 // ==========================================
 // SEAT MAP CREATOR STYLES
@@ -118,14 +116,13 @@ export const sidebarToggleBtn = "bg-slate-100 hover:bg-slate-200 text-slate-700 
 // ==========================================
 // SIDEBAR ELEMENT & TEMPLATE STYLES
 // ==========================================
-export const sidebarSectionTitle = "font-bold text-slate-400 uppercase tracking-wider mb-1";
+export const sidebarSectionTitle = "font-bold text-slate-400 tracking-wider mb-1";
 export const sidebarListContainer = "text-slate-700 font-medium space-y-1";
 export const sidebarItemCard = "p-1 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center space-x-2 transition";
 export const sidebarTemplateCard = "p-1 hover:bg-blue-50 hover:text-blue-600 rounded-lg cursor-pointer transition";
 export const sidebarInstructionBox = "bg-slate-50 p-1 rounded-xl border border-slate-200 text-[11px] text-slate-500 space-y-1";
 export const sidebarInstructionTitle = "font-bold text-slate-700 block";
 export const sidebarDivider = "border-slate-100 my-1";
-
 
 // ==========================================
 // COMPACT ARTIST MASTER STYLES
@@ -134,16 +131,16 @@ export const artistPageWrapper = "flex flex-col h-full w-full overflow-hidden bg
 export const artistWorkspace = "flex-1 w-full p-3 flex flex-col overflow-y-auto space-y-2";
 export const artistFormBox = "bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-2 w-full";
 export const artistFormHeader = "flex justify-between items-center border-b border-slate-100 pb-1.5";
-export const artistFormHeading = "text-xs font-extrabold uppercase tracking-wide text-slate-800";
+export const artistFormHeading = "text-xs font-extrabold tracking-wide text-slate-800";
 export const artistFormGrid = "grid grid-cols-1 md:grid-cols-2 gap-2";
 export const artistLabelStyle = "block text-[10px] font-bold text-slate-700 mb-0.5";
-export const artistInputStyle = "w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium uppercase";
-export const artistTextareaStyle = "w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium uppercase resize-none";
+export const artistInputStyle = "w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium";
+export const artistTextareaStyle = "w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium resize-none";
 export const artistListCard = "bg-white rounded-2xl shadow-sm border border-slate-100 p-3 space-y-2 flex-1 flex flex-col w-full";
 export const artistListHeaderRow = "grid grid-cols-1 sm:grid-cols-3 items-center gap-2 border-b border-slate-100 pb-2";
-export const artistSearchInputCenter = "w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1 text-xs font-medium uppercase text-center focus:outline-none";
-export const artistTableHeadStyle = "border-b border-slate-200 text-slate-400 uppercase text-[10px]";
-export const artistTableRowStyle = "hover:bg-slate-50 transition border-b border-slate-100 text-xs text-slate-700 uppercase";
+export const artistSearchInputCenter = "w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1 text-xs font-medium text-center focus:outline-none";
+export const artistTableHeadStyle = "border-b border-slate-200 text-slate-400 text-[10px]";
+export const artistTableRowStyle = "hover:bg-slate-50 transition border-b border-slate-100 text-xs text-slate-700";
 export const artistAvatarCircle = "w-7 h-7 object-cover rounded-full border border-slate-200";
 export const artistAvatarFallback = "w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400 text-[9px]";
 export const artistActionBtnEditClass = "text-blue-600 hover:text-blue-800 font-bold cursor-pointer text-[11px]";
@@ -159,5 +156,5 @@ export const artistThAction = "py-0.5 px-2 text-right w-24";
 export const artistImageUploadWrapper = "flex flex-col items-center justify-center my-1";
 export const artistCirclePickerContainer = "relative w-20 h-20 rounded-full overflow-hidden border-2 border-blue-400 hover:border-blue-600 bg-slate-50 flex items-center justify-center cursor-pointer transition shadow-xs group";
 export const artistCirclePreviewImage = "w-full h-full object-cover rounded-full";
-export const artistCirclePlaceholderText = "text-[10px] font-bold text-slate-400 group-hover:text-blue-600 text-center uppercase";
+export const artistCirclePlaceholderText = "text-[10px] font-bold text-slate-400 group-hover:text-blue-600 text-center";
 export const artistDescImageGrid = "grid grid-cols-1 md:grid-cols-12 gap-3 items-center";
