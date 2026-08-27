@@ -155,3 +155,9 @@ export const artistThName = "py-0.5 px-2";
 export const artistThType = "py-0.5 px-2 w-28";
 export const artistThDesc = "py-0.5 px-2";
 export const artistThAction = "py-0.5 px-2 text-right w-24";
+
+export const artistImageUploadWrapper = "flex flex-col items-center justify-center my-1";
+export const artistCirclePickerContainer = "relative w-20 h-20 rounded-full overflow-hidden border-2 border-blue-400 hover:border-blue-600 bg-slate-50 flex items-center justify-center cursor-pointer transition shadow-xs group";
+export const artistCirclePreviewImage = "w-full h-full object-cover rounded-full";
+export const artistCirclePlaceholderText = "text-[10px] font-bold text-slate-400 group-hover:text-blue-600 text-center uppercase";
+export const artistDescImageGrid = "grid grid-cols-1 md:grid-cols-12 gap-3 items-center";

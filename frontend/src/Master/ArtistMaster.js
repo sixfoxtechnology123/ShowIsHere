@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../utils/api';
+import toast from 'react-hot-toast';
 import {
   mainContainer,
   navbar,
@@ -30,6 +31,11 @@ import {
   artistThType,
   artistThDesc,
   artistThAction,
+  artistImageUploadWrapper,
+  artistCirclePickerContainer,
+  artistCirclePreviewImage,
+  artistCirclePlaceholderText,
+  artistDescImageGrid,
 } from '../styles/MasterCSSClass';
 
 const ArtistMaster = () => {
@@ -59,7 +65,7 @@ const ArtistMaster = () => {
       const res = await API.get('/artists');
       setArtists(Array.isArray(res) ? res : res.data || []);
     } catch {
-      alert('FAILED TO LOAD ARTISTS DATABASE');
+      toast.error('FAILED TO LOAD ARTISTS DATABASE');
     } finally {
       setLoading(false);
     }
@@ -98,16 +104,15 @@ const ArtistMaster = () => {
     try {
       if (editId) {
         await API.put(`/artists/${editId}`, payload);
-        alert('ARTIST UPDATED SUCCESSFULLY');
+        toast.success('ARTIST UPDATED SUCCESSFULLY');
       } else {
         await API.post('/artists', payload);
-        alert('ARTIST SAVED SUCCESSFULLY');
+        toast.success('ARTIST SAVED SUCCESSFULLY');
       }
       resetForm();
       fetchArtists();
-      // Stays on the form page instead of redirecting to list view
     } catch (err) {
-      alert(err?.response?.data?.error || 'SAVE FAILED - CHECK SERVER');
+      toast.error(err?.response?.data?.error || 'SAVE FAILED - CHECK SERVER');
     } finally {
       setIsSaving(false);
     }
@@ -126,10 +131,10 @@ const ArtistMaster = () => {
     if (window.confirm('ARE YOU SURE YOU WANT TO DELETE THIS ARTIST?')) {
       try {
         await API.delete(`/artists/${recordId}`);
-        alert('ARTIST DELETED SUCCESSFULLY');
+        toast.success('ARTIST DELETED SUCCESSFULLY');
         fetchArtists();
       } catch {
-        alert('DELETE FAILED');
+        toast.error('DELETE FAILED');
       }
     }
   };
@@ -222,25 +227,35 @@ const ArtistMaster = () => {
               </div>
             </div>
 
-            <div>
-              <label className={artistLabelStyle}>DESCRIPTION (OPTIONAL)</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value.toUpperCase())}
-                placeholder="SHORT BIO OR DESCRIPTION..."
-                rows="2"
-                className={artistTextareaStyle}
-              />
-            </div>
+            {/* ROW SPLIT: LEFT SIDE DESCRIPTION (SPAN 9) | RIGHT SIDE IMAGE UPLOADER (SPAN 3) */}
+            <div className={artistDescImageGrid}>
+              <div className="md:col-span-9">
+                <label className={artistLabelStyle}>DESCRIPTION (OPTIONAL)</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value.toUpperCase())}
+                  placeholder="SHORT BIO OR DESCRIPTION..."
+                  rows="2"
+                  className={artistTextareaStyle}
+                />
+              </div>
 
-            <div>
-              <label className={artistLabelStyle}>ARTIST PHOTO (OPTIONAL)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="w-full text-xs text-slate-500 file:mr-3 file:py-1 file:px-2.5 file:rounded-xl file:border-0 file:text-[11px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-              />
+              <div className="md:col-span-3 flex flex-col items-center">
+                <label className={artistLabelStyle}>PHOTO</label>
+                <label className={artistCirclePickerContainer}>
+                  {photoBase64 ? (
+                    <img src={photoBase64} alt="Preview" className={artistCirclePreviewImage} />
+                  ) : (
+                    <span className={artistCirclePlaceholderText}>UPLOAD</span>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-1">
