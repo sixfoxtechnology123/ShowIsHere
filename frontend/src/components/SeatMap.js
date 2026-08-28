@@ -754,7 +754,7 @@ const SeatMap = () => {
 
       {/* SINGLE-ROW UNIFIED TOP HEADER BAR (EXCLUDED FROM PRINT) */}
       <header className={`${seatMapHeader} print:hidden`}>
-        <div className="flex items-center space-x-1 shrink-0">
+        <div className="flex items-center  shrink-0">
           {viewMode === 'creator' && (
             <>
               <button onClick={handleSaveMap} title="Save progress" className="p-1 hover:bg-slate-100 rounded text-slate-700 text-xs font-bold border border-slate-200 cursor-pointer flex items-center space-x-1"><span>💾</span><span>Save</span></button>
@@ -778,13 +778,13 @@ const SeatMap = () => {
         <div className="flex items-center space-x-1 shrink-0">
           {viewMode === 'creator' && (
             <>
-              <button onClick={handleUndo} title="Undo" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>↩️</span><span>Undo</span></button>
-              <button onClick={handleRedo} title="Redo" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>↪️</span><span>Redo</span></button>
+              <button onClick={handleUndo} title="Undo" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>↩️</span></button>
+              <button onClick={handleRedo} title="Redo" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>↪️</span></button>
               
               <div className="h-5 w-[1px] bg-slate-300 mx-0.5"></div>
 
-              <button onClick={handleDuplicate} title="Duplicate" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>📋✨</span><span>Duplicate</span></button>
-              <button onClick={handleDeleteSelected} title="Delete" className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded border border-rose-200 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>🗑️</span><span>Delete</span></button>
+              <button onClick={handleDuplicate} title="Duplicate" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>📋</span><span>Duplicate</span></button>
+              <button onClick={handleDeleteSelected} title="Delete" className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded border border-rose-200 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>🗑️</span>Delete</button>
 
               <div className="h-5 w-[1px] bg-slate-300 mx-0.5"></div>
             </>
