@@ -31,12 +31,13 @@ export const heroTierName = "text-xs font-bold text-slate-700 block mb-1";
 export const heroTierPrice = "text-sm font-extrabold text-slate-900";
 export const heroActionRow = "flex flex-wrap items-center gap-4";
 export const seatSelectorBox = "flex items-center space-x-3 bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-sm font-bold text-slate-800";
-export const primaryButton = "bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-xl transition duration-200 shadow-sm text-sm";
+export const primaryButton = "w-full bg-blue-500 hover:bg-blue-600 text-white font-extrabold py-3 rounded-lg text-sm transition cursor-pointer shadow";
 export const detailsButton = "bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold px-6 py-3 rounded-xl transition text-sm";
 export const heroArtSection = "lg:w-96 bg-gradient-to-br from-indigo-950 to-blue-900 p-6 relative flex items-center justify-center overflow-hidden";
 
 export const modalOverlay = "fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-start pt-4 z-50 p-4";
 export const modalContainer = "bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]";
+export const modalBox = "bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative";
 export const modalHeaderRow = "px-6 py-1 border-b border-slate-100 flex items-center justify-between";
 export const modalHeaderTitle = "text-lg font-bold text-slate-800 text-center flex-grow";
 export const modalCloseButton = "text-slate-400 hover:text-slate-600 text-xl font-bold p-1 cursor-pointer";
@@ -103,15 +104,23 @@ export const seatMapWrapper = "min-h-screen bg-[#f4f5f7] text-slate-900 font-san
 export const seatMapHeader = "bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-end sticky top-0 z-40 shadow-xs space-x-3";
 export const seatMapBody = "flex flex-1 overflow-hidden relative";
 export const seatMapSidebar = "w-48 bg-white border-r border-slate-200 p-4 overflow-y-auto flex flex-col space-y-6 shrink-0 text-xs";
-export const seatMapCanvasArea = "flex-1 bg-slate-100 relative overflow-auto flex flex-col items-center justify-center p-1";
+export const seatMapCanvasArea = "flex-1 bg-slate-100 relative overflow-auto flex flex-col items-center justify-center p-1 w-full h-full min-h-[800px]";
 export const zoomToolbar = "absolute top-4 right-6 bg-white border border-slate-200 rounded-xl px-3 py-1.5 flex items-center space-x-3 shadow-xs z-20 text-xs";
-export const canvasBoard = "w-[1100px] h-[700px] bg-white rounded-3xl shadow-xl border border-slate-200 relative overflow-hidden transition-transform duration-150";
-export const canvasGridBg = "absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-60";
+export const canvasBoard = "w-[2000px] h-[2000px] bg-white rounded-3xl shadow-xl border border-slate-200 relative overflow-hidden transition-transform duration-150 absolute top-0 left-0 right-0 bottom-0";
+export const canvasGridBg = "absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-60 w-full h-full absolute";
 export const stageBox = "absolute top-1 left-1/2 transform -translate-x-1/2 bg-white text-slate-800 rounded-2xl flex items-center justify-center font-extrabold text-xs tracking-widest shadow-sm border border-slate-300";
 export const sectionCard = "absolute bg-white/95 backdrop-blur-xs border-2 rounded-2xl p-4 shadow-lg transition-shadow cursor-move";
-export const propertiesSidebar = "w-64 bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 space-y-5 text-xs z-30";
+export const propertiesSidebar = "w-64 bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 space-y-5 text-xs z-30 max-h-[90vh]";
 export const seatMapFooter = "bg-white border-t border-slate-200 px-6 py-2.5 flex items-center justify-between text-xs font-medium text-slate-600 z-40";
 export const sidebarToggleBtn = "bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer border border-slate-200 flex items-center space-x-1.5";
+
+// Page tabs & buttons
+export const pageTabsBar = "bg-slate-100 border-b border-slate-200 px-4 py-1.5 flex items-center space-x-2 text-xs print:hidden";
+export const pageTabActive = "px-3 py-1 rounded font-bold transition cursor-pointer border bg-blue-600 text-white border-blue-600 shadow-xs flex items-center space-x-2";
+export const pageTabInactive = "px-3 py-1 rounded font-bold transition cursor-pointer border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center space-x-2";
+export const addPageButton = "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition cursor-pointer";
+
+export const inputFieldStyle = "w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 font-medium";
 
 // ==========================================
 // SIDEBAR ELEMENT & TEMPLATE STYLES
