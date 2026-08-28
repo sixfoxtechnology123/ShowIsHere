@@ -994,7 +994,7 @@ const SeatMap = () => {
         </div> */}
       </div>
 
-      {/* INFINITE GRID CANVAS AREA WRAPPED WITH .printable-canvas-area */}
+      {/* Main body*/}
       <div className={`${seatMapBody} printable-canvas-area`}>
         <main 
           ref={canvasRef}
