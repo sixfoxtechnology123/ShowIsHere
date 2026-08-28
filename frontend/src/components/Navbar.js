@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import {
   navbar,
@@ -14,10 +15,21 @@ import {
 } from '../styles/MasterCSSClass';
 
 const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
+  const navigate = useNavigate();
+
+  // Handles home navigation safely (uses prop if available, falls back to React Router)
+  const handleLogoClick = () => {
+    if (onNavigateHome) {
+      onNavigateHome();
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <nav className={navbar}>
-      {/* Left: Logo & Brand Name */}
-      <div className={logoContainer} onClick={onNavigateHome}>
+      {/* Left: Logo & Brand Name (Added cursor-pointer for UI feedback) */}
+      <div className={`${logoContainer} cursor-pointer`} onClick={handleLogoClick}>
         <img src={Logo} alt="ShowIsHere Logo" className={logoImage} />
         <span className={brandTitle}>showishere</span>
       </div>
@@ -37,10 +49,10 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
 
       {/* Right: Location, Sign In, Menu */}
       <div className={navRightContainer}>
-       <button onClick={onOpenLocationModal} className={locationButton}>
-            <span>{location || 'Select City'}</span>
-            <span className="text-[10px] font-bold ml-1">▼</span>
-          </button>
+        <button onClick={onOpenLocationModal} className={locationButton}>
+          <span>{location || 'Select City'}</span>
+          <span className="text-[10px] font-bold ml-1">▼</span>
+        </button>
 
         <button className={signInButton}>
           Sign in

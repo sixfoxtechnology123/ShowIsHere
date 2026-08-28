@@ -101,7 +101,7 @@ export const aboutStatLabel = "text-xs font-bold text-slate-400 tracking-widest"
 // SEAT MAP CREATOR STYLES
 // ==========================================
 export const seatMapWrapper = "min-h-screen bg-[#f4f5f7] text-slate-900 font-sans flex flex-col justify-between select-none overflow-x-hidden";
-export const seatMapHeader = "bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-end sticky top-0 z-40 shadow-xs space-x-3";
+export const seatMapHeader = "bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between sticky top-0 z-40 shadow-xs flex-wrap xl:flex-nowrap overflow-x-auto gap-2";
 export const seatMapBody = "flex flex-1 overflow-hidden relative";
 export const seatMapSidebar = "w-48 bg-white border-r border-slate-200 p-4 overflow-y-auto flex flex-col space-y-6 shrink-0 text-xs";
 export const seatMapCanvasArea = "flex-1 bg-slate-50 relative overflow-auto flex flex-col items-center justify-center p-1 w-full h-full min-h-[800px]";
@@ -110,7 +110,7 @@ export const canvasBoard = "w-[2000px] h-[2000px] bg-white rounded-3xl shadow-xl
 export const canvasGridBg = "absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px] opacity-60 w-full h-full absolute";
 export const stageBox = "absolute top-1 left-1/2 transform -translate-x-1/2 bg-white text-slate-800 rounded-2xl flex items-center justify-center font-extrabold text-xs tracking-widest shadow-sm border border-slate-300";
 export const sectionCard = "absolute bg-white/95 backdrop-blur-xs border-2 rounded-2xl p-4 shadow-lg transition-shadow cursor-move";
-export const propertiesSidebar = "w-64 bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 space-y-5 text-xs z-30 max-h-[90vh]";
+export const propertiesSidebar = "w-64 bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 space-y-5 text-xs z-30 max-h-[120vh]";
 export const seatMapFooter = "bg-white border-t border-slate-200 px-6 py-2.5 flex items-center justify-between text-xs font-medium text-slate-600 z-40";
 export const sidebarToggleBtn = "bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer border border-slate-200 flex items-center space-x-1.5";
 

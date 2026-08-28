@@ -161,7 +161,7 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
                     className={cityCardCompact}
                   >
                     {/* Background and border removed completely here */}
-                    <div className="w-14 h-14 flex items-center justify-center mb-1 bg-transparent p-1">
+                    <div className="w-20 h-20 flex items-center justify-center mb-1 bg-transparent p-1">
                       {cityImg ? (
                         <img src={cityImg} alt={cityNameStr} className="w-full h-full object-contain" />
                       ) : (
