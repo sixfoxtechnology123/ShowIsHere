@@ -24,7 +24,7 @@ const SeatMap = () => {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  
+  const [clipboard, setClipboard] = useState(null); // Tracks copied/cut item
   const [viewMode, setViewMode] = useState('creator');
   const [showRightSidebar, setShowRightSidebar] = useState(true);
 
@@ -93,6 +93,7 @@ const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
   const canvasRef = useRef(null);
 
   const activePage = pages.find(p => p.id === activePageId) || pages[0];
+  const isEmpty = sections.length === 0 && shapes.length === 0;
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -106,8 +107,15 @@ const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
         else handleUndo();
       } else if (isCtrl && e.key.toLowerCase() === 'y') {
         handleRedo();
+      } else if (isCtrl && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleCopy();
       } else if (isCtrl && e.key.toLowerCase() === 'x') {
-        handleDeleteSelected();
+        e.preventDefault();
+        handleCut();
+      } else if (isCtrl && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        handlePaste();
       } else if (isCtrl && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         handleDuplicate();
@@ -127,10 +135,12 @@ const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
         }
         if (key === 'm' && !isCtrl) setActiveTool('addSquare');
         if (key === 'r' && !isCtrl) setActiveTool('addRectangle');
-        if (key === 'c' && !isCtrl) setActiveTool('addCircle');
-        if (key === 'o' && !isCtrl) setActiveTool('addCircle');
+        if (key === 'o' && !isCtrl) setActiveTool('addCircle'); // Only 'o' triggers circle now
         if (key === 'p' && !isCtrl) setActiveTool('addRowsBlock');
-        if (key === 't' && !isCtrl) setActiveTool('addText');
+       if (key === 't' && !isCtrl) {
+        handleAddShape('text', '', 140, 40);
+        setActiveTool('addText'); // <-- This activates the border highlight on the text tool icon
+      }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -211,6 +221,60 @@ const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
     setShapes(newShapes);
   };
 
+const handleCopy = () => {
+    if (activeSection) {
+      setClipboard({ type: 'section', data: activeSection, isCut: false });
+    } else if (activeShape) {
+      setClipboard({ type: 'shape', data: activeShape, isCut: false });
+    }
+  };
+
+  const handleCut = () => {
+    if (activeSection) {
+      setClipboard({ type: 'section', data: activeSection, isCut: true });
+      const filtered = sections.filter(s => s.id !== activeSection.id);
+      pushHistory(filtered, shapes);
+      setSelectedSectionId(null);
+    } else if (activeShape) {
+      setClipboard({ type: 'shape', data: activeShape, isCut: true });
+      const filtered = shapes.filter(sh => sh.id !== activeShape.id);
+      pushHistory(sections, filtered);
+      setSelectedShapeId(null);
+    }
+  };
+
+const handlePaste = () => {
+    if (!clipboard) return;
+    const newId = Date.now();
+    const count = sections.length + shapes.length; // Used to cascade offsets cleanly so they never stack identically
+    
+    if (clipboard.type === 'section') {
+      const pastedSec = {
+        ...clipboard.data,
+        id: newId,
+        pageId: activePageId, // Ensures it pastes onto the currently active page
+        x: clipboard.data.x + 25 + ((count % 5) * 10), // Cascades step-by-step
+        y: clipboard.data.y + 25 + ((count % 5) * 10)
+      };
+      pushHistory([...sections, pastedSec], shapes);
+      setSelectedSectionId(newId);
+    } else if (clipboard.type === 'shape') {
+      const pastedSh = {
+        ...clipboard.data,
+        id: newId,
+        pageId: activePageId, // Ensures it pastes onto the currently active page
+        x: clipboard.data.x + 25 + ((count % 5) * 10), // Cascades step-by-step
+        y: clipboard.data.y + 25 + ((count % 5) * 10)
+      };
+      pushHistory(sections, [...shapes, pastedSh]);
+      setSelectedShapeId(newId);
+    }
+
+    if (clipboard.isCut) {
+      setClipboard(null);
+    }
+  };
+
   const handleUndo = () => {
     if (history.length === 0) return;
     const previous = history[history.length - 1];
@@ -229,14 +293,15 @@ const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
     setRedoStack(redoStack.slice(1));
   };
 
-  const handleDuplicate = () => {
+const handleDuplicate = () => {
     if (activeSection) {
       const newId = Date.now();
       const duplicatedSec = {
         ...activeSection,
         id: newId,
-        x: activeSection.x + 30,
-        y: activeSection.y + 30
+        pageId: activePageId,
+        x: activeSection.x + 25,
+        y: activeSection.y + 25
       };
       pushHistory([...sections, duplicatedSec], shapes);
       setSelectedSectionId(newId);
@@ -245,8 +310,9 @@ const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
       const duplicatedSh = {
         ...activeShape,
         id: newId,
-        x: activeShape.x + 30,
-        y: activeShape.y + 30
+        pageId: activePageId,
+        x: activeShape.x + 25,
+        y: activeShape.y + 25
       };
       pushHistory(sections, [...shapes, duplicatedSh]);
       setSelectedShapeId(newId);
@@ -648,14 +714,14 @@ const handleCanvasMouseUp = () => {
           const dim = Math.max(40, Math.abs(delta_x), Math.abs(delta_y));
           initialWidth = dim;
           initialHeight = dim;
-        } else if (activeTool === 'addText') {
+       } else if (activeTool === 'addText') {
           shapeType = 'text';
-          labelText = 'Type text here...';
+          labelText = ''; // Blank by default when added
           initialWidth = 140;
           initialHeight = 40;
         }
 
-        const newShape = {
+      const newShape = {
           id: newShId,
           pageId: activePageId,
           type: shapeType,
@@ -672,6 +738,7 @@ const handleCanvasMouseUp = () => {
         setIsDrawing(false);
         setDrawStart(null);
         setDrawCurrent(null);
+        setActiveTool(null); // Resets tool after one-time drawing use
         return;
       }
 
@@ -738,7 +805,7 @@ const handleCanvasMouseUp = () => {
   };
 
 
-  const handleAddShape = (type, defaultText, w, h) => {
+const handleAddShape = (type, defaultText, w, h) => {
     const newShId = Date.now();
     const count = shapes.length;
     const newShape = {
@@ -749,16 +816,17 @@ const handleCanvasMouseUp = () => {
       color: '#1e293b',
       fontSize: 14,
       x: (activePage.width / 2) - (w / 2) + ((count % 5) * 20),
-      y: (activePage.height / 2) - (h / 2) + ((count % 5) * 20),
+      y: (activePage.height / 2) - (h / 2) + ((count % 5) * 20), // Appears in the middle
       width: w,
       height: h
     };
     pushHistory(sections, [...shapes, newShape]);
     setSelectedShapeId(newShId);
+    setActiveTool(null);
   };
 
 
-  const handlePropertyChange = (field, value) => {
+const handlePropertyChange = (field, value) => {
     if (selectedSeatKey && activeSection && field === 'category') {
       const updatedSeats = {
         ...activeSection.seats,
@@ -798,6 +866,7 @@ const handleCanvasMouseUp = () => {
         return sec;
       }));
     } else if (activeShape) {
+      // Ensure this updates the shape property properly
       setShapes(shapes.map(sh => sh.id === selectedShapeId ? { ...sh, [field]: value } : sh));
     }
   };
@@ -874,7 +943,7 @@ const handleCanvasMouseUp = () => {
 	  </div>
 
 	  <div className="flex items-center space-x-2">
-	    <button 
+	    {/* <button 
 	      onClick={() => {
 	        if (window.confirm("Are you sure you want to clear all sections and shapes?")) {
 	          pushHistory([], []);
@@ -883,86 +952,111 @@ const handleCanvasMouseUp = () => {
 	      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded border border-slate-200 text-xs cursor-pointer shadow-xs"
 	    >
 	      Clear Map
-	    </button>
+	    </button> */}
 
-	    <button 
+	   <button 
 	      onClick={() => setViewMode(viewMode === 'creator' ? 'preview' : 'creator')}
-	      className="px-4 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded shadow-xs cursor-pointer text-xs"
+	      disabled={isEmpty}
+	      className={`px-4 py-1.5 font-bold rounded shadow-xs text-xs ${
+	        isEmpty ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800 text-white cursor-pointer'
+	      }`}
 	    >
 	      {viewMode === 'creator' ? 'Preview' : 'Creator'}
 	    </button>
 	  </div>
 	</header>
-    <header className={`${seatMapHeader} print:hidden h-12 border-b border-slate-200 bg-white px-4 flex items-center justify-between shrink-0`}>
+  {/* headerbar menu */}
+{/* headerbar menu */}
+  <header className={`${seatMapHeader} print:hidden h-12 border-b border-slate-200 bg-white px-4 flex items-center justify-between shrink-0 overflow-hidden`}>
       {/* LEFT: TOOLS, ZOOM, AND NEW PAGE BUTTON */}
-      <div className="flex items-center space-x-3 overflow-x-auto shrink-0">
+      <div className="flex items-center space-x-3 shrink-0">
         {/* FILE / DOWNLOAD ICONS */}
         <div className="flex items-center space-x-1">
-          <button
-            onClick={() => {
-              const newPId = `page-${Date.now()}`;
-              const newPageName = `Plan ${pages.length + 1}`;
-              setPages([...pages, { id: newPId, name: newPageName, width: 900, height: 1200 }]);
-              setActivePageId(newPId);
-            }}
-            title="Add New Page"
-            className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700"
+          {viewMode === 'creator' && (
+            <button
+              onClick={() => {
+                if (isEmpty || window.confirm("Do you want to start a new plan? Your current plan will be discarded.")) {
+                  const newPId = `page-${Date.now()}`;
+                  setPages([{ id: newPId, name: 'Plan 1', width: 900, height: 1200 }]);
+                  setActivePageId(newPId);
+                  pushHistory([], []);
+                }
+              }}
+              title="Add New Page"
+              className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="bi bi-file-earmark-plus w-[18px] h-[18px]" viewBox="0 0 16 16">
+                <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5"/>
+                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+              </svg>
+            </button>
+          )}
+          <button 
+            onClick={() => window.print()} 
+            disabled={isEmpty} 
+            title="Download / Export PDF" 
+            className={`p-1.5 rounded text-xs flex items-center justify-center border border-transparent ${
+              isEmpty ? 'opacity-30 cursor-not-allowed text-slate-400' : 'cursor-pointer hover:border-slate-300 bg-transparent text-slate-700'
+            }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="bi bi-file-earmark-plus w-[18px] h-[18px]" viewBox="0 0 16 16">
-              <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5"/>
-              <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
-            </svg>
-          </button>
-          <button onClick={() => window.print()} title="Download / Export PDF" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
           </button>
         </div>
 
+        {viewMode === 'creator' && (
+          <>
+            <div className="h-5 w-[1px] bg-slate-300"></div>
+
+            {/* UNDO / REDO */}
+            <div className={`flex items-center space-x-1 ${isEmpty ? 'pointer-events-none opacity-40' : ''}`}>
+              <button onClick={handleUndo} disabled={isEmpty || history.length === 0} title="Undo (Ctrl+Z)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6" /></svg>
+              </button>
+              <button onClick={handleRedo} disabled={isEmpty || redoStack.length === 0} title="Redo (Ctrl+Shift+Z)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6 6m6-6l-6-6" /></svg>
+              </button>
+            </div>
+
+            <div className="h-5 w-[1px] bg-slate-300"></div>
+
+            {/* EDIT ACTIONS: CUT, COPY, PASTE, DUPLICATE, DELETE */}
+            <div className={`flex items-center space-x-1 ${isEmpty ? 'pointer-events-none opacity-40' : ''}`}>
+              <button onClick={handleCut} disabled={isEmpty} title="Cut (Ctrl+X)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path strokeLinecap="round" strokeLinejoin="round" d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" /></svg>
+              </button>
+              
+              <button onClick={handleCopy} disabled={isEmpty} title="Copy (Ctrl+C)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+              </button>
+
+              <button 
+                onClick={handlePaste} 
+                disabled={isEmpty || !clipboard} 
+                title="Paste (Ctrl+V)" 
+                className={`p-1.5 rounded text-xs flex items-center justify-center border border-transparent ${
+                  !isEmpty && clipboard ? 'cursor-pointer hover:border-slate-300 text-slate-700 bg-transparent' : 'opacity-40 cursor-not-allowed text-slate-400'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+              </button>
+
+              <button onClick={handleDuplicate} disabled={isEmpty} title="Duplicate (Ctrl+D)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                </svg>
+              </button>
+              <button onClick={handleDeleteSelected} disabled={isEmpty} title="Delete (Del)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </div>
+          </>
+        )}
+
         <div className="h-5 w-[1px] bg-slate-300"></div>
 
-        {/* UNDO / REDO */}
-        <div className="flex items-center space-x-1">
-          <button onClick={handleUndo} title="Undo (Ctrl+Z)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6" /></svg>
-          </button>
-          <button onClick={handleRedo} title="Redo (Ctrl+Shift+Z)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6 6m6-6l-6-6" /></svg>
-          </button>
-        </div>
-
-        <div className="h-5 w-[1px] bg-slate-300"></div>
-
-        {/* EDIT ACTIONS: CUT, COPY, PASTE, DUPLICATE, DELETE */}
-        <div className="flex items-center space-x-1">
-          <button onClick={() => { handleDeleteSelected(); }} title="Cut (Ctrl+X)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path strokeLinecap="round" strokeLinejoin="round" d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" /></svg>
-          </button>
-          
-          {/* Copy Button */}
-          <button onClick={() => { handleDuplicate(); }} title="Copy (Ctrl+C)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-          </button>
-
-          {/* Paste Button (Right after Copy) */}
-          <button title="Paste (Ctrl+V)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          </button>
-
-          <button onClick={handleDuplicate} title="Duplicate (Ctrl+D)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
-            </svg>
-          </button>
-          <button onClick={handleDeleteSelected} title="Delete (Del)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-          </button>
-        </div>
-
-        <div className="h-5 w-[1px] bg-slate-300"></div>
-
-        {/* ZOOM CONTROLS */}
+        {/* ZOOM CONTROLS (Always Active) */}
         <div className="bg-slate-100 rounded px-1.5 py-0.5 flex items-center space-x-1 text-[11px]">
           <button onClick={() => setZoomLevel(Math.max(10, zoomLevel - 10))} className="p-0.5 rounded cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
@@ -977,7 +1071,7 @@ const handleCanvasMouseUp = () => {
           </button>
         </div>
       </div>
-    </header>
+  </header>
 
       {/* CREATE NEW ZONE MODAL POPUP */}
       {showNewZoneModal && (
@@ -1138,7 +1232,7 @@ const handleCanvasMouseUp = () => {
 
     <button 
       onClick={() => setActiveTool('addCircle')} 
-      title="Circle / Oval (C / O)" 
+      title="Circle / Oval (O)" 
       className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
         activeTool === 'addCircle' 
           ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
@@ -1150,42 +1244,60 @@ const handleCanvasMouseUp = () => {
       </svg>
     </button>
 
-    <button 
-      onClick={() => setActiveTool('addText')} 
-      title="Text Field (T)" 
-      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
-        activeTool === 'addText' 
-          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
-          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
-      }`}
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7V5h16v2M12 5v14" />
-      </svg>
-    </button>
+   <button 
+  onClick={() => handleAddShape('text', '', 140, 40)} 
+  title="Text Field (T)" 
+  className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border border-transparent hover:border-slate-300 text-slate-700 bg-transparent"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 7V5h16v2M12 5v14" />
+  </svg>
+</button>
   </div>
 
   <hr className="border-slate-200 my-2" />
 
    {/* ADD TO MAP SECTION */}
   <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1 px-1">ADD TO MAP</span>
-  <div className="space-y-0.5 w-full text-xs font-semibold text-slate-700 mb-2">
-    <button type="button" onClick={() => handleAddShape('stage', 'Stage / Screen', 180, 40)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
-      <span className="text-sm">▬</span><span className="truncate">Stage / Screen</span>
-    </button>
-    <button type="button" onClick={() => handleAddShape('entrance', 'Entrance', 100, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
-      <span className="text-sm">↗</span><span className="truncate">Entrance</span>
-    </button>
-    <button type="button" onClick={() => handleAddShape('exit', 'Exit Gate', 100, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
-      <span className="text-sm">↙</span><span className="truncate">Exit Gate</span>
-    </button>
-    <button type="button" onClick={() => handleAddShape('emergency', 'Emergency Exit', 120, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
-      <span className="text-sm">⚠</span><span className="truncate">Emergency Exit</span>
-    </button>
-    <button type="button" onClick={() => handleAddShape('toilet', 'Toilet', 80, 40)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
-      <span className="text-sm">🚻</span><span className="truncate">Toilet</span>
-    </button>
-  </div>
+<div className="space-y-0.5 w-full text-xs font-semibold text-slate-700 mb-6">
+  <button type="button" onClick={() => handleAddShape('stage', 'Stage / Screen', 180, 40)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 shrink-0"><rect x="3" y="5" width="18" height="14" rx="2" /></svg>
+    <span className="truncate">Stage / Screen</span>
+  </button>
+  <button type="button" onClick={() => handleAddShape('entrance', 'Entrance', 100, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0">
+      <path fillRule="evenodd" d="M6.364 13.5a.5.5 0 0 0 .5.5H13.5a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 13.5 1h-10A1.5 1.5 0 0 0 2 2.5v6.636a.5.5 0 1 0 1 0V2.5a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v10a.5.5 0 0 1-.5.5H6.864a.5.5 0 0 0-.5.5"/>
+      <path fillRule="evenodd" d="M11 5.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793l-8.147 8.146a.5.5 0 0 0 .708.708L10 6.707V10.5a.5.5 0 0 0 1 0z"/>
+    </svg>
+    <span className="truncate">Entrance</span>
+  </button>
+  <button type="button" onClick={() => handleAddShape('exit', 'Exit Gate', 100, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0">
+      <path fillRule="evenodd" d="M7.364 12.5a.5.5 0 0 0 .5.5H14.5a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 14.5 0h-10A1.5 1.5 0 0 0 3 1.5v6.636a.5.5 0 1 0 1 0V1.5a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v10a.5.5 0 0 1-.5.5H7.864a.5.5 0 0 0-.5.5"/>
+      <path fillRule="evenodd" d="M0 15.5a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 0-1H1.707l8.147-8.146a.5.5 0 0 0-.708-.708L1 14.293V10.5a.5.5 0 0 0-1 0z"/>
+    </svg>
+    <span className="truncate">Exit Gate</span>
+  </button>
+  <button type="button" onClick={() => handleAddShape('emergency', 'Emergency Exit', 120, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0">
+      <path fillRule="evenodd" d="M6 12.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v2a.5.5 0 0 1-1 0v-2A1.5 1.5 0 0 1 6.5 2h8A1.5 1.5 0 0 1 16 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 5 12.5v-2a.5.5 0 0 1 1 0z"/>
+      <path fillRule="evenodd" d="M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H10.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708z"/>
+    </svg>
+    <span className="truncate">Emergency Exit</span>
+  </button>
+  <button type="button" onClick={() => handleAddShape('toilet', 'Toilet', 80, 40)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+    <svg width="14" height="14" viewBox="0 0 650 650" xmlns="http://www.w3.org/2000/svg" fill="none" className="w-3.5 h-3.5 shrink-0"> 
+      <circle cx="182" cy="107" r="46" stroke="currentColor" strokeWidth="36" /> 
+      <path d=" M114 168 H250 C270 168 284 185 284 205 V326 C284 344 274 357 258 357 C242 357 238 344 238 326 V248 H238 V474 C238 499 228 515 211 515 C194 515 183 500 183 475 V363 H178 V475 C178 500 168 515 151 515 C134 515 125 499 125 474 V248 H125 V326 C125 344 120 357 103 357 C87 357 81 344 81 326 V205 C81 185 94 168 114 168 Z " stroke="currentColor" strokeWidth="36" strokeLinejoin="round" strokeLinecap="round" /> 
+      <line x1="323" y1="66" x2="323" y2="514" stroke="currentColor" strokeWidth="40" /> 
+      <circle cx="467" cy="107" r="46" stroke="currentColor" strokeWidth="36" /> 
+      <path d=" M421 168 H513 C524 168 533 175 538 187 L588 309 C594 324 587 338 574 335 C563 332 557 326 552 315 L516 246 L572 386 H523 V474 C523 499 513 515 496 515 C479 515 469 500 469 475 V386 H464 V475 C464 500 454 515 437 515 C420 515 410 499 410 474 V386 H361 L418 246 L382 315 C377 326 371 332 360 335 C347 338 340 324 346 309 L396 187 C401 175 410 168 421 168 Z " stroke="currentColor" strokeWidth="36" strokeLinejoin="round" strokeLinecap="round" /> 
+      <path d="M418 246 L388 315" stroke="currentColor" strokeWidth="36" strokeLinecap="round" /> 
+      <path d="M516 246 L546 315" stroke="currentColor" strokeWidth="36" strokeLinecap="round" /> 
+    </svg>
+    <span className="truncate">Toilet</span>
+  </button>
+</div>
 
   {/* QUICK TIP BOX */}
   <div className="bg-slate-50 border border-slate-200 rounded p-2 text-[9px] text-slate-600 space-y-0.5 mb-2">
@@ -1284,27 +1396,33 @@ const handleCanvasMouseUp = () => {
                   <div
                     key={sh.id}
                     onMouseDown={(e) => handleShapeMouseDown(e, sh.id)}
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setSelectedShapeId(sh.id); 
-                      setSelectedSectionId(null); 
-                      setSelectedSeatKey(null); 
-                    }}
-                    style={{
-                      top: `${sh.y}px`,
-                      left: `${sh.x}px`,
-                      width: `${sh.width}px`,
-                      height: `${sh.height}px`,
-                      position: 'absolute',
-                      cursor: viewMode === 'preview' ? 'default' : 'move',
-                      transform: `rotate(${rotationAngle}deg)`,
-                      transformOrigin: 'center center',
-                      zIndex: 25
-                    }}
-                  className={`select-none flex items-center justify-center border rounded-none ${
+                   onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setSelectedShapeId(sh.id); 
+                    setSelectedSectionId(null); 
+                    setSelectedSeatKey(null); 
+                    // Automatically activate inline editing if it's a text shape
+                    if (sh.type === 'text') {
+                      setShapes(shapes.map(s => s.id === sh.id ? { ...s, isEditing: true } : s));
+                    }
+                  }}
+                   style={{
+                        top: `${sh.y}px`,
+                        left: `${sh.x}px`,
+                        width: `${sh.width}px`,
+                        minHeight: `${sh.height}px`,
+                        position: 'absolute',
+                        cursor: viewMode === 'preview' ? 'default' : 'move',
+                        transform: `rotate(${rotationAngle}deg)`,
+                        transformOrigin: 'center center',
+                        zIndex: 25
+                      }}
+                        className={`select-none flex items-center justify-center border ${sh.type === 'circle' ? 'rounded-full' : 'rounded-none'} ${
                   isSelected && viewMode === 'creator'
-                    ? 'border-blue-600 ring-2 ring-blue-300 bg-blue-50/90 font-bold shadow-md' 
-                    : 'border-slate-400 bg-white/90 text-slate-800'
+                    ? 'border-blue-600 ring-2 ring-blue-300 bg-transparent font-bold shadow-md' 
+                    : sh.type === 'text' 
+                      ? 'border-transparent bg-transparent text-slate-800' 
+                      : 'border-slate-400 bg-transparent text-slate-800'
                 }`}
                   >
                     {sh.isEditing ? (
@@ -1328,15 +1446,20 @@ const handleCanvasMouseUp = () => {
                         className="w-full h-full text-center bg-transparent border-none outline-none text-xs font-bold"
                       />
                     ) : (
-                      <span 
+                     <span 
                         onDoubleClick={(e) => {
                           e.stopPropagation();
                           setShapes(shapes.map(s => s.id === sh.id ? { ...s, isEditing: true } : s));
                         }}
-                        className="text-xs font-bold truncate px-1 w-full text-center"
+                        className="text-xs font-bold w-full text-center block"
+                        style={{
+                          color: sh.color || '#1e293b',
+                          fontSize: `${sh.fontSize || 14}px`,
+                          lineHeight: 'normal'
+                        }}
                         title="Double click to edit text"
                       >
-                        {sh.text || sh.type}
+                        {sh.text}
                       </span>
                     )}
 
@@ -1889,18 +2012,19 @@ const handleCanvasMouseUp = () => {
                 </div>
 
               </div>
-            ) : activeShape && activeShape.type === 'text' ? (
+            ) : activeShape ? (
               <>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-xs mb-2 uppercase tracking-wider">Text Field Formatting</h3>
                   <div className="space-y-3 text-xs">
                     <div>
-                      <label className="block text-slate-600 mb-1 font-semibold">Text Content</label>
+                      <label className="block  text-slate-600 mb-1 font-semibold">Text Content</label>
                       <input 
                         type="text" 
+                        placeholder="Type here..."
                         value={activeShape.text || ''} 
                         onChange={(e) => handlePropertyChange('text', e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
+                        className="w-full border border-slate-300 rounded px-2 py-1"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -1936,12 +2060,42 @@ const handleCanvasMouseUp = () => {
                   </button>
                 </div>
               </>
-            ) : activeShape ? (
+           ) : activeShape ? (
               <>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-xs mb-2 uppercase tracking-wider">Shape Attributes</h3>
+                  <h3 className="font-extrabold text-slate-900 text-xs mb-2 uppercase tracking-wider">Shape & Text Properties</h3>
                   <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="block text-slate-600 mb-1 font-semibold">Text Content</label>
+                      <input 
+                        type="text" 
+                        value={activeShape.text || ''} 
+                        onChange={(e) => handlePropertyChange('text', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
+                      />
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-600 mb-1 font-semibold">Text Color</label>
+                        <input 
+                          type="color" 
+                          value={activeShape.color || '#1e293b'} 
+                          onChange={(e) => handlePropertyChange('color', e.target.value)}
+                          className="w-full h-8 bg-slate-50 border border-slate-300 rounded cursor-pointer p-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-600 mb-1 font-semibold">Font Size</label>
+                        <input 
+                          type="number" 
+                          min="10" max="72"
+                          value={activeShape.fontSize || 14} 
+                          onChange={(e) => handlePropertyChange('fontSize', Number(e.target.value))}
+                          className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
                       <div>
                         <label className="block text-slate-600 mb-1 font-semibold">Width</label>
                         <input 
@@ -2029,13 +2183,27 @@ const handleCanvasMouseUp = () => {
           </div>
         </div>
 
-        <button 
-          onClick={handleSaveMap} 
-          className="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2 rounded-md shadow transition cursor-pointer text-xs"
-        >
-          Save Seat Map
-        </button>
-      </footer>
+      {viewMode === 'creator' && (
+        <div className="flex items-center space-x-10">
+          <button 
+            onClick={handleSaveMap} 
+            disabled={isEmpty}
+            className={`font-bold px-4 py-2 rounded-md shadow transition text-xs ${
+              isEmpty ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800 text-white cursor-pointer'
+            }`}
+          >
+            Save Map
+          </button>
+
+          <button 
+            onClick={() => window.history.back()} 
+            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold px-4 py-2 rounded-md shadow-xs transition cursor-pointer text-xs"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+       </footer>
 
     </div>
   );
