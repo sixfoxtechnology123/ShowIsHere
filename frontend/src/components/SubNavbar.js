@@ -18,7 +18,8 @@ const SubNavbar = () => {
   ];
 
   const rightLinks = [
-    { name: 'Create Events', path: '/seatmap' },
+    { name: 'Create Events', path: '/event-create' },
+    { name: 'Seat Map', path: '/seatmap' },
     { name: 'Artists', path: '/artist-master' },
     { name: 'Collaborate', path: '#' },
     { name: 'Coupon', path: '#' },

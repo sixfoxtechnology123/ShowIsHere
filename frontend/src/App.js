@@ -12,6 +12,7 @@ import Footer from './components/Footer';
 import AboutPage from './components/AboutPage';
 import SeatMap from './components/SeatMap';
 import ArtistMaster from './Master/ArtistMaster';
+import EventCreate from './components/EventCreate';
 import { Toaster } from 'react-hot-toast';
 
 const AppContent = () => {
@@ -138,9 +139,10 @@ const AppContent = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/seatmap" element={<SeatMap />} />
         <Route path="/artist-master" element={<ArtistMaster />} />
+        <Route path="/event-create" element={<EventCreate />} />
       </Routes>
 
-      <Footer />
+      {/* <Footer /> */}
 
       <LocationModal 
         isOpen={isLocationModalOpen}

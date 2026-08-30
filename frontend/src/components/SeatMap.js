@@ -35,9 +35,9 @@ const SeatMap = () => {
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
-  // Multi-Page Support State with double-click rename & delete capability
+  // Multi-Page Support State with 3:4 Default Design Page Ratio Dimensions (e.g. 900px width by 1200px height)
   const [pages, setPages] = useState([
-    { id: 'page-1', name: 'Plan 1', width: 900, height: 900 }
+    { id: 'page-1', name: 'Plan 1', width: 900, height: 1200 }
   ]);
   const [activePageId, setActivePageId] = useState('page-1');
   const [editingPageId, setEditingPageId] = useState(null);
@@ -46,7 +46,7 @@ const SeatMap = () => {
   // Zones Manager States
   const [zones, setZones] = useState([
     { id: 'zone-1', name: 'Ground floor' },
-    { id: 'zone-2', name: 'asd' }
+  
   ]);
   const [activeZoneId, setActiveZoneId] = useState('zone-1');
   const [showNewZoneModal, setShowNewZoneModal] = useState(false);
@@ -90,15 +90,50 @@ const SeatMap = () => {
 
   const canvasRef = useRef(null);
 
+  const activePage = pages.find(p => p.id === activePageId) || pages[0];
+
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-      if (e.key.toLowerCase() === 'b') setActiveTool('addRowsBlock');
-      if (e.key.toLowerCase() === 't') setActiveTool('addText');
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+      const isCtrl = e.ctrlKey || e.metaKey;
+
+      if (e.key === 'Delete' || e.key === 'Del') {
+        handleDeleteSelected();
+      } else if (isCtrl && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) handleRedo();
+        else handleUndo();
+      } else if (isCtrl && e.key.toLowerCase() === 'y') {
+        handleRedo();
+      } else if (isCtrl && e.key.toLowerCase() === 'x') {
+        handleDeleteSelected();
+      } else if (isCtrl && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        handleDuplicate();
+      } else if (isCtrl && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        setZoomLevel(prev => Math.min(300, prev + 10));
+      } else if (isCtrl && e.key === '-') {
+        e.preventDefault();
+        setZoomLevel(prev => Math.max(10, prev - 10));
+      } else {
+        const key = e.key.toLowerCase();
+        if (key === 'v' && !isCtrl) setActiveTool('selectSeat');
+        if (key === 's' && !isCtrl) setActiveTool('selectSeat');
+        if (key === 'n' && !isCtrl) {
+          if (e.shiftKey) setActiveTool('addRowsBlock');
+          else setActiveTool('addRow');
+        }
+        if (key === 'm' && !isCtrl) setActiveTool('addSquare');
+        if (key === 'r' && !isCtrl) setActiveTool('addRectangle');
+        if (key === 'c' && !isCtrl) setActiveTool('addCircle');
+        if (key === 'o' && !isCtrl) setActiveTool('addCircle');
+        if (key === 'p' && !isCtrl) setActiveTool('addRowsBlock');
+        if (key === 't' && !isCtrl) setActiveTool('addText');
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [selectedSectionId, selectedShapeId, sections, shapes, history, redoStack]);
 
   function toRoman(num) {
     let n = Number(num);
@@ -541,16 +576,42 @@ const SeatMap = () => {
       const calculatedSeats = activeTool === 'addRow' ? Math.max(2, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1) : Math.max(1, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1);
       const calculatedRows = activeTool === 'addRow' ? 1 : Math.max(1, Math.floor(Math.abs(delta_y) / (boxSize + rowSpacing)) + 1);
 
-      if (['addSquare', 'addRectangle', 'addCircle', 'addText'].includes(activeTool)) {
+      if (['addSquare', 'addRectangle', 'addCircle', 'addText', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool)) {
         const newShId = Date.now();
         const startX = Math.min(drawStart.x, drawCurrent.x);
         const startY = Math.min(drawStart.y, drawCurrent.y);
 
         let shapeType = 'rectangle';
-        let initialWidth = Math.max(40, Math.abs(delta_x));
+        let initialWidth = Math.max(60, Math.abs(delta_x));
         let initialHeight = Math.max(40, Math.abs(delta_y));
+        let labelText = '';
 
-        if (activeTool === 'addSquare') {
+        if (activeTool === 'stage') {
+          shapeType = 'stage';
+          labelText = 'Stage / Screen';
+          initialWidth = Math.max(180, Math.abs(delta_x));
+          initialHeight = 40;
+        } else if (activeTool === 'entrance') {
+          shapeType = 'entrance';
+          labelText = 'Entrance';
+          initialWidth = 100;
+          initialHeight = 35;
+        } else if (activeTool === 'exit') {
+          shapeType = 'exit';
+          labelText = 'Exit Gate';
+          initialWidth = 100;
+          initialHeight = 35;
+        } else if (activeTool === 'emergency') {
+          shapeType = 'emergency';
+          labelText = 'Emergency Exit';
+          initialWidth = 120;
+          initialHeight = 35;
+        } else if (activeTool === 'toilet') {
+          shapeType = 'toilet';
+          labelText = 'Toilet';
+          initialWidth = 80;
+          initialHeight = 40;
+        } else if (activeTool === 'addSquare') {
           shapeType = 'square';
           const dim = Math.max(40, Math.abs(delta_x), Math.abs(delta_y));
           initialWidth = dim;
@@ -562,6 +623,7 @@ const SeatMap = () => {
           initialHeight = dim;
         } else if (activeTool === 'addText') {
           shapeType = 'text';
+          labelText = 'Type text here...';
           initialWidth = 140;
           initialHeight = 40;
         }
@@ -570,7 +632,7 @@ const SeatMap = () => {
           id: newShId,
           pageId: activePageId,
           type: shapeType,
-          text: activeTool === 'addText' ? 'Type text here...' : '',
+          text: labelText,
           color: '#1e293b',
           fontSize: 14,
           x: startX,
@@ -718,21 +780,24 @@ const SeatMap = () => {
   }
 
   return (
-    <div className={seatMapWrapper}>
+    <div className={`${seatMapWrapper} h-screen overflow-hidden flex flex-col bg-slate-50`}>
       
-      {/* PERFECT PRINT & DOWNLOAD MEDIA QUERY STYLING */}
+      {/* PRINT & DOWNLOAD MEDIA QUERY STYLING */}
       <style>{`
         @media print {
           body, html {
             background-color: #ffffff !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
           }
           header, footer, .bg-slate-100, aside, .fixed, [class*="print:hidden"] {
             display: none !important;
           }
           .printable-canvas-area {
-            position: absolute !important;
+            position: fixed !important;
             left: 0 !important;
             top: 0 !important;
             width: 100vw !important;
@@ -741,59 +806,133 @@ const SeatMap = () => {
             z-index: 9999999 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: visible !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
           }
           .canvasBoard {
-            transform: none !important;
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            transform: scale(0.85) !important;
+            position: relative !important;
+            box-shadow: none !important;
+            border: none !important;
           }
         }
       `}</style>
 
-      {/* SINGLE-ROW UNIFIED TOP HEADER BAR (EXCLUDED FROM PRINT) */}
-      <header className={`${seatMapHeader} print:hidden`}>
-        <div className="flex items-center  shrink-0">
-          {viewMode === 'creator' && (
-            <>
-              <button onClick={handleSaveMap} title="Save progress" className="p-1 hover:bg-slate-100 rounded text-slate-700 text-xs font-bold border border-slate-200 cursor-pointer flex items-center space-x-1"><span>💾</span><span>Save</span></button>
-              
-              <div className="h-5 w-[1px] bg-slate-300 mx-0.5"></div>
+  {/* UNIFIED TOP BAR CONTAINING BOTH HEADER TOOLS AND PAGE TABS IN THE SAME ROW */}
+      <header className={`${seatMapHeader} print:hidden h-12 border-b border-slate-200 bg-white px-4 flex items-center justify-between shrink-0`}>
+        
+        {/* LEFT & CENTER: ICON-ONLY TOOLS AND PAGE TABS IN ONE ROW */}
+        <div className="flex items-center space-x-3 overflow-x-auto shrink-0">
+          
+          {/* FILE / DOWNLOAD ICONS */}
+          <div className="flex items-center space-x-1">
+            <button onClick={handleSaveMap} title="Save progress" className="p-1.5 hover:bg-slate-100 rounded text-slate-700 text-xs border border-slate-200 cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </button>
+            <button onClick={() => window.print()} title="Download / Export PDF" className="p-1.5 hover:bg-slate-100 rounded text-slate-700 text-xs border border-slate-200 cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            </button>
+          </div>
 
-              <button onClick={() => setActiveTool('selectRow')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'selectRow' ? 'bg-slate-200 border-slate-400 font-bold' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Select Row"><span>🞸</span><span>Select Row</span></button>
-              <button onClick={() => setActiveTool('selectSeat')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'selectSeat' ? 'bg-slate-200 border-slate-400 font-bold' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Select Seat"><span>🖱️</span><span>Select Seat</span></button>
-              <button onClick={() => setActiveTool('addRow')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'addRow' ? 'bg-blue-100 border-blue-400 font-bold text-blue-700' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Add Row"><span>•••⁺</span><span>Add Row</span></button>
-              <button onClick={() => setActiveTool('addRowsBlock')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'addRowsBlock' ? 'bg-blue-100 border-blue-400 font-bold text-blue-700' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Add Rows"><span>⊞⁺</span><span>Add Rows</span></button>
-              <button onClick={() => setActiveTool('addSquare')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'addSquare' ? 'bg-blue-100 border-blue-400 font-bold text-blue-700' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Square"><span>🔲⁺</span><span>Square</span></button>
-              <button onClick={() => setActiveTool('addRectangle')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'addRectangle' ? 'bg-blue-100 border-blue-400 font-bold text-blue-700' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Rectangle"><span>▢⁺</span><span>Rectangle</span></button>
-              <button onClick={() => setActiveTool('addCircle')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'addCircle' ? 'bg-blue-100 border-blue-400 font-bold text-blue-700' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Circle"><span>⭕⁺</span><span>Circle</span></button>
-              <button onClick={() => setActiveTool('addText')} className={`px-2 py-1 rounded border text-xs cursor-pointer flex items-center space-x-1 ${activeTool === 'addText' ? 'bg-blue-100 border-blue-400 font-bold text-blue-700' : 'bg-white border-transparent hover:bg-slate-100'}`} title="Text Field"><span>T⁺</span><span>Text Field</span></button>
+          <div className="h-5 w-[1px] bg-slate-300"></div>
 
-              <div className="h-5 w-[1px] bg-slate-300 mx-0.5"></div>
-            </>
-          )}
+          {/* UNDO / REDO */}
+          <div className="flex items-center space-x-1">
+            <button onClick={handleUndo} title="Undo (Ctrl+Z)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6" /></svg>
+            </button>
+            <button onClick={handleRedo} title="Redo (Ctrl+Shift+Z)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6 6m6-6l-6-6" /></svg>
+            </button>
+          </div>
+
+          <div className="h-5 w-[1px] bg-slate-300"></div>
+
+          {/* EDIT ACTIONS: CUT, COPY, DUPLICATE, DELETE */}
+          <div className="flex items-center space-x-1">
+            <button onClick={() => { handleDeleteSelected(); }} title="Cut (Ctrl+X)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path strokeLinecap="round" strokeLinejoin="round" d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" /></svg>
+            </button>
+            <button onClick={() => { handleDuplicate(); }} title="Copy (Ctrl+C)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+            </button>
+            <button onClick={handleDuplicate} title="Duplicate (Ctrl+D)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h8M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2" /><rect x="4" y="11" width="10" height="10" rx="2" /></svg>
+            </button>
+            <button onClick={handleDeleteSelected} title="Delete (Del)" className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded border border-rose-200 text-xs cursor-pointer flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          </div>
+
+          <div className="h-5 w-[1px] bg-slate-300"></div>
+
+          {/* PAGES TABS EMBEDDED IN THE SAME ROW */}
+          <div className="flex items-center space-x-1.5">
+            <span className="font-extrabold text-slate-500 uppercase text-[10px]">PAGES:</span>
+            {pages.map(p => (
+              <div key={p.id} className="flex items-center">
+                {editingPageId === p.id ? (
+                  <input
+                    type="text"
+                    value={editingPageName}
+                    onChange={(e) => setEditingPageName(e.target.value)}
+                    onBlur={() => {
+                      if (editingPageName.trim()) {
+                        setPages(pages.map(pg => pg.id === p.id ? { ...pg, name: editingPageName.trim() } : pg));
+                      }
+                      setEditingPageId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (editingPageName.trim()) {
+                          setPages(pages.map(pg => pg.id === p.id ? { ...pg, name: editingPageName.trim() } : pg));
+                        }
+                        setEditingPageId(null);
+                      }
+                    }}
+                    autoFocus
+                    className="px-2 py-0.5 rounded border border-blue-500 bg-white text-xs font-bold w-20 outline-none"
+                  />
+                ) : (
+                  <div 
+                    onClick={() => setActivePageId(p.id)}
+                    onDoubleClick={() => {
+                      setEditingPageId(p.id);
+                      setEditingPageName(p.name);
+                    }}
+                    className={`${p.id === activePageId ? 'bg-blue-50 text-blue-700 border-blue-300 font-bold' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'} px-2.5 py-1 rounded text-xs cursor-pointer flex items-center border`}
+                    title="Double click to rename"
+                  >
+                    <span>📄 {p.name}</span>
+                    {pages.length > 1 && (
+                      <button onClick={(e) => handleDeletePage(p.id, e)} className="ml-1 text-slate-400 hover:text-rose-600 font-extrabold text-[10px]">✕</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={() => {
+                const newPId = `page-${Date.now()}`;
+                const newPageName = `Plan ${pages.length + 1}`;
+                setPages([...pages, { id: newPId, name: newPageName, width: 900, height: 1200 }]);
+                setActivePageId(newPId);
+              }}
+              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold cursor-pointer border border-slate-200"
+              title="Add New Page"
+            >
+              +
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-1 shrink-0">
-          {viewMode === 'creator' && (
-            <>
-              <button onClick={handleUndo} title="Undo" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>↩️</span></button>
-              <button onClick={handleRedo} title="Redo" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>↪️</span></button>
-              
-              <div className="h-5 w-[1px] bg-slate-300 mx-0.5"></div>
-
-              <button onClick={handleDuplicate} title="Duplicate" className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>📋</span><span>Duplicate</span></button>
-              <button onClick={handleDeleteSelected} title="Delete" className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded border border-rose-200 text-xs font-bold cursor-pointer flex items-center space-x-1"><span>🗑️</span>Delete</button>
-
-              <div className="h-5 w-[1px] bg-slate-300 mx-0.5"></div>
-            </>
-          )}
-
+        {/* RIGHT SIDE: ZOOM CONTROLS, PREVIEW & PROPERTIES TOGGLE */}
+        <div className="flex items-center space-x-2 shrink-0">
           <div className="bg-slate-100 border border-slate-200 rounded px-2 py-1 flex items-center space-x-1 text-xs">
-            <span>🔍</span>
             <button onClick={() => setZoomLevel(Math.max(10, zoomLevel - 10))} className="font-bold px-1 bg-white rounded border border-slate-300 cursor-pointer">-</button>
-            <span className="font-bold text-slate-800">{zoomLevel}%</span>
+            <span className="font-bold text-slate-800 w-10 text-center">{zoomLevel}%</span>
             <button onClick={() => setZoomLevel(Math.min(300, zoomLevel + 10))} className="font-bold px-1 bg-white rounded border border-slate-300 cursor-pointer">+</button>
           </div>
 
@@ -820,40 +959,21 @@ const SeatMap = () => {
       {showNewZoneModal && (
         <div className={modalOverlay}>
           <div className={modalBox}>
-            <button 
-              onClick={() => setShowNewZoneModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
-            >
-              ✕
-            </button>
+            <button onClick={() => setShowNewZoneModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             <h2 className="text-xl font-extrabold text-slate-900 text-center mb-6">Create a new zone</h2>
-            
             <div className="mb-6">
               <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Name</label>
-              <input 
-                type="text" 
-                value={newZoneNameInput} 
-                onChange={(e) => setNewZoneNameInput(e.target.value)}
-                placeholder="First floor"
-                className={inputFieldStyle}
-                autoFocus
-              />
+              <input type="text" value={newZoneNameInput} onChange={(e) => setNewZoneNameInput(e.target.value)} placeholder="First floor" className={inputFieldStyle} autoFocus />
             </div>
-
-            <button 
-              onClick={() => {
-                if (newZoneNameInput.trim()) {
-                  const newZId = `zone-${Date.now()}`;
-                  setZones([...zones, { id: newZId, name: newZoneNameInput.trim() }]);
-                  setActiveZoneId(newZId);
-                  setNewZoneNameInput('');
-                  setShowNewZoneModal(false);
-                }
-              }}
-              className={primaryButton}
-            >
-              CREATE
-            </button>
+            <button onClick={() => {
+              if (newZoneNameInput.trim()) {
+                const newZId = `zone-${Date.now()}`;
+                setZones([...zones, { id: newZId, name: newZoneNameInput.trim() }]);
+                setActiveZoneId(newZId);
+                setNewZoneNameInput('');
+                setShowNewZoneModal(false);
+              }
+            }} className={primaryButton}>CREATE</button>
           </div>
         </div>
       )}
@@ -862,159 +982,210 @@ const SeatMap = () => {
       {showNewCategoryModal && (
         <div className={modalOverlay}>
           <div className={modalBox}>
-            <button 
-              onClick={() => setShowNewCategoryModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
-            >
-              ✕
-            </button>
+            <button onClick={() => setShowNewCategoryModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
             <h2 className="text-lg font-extrabold text-slate-900 text-center mb-4">Add Custom Category</h2>
-            
             <div className="space-y-3 mb-4 text-xs">
               <div>
                 <label className="block font-bold text-slate-600 mb-1">Category Name</label>
-                <input 
-                  type="text" 
-                  value={newCatNameInput} 
-                  onChange={(e) => setNewCatNameInput(e.target.value)}
-                  placeholder="e.g. Balcony VIP"
-                  className={inputFieldStyle}
-                  autoFocus
-                />
+                <input type="text" value={newCatNameInput} onChange={(e) => setNewCatNameInput(e.target.value)} placeholder="e.g. Balcony VIP" className={inputFieldStyle} autoFocus />
               </div>
               <div>
                 <label className="block font-bold text-slate-600 mb-1">Color / Gradient Picker</label>
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="color" 
-                    value={newCatColorInput} 
-                    onChange={(e) => setNewCatColorInput(e.target.value)}
-                    className="w-10 h-8 rounded border border-slate-300 cursor-pointer p-0.5 bg-white"
-                  />
-                  <input 
-                    type="text"
-                    value={newCatColorInput}
-                    onChange={(e) => setNewCatColorInput(e.target.value)}
-                    className="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1.5 font-mono text-xs"
-                    placeholder="Hex or linear-gradient(...)"
-                  />
+                  <input type="color" value={newCatColorInput} onChange={(e) => setNewCatColorInput(e.target.value)} className="w-10 h-8 rounded border border-slate-300 cursor-pointer p-0.5 bg-white" />
+                  <input type="text" value={newCatColorInput} onChange={(e) => setNewCatColorInput(e.target.value)} className="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="Hex or linear-gradient(...)" />
                 </div>
               </div>
             </div>
-
-            <button 
-              onClick={() => {
-                if (newCatNameInput.trim()) {
-                  setCustomCategories([...customCategories, { name: newCatNameInput.trim(), color: newCatColorInput }]);
-                  setNewCatNameInput('');
-                  setShowNewCategoryModal(false);
-                }
-              }}
-              className={primaryButton}
-            >
-              Add Category
-            </button>
+            <button onClick={() => {
+              if (newCatNameInput.trim()) {
+                setCustomCategories([...customCategories, { name: newCatNameInput.trim(), color: newCatColorInput }]);
+                setNewCatNameInput('');
+                setShowNewCategoryModal(false);
+              }
+            }} className={primaryButton}>Add Category</button>
           </div>
         </div>
       )}
 
-      {/* MULTI-PAGE TABS BAR WITH RENAME, DELETE & ADD PAGE BUTTON */}
-      <div className={pageTabsBar}>
-        <span className="font-extrabold text-slate-700 uppercase tracking-wider mr-2">PAGES:</span>
-        {pages.map(p => (
-          <div key={p.id} className="flex items-center space-x-1">
-            {editingPageId === p.id ? (
-              <input
-                type="text"
-                value={editingPageName}
-                onChange={(e) => setEditingPageName(e.target.value)}
-                onBlur={() => {
-                  if (editingPageName.trim()) {
-                    setPages(pages.map(pg => pg.id === p.id ? { ...pg, name: editingPageName.trim() } : pg));
-                  }
-                  setEditingPageId(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    if (editingPageName.trim()) {
-                      setPages(pages.map(pg => pg.id === p.id ? { ...pg, name: editingPageName.trim() } : pg));
-                    }
-                    setEditingPageId(null);
-                  }
-                }}
-                autoFocus
-                className="px-2 py-1 rounded border border-blue-500 bg-white text-xs font-bold w-24 outline-none"
-              />
-            ) : (
-              <div 
-                onClick={() => setActivePageId(p.id)}
-                onDoubleClick={() => {
-                  setEditingPageId(p.id);
-                  setEditingPageName(p.name);
-                }}
-                className={p.id === activePageId ? pageTabActive : pageTabInactive}
-                title="Double click to rename page"
-              >
-                <span>📄 {p.name}</span>
-                {pages.length > 1 && (
-                  <button
-                    onClick={(e) => handleDeletePage(p.id, e)}
-                    className="ml-1 text-slate-400 hover:text-rose-600 font-extrabold text-[10px] px-1 rounded transition"
-                    title="Delete page"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+   
+
+      {/* MAIN BODY AREA WITH INDEPENDENTLY SCROLLABLE LEFT, CENTER, AND RIGHT PANELS */}
+      <div className={`${seatMapBody} flex-1 flex overflow-hidden relative`}>
         
-        <button
-          onClick={() => {
-            const newPId = `page-${Date.now()}`;
-            const newPageName = `Plan ${pages.length + 1}`;
-            setPages([...pages, { id: newPId, name: newPageName, width: 900, height: 900 }]);
-            setActivePageId(newPId);
-          }}
-          className={addPageButton}
-          title="Add New Page"
-        >
-          + Add Page
-        </button>
+     {/* LEFT SIDEBAR: INDEPENDENTLY SCROLLABLE */}
+    {viewMode === 'creator' && (
+      <aside className="w-40 bg-white border-r border-slate-200 flex flex-col p-2 shrink-0 overflow-y-auto select-none print:hidden h-full">
+        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-1">TOOLS</span>
+        
+     {/* 2-COLUMN ICON GRID FOR TOOLS (CLEANER, INTUITIVE LAYOUT MATCHING YOUR REFERENCE UI) */}
+          <div className="grid grid-cols-2 gap-1.5 mb-4">
+            <button 
+              onClick={() => setActiveTool('selectRow')} 
+              title="Select Row (V)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'selectRow' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18M3 6h18M3 18h18" />
+              </svg>
+            </button>
 
-        {/* <div className="ml-auto flex items-center space-x-2">
-          <button
-            onClick={() => window.print()}
-            className="px-3 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded font-bold transition cursor-pointer text-xs flex items-center space-x-1"
-            title="Download / Print as PDF or Image"
-          >
-            <span>📥</span><span>Download / Print</span>
+            <button 
+              onClick={() => setActiveTool('selectSeat')} 
+              title="Select Seat (S)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'selectSeat' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2z" />
+              </svg>
+            </button>
+
+            <button 
+              onClick={() => setActiveTool('addRow')} 
+              title="Add Row (N)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'addRow' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <rect x="4" y="9" width="16" height="6" rx="1" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v4m0 10v4" />
+              </svg>
+            </button>
+
+            <button 
+              onClick={() => setActiveTool('addRowsBlock')} 
+              title="Add Rows Block (Shift+N)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'addRowsBlock' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+            </button>
+
+            <button 
+              onClick={() => setActiveTool('addSquare')} 
+              title="Square Box (M)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'addSquare' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+              </svg>
+            </button>
+
+            <button 
+              onClick={() => setActiveTool('addRectangle')} 
+              title="Rectangle Box (R)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'addRectangle' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+              </svg>
+            </button>
+
+            <button 
+              onClick={() => setActiveTool('addCircle')} 
+              title="Circle / Oval (C / O)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'addCircle' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+            </button>
+
+            <button 
+              onClick={() => setActiveTool('addText')} 
+              title="Text Field (T)" 
+              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
+                activeTool === 'addText' 
+                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
+                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7V5h16v2M12 5v14" />
+              </svg>
+            </button>
+          </div>
+
+        <hr className="border-slate-200 my-1.5" />
+
+        {/* ADD TO MAP SECTION */}
+        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-1">ADD TO MAP</span>
+        <div className="space-y-0.5 w-full text-[11px] font-semibold text-slate-700 mb-3">
+          <button onClick={() => setActiveTool('stage')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'stage' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
+            <span className="text-xs">▬</span><span className="truncate">Stage / Screen</span>
           </button>
-        </div> */}
-      </div>
+          <button onClick={() => setActiveTool('entrance')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'entrance' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
+            <span className="text-xs">↗</span><span className="truncate">Entrance</span>
+          </button>
+          <button onClick={() => setActiveTool('exit')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'exit' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
+            <span className="text-xs">✓</span><span className="truncate">Exit Gate</span>
+          </button>
+          <button onClick={() => setActiveTool('emergency')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'emergency' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
+            <span className="text-xs">⚠</span><span className="truncate">Emergency Exit</span>
+          </button>
+          <button onClick={() => setActiveTool('toilet')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'toilet' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
+            <span className="text-xs">🚻</span><span className="truncate">Toilet</span>
+          </button>
+        </div>
 
-      {/* Main body*/}
-      <div className={`${seatMapBody} printable-canvas-area`}>
+        {/* QUICK TIP BOX */}
+        <div className="mt-auto bg-slate-50 border border-slate-200 rounded p-2 text-[9px] text-slate-600 space-y-0.5">
+          <p className="font-bold text-slate-800">Quick tip</p>
+          <p>• Place Stage / Screen first</p>
+          <p>• Add sections -&gt; rows -&gt; seats</p>
+          <p>• Select seats or rows to edit</p>
+          <p>• Add aisles &amp; facilities</p>
+          <p>• Set category &amp; price</p>
+          <p>• Preview before saving</p>
+        </div>
+      </aside>
+    )}
+
+        {/* CANVAS WORKSPACE AREA: INDEPENDENTLY SCROLLABLE CENTER AREA */}
         <main 
           ref={canvasRef}
-          className={seatMapCanvasArea}
+          className={`${seatMapCanvasArea} flex-1 relative overflow-auto bg-slate-200/60 printable-canvas-area flex items-center justify-center p-10 h-full`}
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
         >
+          {/* DESIGN PAGE (FIXED 3:4 ASPECT RATIO DIMENSIONS WITH PADDING SPACE AROUND IT) */}
           <div 
-            className="canvasBoard"
+            className="canvasBoard bg-white shadow-xl relative overflow-hidden rounded-lg shrink-0"
             style={{ 
+              width: `${activePage.width}px`,
+              height: `${activePage.height}px`,
               transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel / 100})`, 
-              transformOrigin: '0 0', 
-              minHeight: '2000px', 
-              minWidth: '2000px',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0
+              transformOrigin: 'center center'
             }}
           >
             <div className={canvasGridBg}></div>
@@ -1032,7 +1203,7 @@ const SeatMap = () => {
             )}
 
             {/* LIVE SIMULTANEOUS DRAG PREVIEW FOR SHAPES */}
-            {isDrawing && drawStart && drawCurrent && ['addSquare', 'addRectangle', 'addCircle', 'addText'].includes(activeTool) && (
+            {isDrawing && drawStart && drawCurrent && ['addSquare', 'addRectangle', 'addCircle', 'addText', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool) && (
               <div 
                 className="absolute border-2 border-dashed border-blue-600 bg-blue-500/10 pointer-events-none z-50"
                 style={{
@@ -1071,11 +1242,11 @@ const SeatMap = () => {
               </div>
             )}
 
-            {/* RENDER PAGE SHAPES */}
+            {/* RENDER PAGE SHAPES & ELEMENTS */}
             {pageShapes.map((sh) => {
               const isSelected = sh.id === selectedShapeId;
 
-              if (sh.type === 'text') {
+              if (['stage', 'entrance', 'exit', 'emergency', 'toilet', 'text'].includes(sh.type)) {
                 return (
                   <div
                     key={sh.id}
@@ -1090,36 +1261,9 @@ const SeatMap = () => {
                       cursor: 'move',
                       zIndex: 25
                     }}
-                    className={`p-1 select-none flex items-center ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50/50 rounded-none' : ''}`}
+                    className={`p-1 select-none flex items-center justify-center border rounded ${isSelected ? 'border-blue-600 ring-2 ring-blue-300 bg-blue-50/80 font-bold' : 'border-slate-400 bg-white/90 text-slate-800'}`}
                   >
-                    <input
-                      type="text"
-                      value={sh.text || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setShapes(shapes.map(s => s.id === sh.id ? { ...s, text: val } : s));
-                      }}
-                      style={{
-                        color: sh.color || '#1e293b',
-                        fontSize: `${sh.fontSize || 14}px`,
-                        width: '100%',
-                        height: '100%'
-                      }}
-                      className="bg-transparent border-none outline-none font-semibold cursor-text px-1"
-                    />
-
-                    {isSelected && viewMode === 'creator' && (
-                      <>
-                        <div 
-                          onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('se'); }}
-                          className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-600 border border-white rounded-full cursor-se-resize"
-                        ></div>
-                        <div 
-                          onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('nw'); }}
-                          className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-blue-600 border border-white rounded-full cursor-nw-resize"
-                        ></div>
-                      </>
-                    )}
+                    <span className="text-xs font-bold truncate">{sh.text || sh.type}</span>
                   </div>
                 );
               }
@@ -1161,7 +1305,7 @@ const SeatMap = () => {
               );
             })}
 
-            {/* RENDER ALL ZONES ON THE PAGE (ACTIVE ZONE ENABLED, OTHERS MUTED) */}
+            {/* RENDER ALL SEATING SECTIONS */}
             {pageSections.map((sec) => {
               const isCurrentZone = (sec.zoneId || 'zone-1') === activeZoneId;
               const isSelected = sec.id === selectedSectionId && isCurrentZone;
@@ -1319,9 +1463,9 @@ const SeatMap = () => {
           </div>
         </main>
 
-        {/* RIGHT SIDE PROPERTIES PANEL - EXCLUDED FROM PRINT */}
+        {/* RIGHT SIDE PROPERTIES PANEL: INDEPENDENTLY SCROLLABLE */}
         {viewMode === 'creator' && showRightSidebar && (
-          <aside className={`${propertiesSidebar} print:hidden`}>
+          <aside className={`${propertiesSidebar} w-72 bg-white border-l border-slate-200 p-4 overflow-y-auto shrink-0 print:hidden text-xs h-full`}>
             
             {/* ZONES HEADER WITH FULL ZONE DELETE BUTTON */}
             <div className="mb-3">
@@ -1421,7 +1565,7 @@ const SeatMap = () => {
             ) : activeSection ? (
               <div className="space-y-3 text-xs">
                 
-                {/* ROW SPACING & SEAT SPACING (MAX 2 CLEAN COLUMNS PER ROW) */}
+                {/* ROW SPACING & SEAT SPACING */}
                 <div>
                   <span className="font-extrabold text-slate-900 uppercase tracking-wider block mb-2">Row</span>
                   
@@ -1480,7 +1624,7 @@ const SeatMap = () => {
 
                 <hr className="border-slate-200" />
 
-                {/* ROW NUMBERS SECTION WITH MANUALLY EDITABLE & NEGATIVE/POSITIVE STARTING AT FIELD + DECREASE/INCREASE BUTTONS */}
+                {/* ROW NUMBERS SECTION */}
                 <div>
                   <span className="font-extrabold text-slate-900 uppercase tracking-wider block mb-2">Row numbers</span>
                   <div className="space-y-2">
@@ -1549,7 +1693,7 @@ const SeatMap = () => {
 
                 <hr className="border-slate-200" />
 
-                {/* SEAT NUMBERS SECTION WITH MANUALLY EDITABLE & NEGATIVE/POSITIVE STARTING AT FIELD + DECREASE/INCREASE BUTTONS */}
+                {/* SEAT NUMBERS SECTION */}
                 <div>
                   <span className="font-extrabold text-slate-900 uppercase tracking-wider block mb-2">Seat numbers</span>
                   <div className="space-y-2">
@@ -1613,24 +1757,12 @@ const SeatMap = () => {
                         </label>
                       </div>
                     </div>
-
-                    {/* <div className="grid grid-cols-2 gap-2 items-center pt-1">
-                      <span className="text-slate-700 flex items-center space-x-1">
-                        <span>Seat label</span>
-                      </span>
-                      <input 
-                        type="text" 
-                        value={activeSection.seatLabelFormat || 'Seat %s'} 
-                        onChange={(e) => handlePropertyChange('seatLabelFormat', e.target.value)}
-                        className="bg-white border border-slate-300 rounded px-2 py-1 w-full"
-                      />
-                    </div> */}
                   </div>
                 </div>
 
                 <hr className="border-slate-200" />
 
-                {/* SEAT RADIUS (MANUALLY TYPABLE WITH +/- BUTTONS) & CATEGORY COLOR */}
+                {/* SEAT RADIUS & CATEGORY COLOR */}
                 <div>
                   <span className="font-extrabold text-slate-900 uppercase tracking-wider block mb-2">Seat</span>
                   <div className="space-y-2">
@@ -1692,15 +1824,6 @@ const SeatMap = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* <div className="pt-4">
-                  <button 
-                    onClick={handleDeleteSelected}
-                    className="w-full bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold py-2 rounded text-xs transition cursor-pointer"
-                  >
-                    Delete Selected Object
-                  </button>
-                </div> */}
 
               </div>
             ) : activeShape && activeShape.type === 'text' ? (
@@ -1797,18 +1920,59 @@ const SeatMap = () => {
 
       </div>
 
-      {/* <footer className={`${seatMapFooter} print:hidden`}>
-        <div className="flex items-center space-x-6 text-xs">
-          <div><span className="font-bold text-slate-900">{totalSeats}</span> Total Capacity</div>
-          <div className="text-slate-500">Active Tool: <span className="font-bold uppercase text-blue-600">{activeTool}</span></div>
-          <div className="text-slate-400">
-            {isDrawing ? "Dragging: Matrix generating dynamically..." : "Click and drag on the canvas grid to draw blocks/shapes"}
+     {/* FIXED FOOTER SUMMARY BAR */}
+      <footer className={`${seatMapFooter} bg-white border-t border-slate-200 h-12 px-6 flex items-center justify-between shrink-0 print:hidden text-xs z-50`}>
+        <div className="flex items-center space-x-8">
+          <div className="flex flex-col items-center">
+            <span className="font-extrabold text-slate-900 text-sm">{totalSeats}</span>
+            <span className="text-[10px] text-slate-500 font-medium">Total Seats</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="font-extrabold text-slate-900 text-sm">
+              {sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'available').length, 0)}
+            </span>
+            <span className="text-[10px] text-slate-500 font-medium">Available</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="font-extrabold text-slate-900 text-sm">
+              {sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'sold' || st.status === 'blocked').length, 0)}
+            </span>
+            <span className="text-[10px] text-slate-500 font-medium">Reserved</span>
+          </div>
+
+          <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
+
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-2">
+              <span className="w-4 h-5 rounded bg-[#4f46e5] inline-block shadow-xs"></span>
+              <span className="text-slate-600 font-semibold">Regular</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="w-4 h-5 rounded bg-[#f59e0b] inline-block shadow-xs"></span>
+              <span className="text-slate-600 font-semibold">Premium</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="w-4 h-5 rounded bg-[#8b5cf6] inline-block shadow-xs"></span>
+              <span className="text-slate-600 font-semibold">VIP</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="w-4 h-5 rounded bg-[#10b981] inline-block shadow-xs"></span>
+              <span className="text-slate-600 font-semibold">Accessible</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="w-4 h-5 rounded bg-[#94a3b8] inline-block shadow-xs"></span>
+              <span className="text-slate-600 font-semibold">Reserved</span>
+            </div>
           </div>
         </div>
-        <div className="text-slate-400 text-xs">
-          Status: {viewMode === 'creator' ? '⚙️ Vector Coordinate Grid Active' : '👁️ Preview Mode'}
-        </div>
-      </footer> */}
+
+        <button 
+          onClick={handleSaveMap} 
+          className="bg-blue-700 hover:bg-blue-800 text-white font-bold px-5 py-2 rounded-md shadow transition cursor-pointer text-xs"
+        >
+          Save Seat Map
+        </button>
+      </footer>
 
     </div>
   );

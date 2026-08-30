@@ -113,7 +113,7 @@ export const sectionCard = "absolute bg-white/95 backdrop-blur-xs border-2 round
 export const propertiesSidebar = "w-64 bg-white border-l border-slate-200 p-6 overflow-y-auto shrink-0 space-y-5 text-xs z-30 max-h-[120vh]";
 export const seatMapFooter = "bg-white border-t border-slate-200 px-6 py-2.5 flex items-center justify-between text-xs font-medium text-slate-600 z-40";
 export const sidebarToggleBtn = "bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer border border-slate-200 flex items-center space-x-1.5";
-
+ 
 // Page tabs & buttons
 export const pageTabsBar = "bg-slate-100 border-b border-slate-200 px-4 py-1.5 flex items-center space-x-2 text-xs print:hidden";
 export const pageTabActive = "px-3 py-1 rounded font-bold transition cursor-pointer border bg-blue-600 text-white border-blue-600 shadow-xs flex items-center space-x-2";
