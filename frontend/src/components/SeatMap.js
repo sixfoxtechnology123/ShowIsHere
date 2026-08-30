@@ -72,6 +72,8 @@ const SeatMap = () => {
   const [selectedShapeId, setSelectedShapeId] = useState(null);
   const [selectedRowKey, setSelectedRowKey] = useState(null); 
   const [selectedSeatKey, setSelectedSeatKey] = useState(null); 
+  const [isShapeRotating, setIsShapeRotating] = useState(false);
+const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
 
   // Simultaneous Drag & Move / Resize States
   const [isDrawing, setIsDrawing] = useState(false);
@@ -116,8 +118,8 @@ const SeatMap = () => {
         e.preventDefault();
         setZoomLevel(prev => Math.max(10, prev - 10));
       } else {
-        const key = e.key.toLowerCase();
-        if (key === 'v' && !isCtrl) setActiveTool('selectSeat');
+       const key = e.key.toLowerCase();
+        if (key === 'v' && !isCtrl) setActiveTool('selectRow');
         if (key === 's' && !isCtrl) setActiveTool('selectSeat');
         if (key === 'n' && !isCtrl) {
           if (e.shiftKey) setActiveTool('addRowsBlock');
@@ -434,7 +436,22 @@ const SeatMap = () => {
       return;
     }
 
-    if (resizingShapeId && resizeHandle) {
+    if (isShapeRotating && selectedShapeId) {
+      const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
+      const rect = boardEl.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) / (zoomLevel / 100);
+      const mouseY = (e.clientY - rect.top) / (zoomLevel / 100);
+
+      const radians = Math.atan2(mouseY - shapeRotateCenter.y, mouseX - shapeRotateCenter.x);
+      let degrees = (radians * (180 / Math.PI)) + 90;
+
+      setShapes(shapes.map(sh => 
+        sh.id === selectedShapeId ? { ...sh, rotation: Math.round(degrees) } : sh
+      ));
+      return;
+    }
+
+ if (resizingShapeId && resizeHandle) {
       const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
       const rect = boardEl.getBoundingClientRect();
       const currentX = (e.clientX - rect.left) / (zoomLevel / 100);
@@ -455,6 +472,14 @@ const SeatMap = () => {
             newH = Math.max(20, sh.height + (sh.y - currentY));
             newX = currentX;
             newY = currentY;
+          } else if (resizeHandle === 'ne') {
+            newW = Math.max(20, currentX - sh.x);
+            newH = Math.max(20, sh.height + (sh.y - currentY));
+            newY = currentY;
+          } else if (resizeHandle === 'sw') {
+            newW = Math.max(20, sh.width + (sh.x - currentX));
+            newH = Math.max(20, currentY - sh.y);
+            newX = currentX;
           }
           return { ...sh, x: newX, y: newY, width: newW, height: newH };
         }
@@ -554,9 +579,10 @@ const SeatMap = () => {
     }
   };
 
-  const handleCanvasMouseUp = () => {
+const handleCanvasMouseUp = () => {
     setIsPanning(false);
     setIsRotating(false);
+    setIsShapeRotating(false);
     setDraggingId(null);
     setDraggingSeatKey(null);
     setDraggingRowLetter(null);
@@ -564,6 +590,7 @@ const SeatMap = () => {
     setResizingShapeId(null);
     setResizingBlockId(null);
     setResizeHandle(null);
+  
 
     if (isDrawing && drawStart && drawCurrent) {
       const delta_x = drawCurrent.x - drawStart.x;
@@ -710,6 +737,27 @@ const SeatMap = () => {
     }));
   };
 
+
+  const handleAddShape = (type, defaultText, w, h) => {
+    const newShId = Date.now();
+    const count = shapes.length;
+    const newShape = {
+      id: newShId,
+      pageId: activePageId,
+      type: type,
+      text: defaultText,
+      color: '#1e293b',
+      fontSize: 14,
+      x: (activePage.width / 2) - (w / 2) + ((count % 5) * 20),
+      y: (activePage.height / 2) - (h / 2) + ((count % 5) * 20),
+      width: w,
+      height: h
+    };
+    pushHistory(sections, [...shapes, newShape]);
+    setSelectedShapeId(newShId);
+  };
+
+
   const handlePropertyChange = (field, value) => {
     if (selectedSeatKey && activeSection && field === 'category') {
       const updatedSeats = {
@@ -819,141 +867,117 @@ const SeatMap = () => {
           }
         }
       `}</style>
+<header className={`${seatMapHeader} print:hidden h-14 border-b border-slate-200 bg-white px-6 flex items-center justify-between shrink-0`}>
+	  <div className="flex flex-col">
+	    <span className="font-extrabold text-slate-900 text-sm tracking-tight">showishere</span>
+	    <span className="text-[11px] text-slate-500 font-medium">Seat Map Creator • Mahajati Sadan — Main Auditorium</span>
+	  </div>
 
-  {/* UNIFIED TOP BAR CONTAINING BOTH HEADER TOOLS AND PAGE TABS IN THE SAME ROW */}
-      <header className={`${seatMapHeader} print:hidden h-12 border-b border-slate-200 bg-white px-4 flex items-center justify-between shrink-0`}>
-        
-        {/* LEFT & CENTER: ICON-ONLY TOOLS AND PAGE TABS IN ONE ROW */}
-        <div className="flex items-center space-x-3 overflow-x-auto shrink-0">
-          
-          {/* FILE / DOWNLOAD ICONS */}
-          <div className="flex items-center space-x-1">
-            <button onClick={handleSaveMap} title="Save progress" className="p-1.5 hover:bg-slate-100 rounded text-slate-700 text-xs border border-slate-200 cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            </button>
-            <button onClick={() => window.print()} title="Download / Export PDF" className="p-1.5 hover:bg-slate-100 rounded text-slate-700 text-xs border border-slate-200 cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            </button>
-          </div>
+	  <div className="flex items-center space-x-2">
+	    <button 
+	      onClick={() => {
+	        if (window.confirm("Are you sure you want to clear all sections and shapes?")) {
+	          pushHistory([], []);
+	        }
+	      }}
+	      className="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded border border-slate-200 text-xs cursor-pointer shadow-xs"
+	    >
+	      Clear Map
+	    </button>
 
-          <div className="h-5 w-[1px] bg-slate-300"></div>
-
-          {/* UNDO / REDO */}
-          <div className="flex items-center space-x-1">
-            <button onClick={handleUndo} title="Undo (Ctrl+Z)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6" /></svg>
-            </button>
-            <button onClick={handleRedo} title="Redo (Ctrl+Shift+Z)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6 6m6-6l-6-6" /></svg>
-            </button>
-          </div>
-
-          <div className="h-5 w-[1px] bg-slate-300"></div>
-
-          {/* EDIT ACTIONS: CUT, COPY, DUPLICATE, DELETE */}
-          <div className="flex items-center space-x-1">
-            <button onClick={() => { handleDeleteSelected(); }} title="Cut (Ctrl+X)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path strokeLinecap="round" strokeLinejoin="round" d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" /></svg>
-            </button>
-            <button onClick={() => { handleDuplicate(); }} title="Copy (Ctrl+C)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-            </button>
-            <button onClick={handleDuplicate} title="Duplicate (Ctrl+D)" className="p-1.5 bg-white hover:bg-slate-100 rounded border border-slate-200 text-xs cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7v8a2 2 0 002 2h8M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2" /><rect x="4" y="11" width="10" height="10" rx="2" /></svg>
-            </button>
-            <button onClick={handleDeleteSelected} title="Delete (Del)" className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded border border-rose-200 text-xs cursor-pointer flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            </button>
-          </div>
-
-          <div className="h-5 w-[1px] bg-slate-300"></div>
-
-          {/* PAGES TABS EMBEDDED IN THE SAME ROW */}
-          <div className="flex items-center space-x-1.5">
-            <span className="font-extrabold text-slate-500 uppercase text-[10px]">PAGES:</span>
-            {pages.map(p => (
-              <div key={p.id} className="flex items-center">
-                {editingPageId === p.id ? (
-                  <input
-                    type="text"
-                    value={editingPageName}
-                    onChange={(e) => setEditingPageName(e.target.value)}
-                    onBlur={() => {
-                      if (editingPageName.trim()) {
-                        setPages(pages.map(pg => pg.id === p.id ? { ...pg, name: editingPageName.trim() } : pg));
-                      }
-                      setEditingPageId(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        if (editingPageName.trim()) {
-                          setPages(pages.map(pg => pg.id === p.id ? { ...pg, name: editingPageName.trim() } : pg));
-                        }
-                        setEditingPageId(null);
-                      }
-                    }}
-                    autoFocus
-                    className="px-2 py-0.5 rounded border border-blue-500 bg-white text-xs font-bold w-20 outline-none"
-                  />
-                ) : (
-                  <div 
-                    onClick={() => setActivePageId(p.id)}
-                    onDoubleClick={() => {
-                      setEditingPageId(p.id);
-                      setEditingPageName(p.name);
-                    }}
-                    className={`${p.id === activePageId ? 'bg-blue-50 text-blue-700 border-blue-300 font-bold' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'} px-2.5 py-1 rounded text-xs cursor-pointer flex items-center border`}
-                    title="Double click to rename"
-                  >
-                    <span>📄 {p.name}</span>
-                    {pages.length > 1 && (
-                      <button onClick={(e) => handleDeletePage(p.id, e)} className="ml-1 text-slate-400 hover:text-rose-600 font-extrabold text-[10px]">✕</button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            <button
-              onClick={() => {
-                const newPId = `page-${Date.now()}`;
-                const newPageName = `Plan ${pages.length + 1}`;
-                setPages([...pages, { id: newPId, name: newPageName, width: 900, height: 1200 }]);
-                setActivePageId(newPId);
-              }}
-              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-bold cursor-pointer border border-slate-200"
-              title="Add New Page"
-            >
-              +
-            </button>
-          </div>
+	    <button 
+	      onClick={() => setViewMode(viewMode === 'creator' ? 'preview' : 'creator')}
+	      className="px-4 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded shadow-xs cursor-pointer text-xs"
+	    >
+	      {viewMode === 'creator' ? 'Preview' : 'Creator'}
+	    </button>
+	  </div>
+	</header>
+    <header className={`${seatMapHeader} print:hidden h-12 border-b border-slate-200 bg-white px-4 flex items-center justify-between shrink-0`}>
+      {/* LEFT: TOOLS, ZOOM, AND NEW PAGE BUTTON */}
+      <div className="flex items-center space-x-3 overflow-x-auto shrink-0">
+        {/* FILE / DOWNLOAD ICONS */}
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={() => {
+              const newPId = `page-${Date.now()}`;
+              const newPageName = `Plan ${pages.length + 1}`;
+              setPages([...pages, { id: newPId, name: newPageName, width: 900, height: 1200 }]);
+              setActivePageId(newPId);
+            }}
+            title="Add New Page"
+            className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" className="bi bi-file-earmark-plus w-[18px] h-[18px]" viewBox="0 0 16 16">
+              <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5"/>
+              <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+            </svg>
+          </button>
+          <button onClick={() => window.print()} title="Download / Export PDF" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          </button>
         </div>
 
-        {/* RIGHT SIDE: ZOOM CONTROLS, PREVIEW & PROPERTIES TOGGLE */}
-        <div className="flex items-center space-x-2 shrink-0">
-          <div className="bg-slate-100 border border-slate-200 rounded px-2 py-1 flex items-center space-x-1 text-xs">
-            <button onClick={() => setZoomLevel(Math.max(10, zoomLevel - 10))} className="font-bold px-1 bg-white rounded border border-slate-300 cursor-pointer">-</button>
-            <span className="font-bold text-slate-800 w-10 text-center">{zoomLevel}%</span>
-            <button onClick={() => setZoomLevel(Math.min(300, zoomLevel + 10))} className="font-bold px-1 bg-white rounded border border-slate-300 cursor-pointer">+</button>
-          </div>
+        <div className="h-5 w-[1px] bg-slate-300"></div>
 
-          <button 
-            onClick={() => setViewMode(viewMode === 'creator' ? 'preview' : 'creator')}
-            className={`text-xs font-bold px-2.5 py-1 rounded border cursor-pointer ${viewMode === 'preview' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'}`}
-          >
-            {viewMode === 'creator' ? '👁️ Preview' : '⚙️ Creator'}
+        {/* UNDO / REDO */}
+        <div className="flex items-center space-x-1">
+          <button onClick={handleUndo} title="Undo (Ctrl+Z)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6 6m-6-6l6-6" /></svg>
+          </button>
+          <button onClick={handleRedo} title="Redo (Ctrl+Shift+Z)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6 6m6-6l-6-6" /></svg>
+          </button>
+        </div>
+
+        <div className="h-5 w-[1px] bg-slate-300"></div>
+
+        {/* EDIT ACTIONS: CUT, COPY, PASTE, DUPLICATE, DELETE */}
+        <div className="flex items-center space-x-1">
+          <button onClick={() => { handleDeleteSelected(); }} title="Cut (Ctrl+X)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path strokeLinecap="round" strokeLinejoin="round" d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12" /></svg>
+          </button>
+          
+          {/* Copy Button */}
+          <button onClick={() => { handleDuplicate(); }} title="Copy (Ctrl+C)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
           </button>
 
-          {viewMode === 'creator' && (
-            <button 
-              onClick={() => setShowRightSidebar(!showRightSidebar)}
-              className={`${sidebarToggleBtn} px-2.5 py-1 text-xs`}
-              title="Toggle Properties Panel"
-            >
-              <span>Properties</span>
-            </button>
-          )}
+          {/* Paste Button (Right after Copy) */}
+          <button title="Paste (Ctrl+V)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </button>
+
+          <button onClick={handleDuplicate} title="Duplicate (Ctrl+D)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+            </svg>
+          </button>
+          <button onClick={handleDeleteSelected} title="Delete (Del)" className="p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
         </div>
-      </header>
+
+        <div className="h-5 w-[1px] bg-slate-300"></div>
+
+        {/* ZOOM CONTROLS */}
+        <div className="bg-slate-100 rounded px-1.5 py-0.5 flex items-center space-x-1 text-[11px]">
+          <button onClick={() => setZoomLevel(Math.max(10, zoomLevel - 10))} className="p-0.5 rounded cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
+            </svg>
+          </button>
+          <span className="font-bold text-slate-800 w-8 text-center">{zoomLevel}%</span>
+          <button onClick={() => setZoomLevel(Math.min(300, zoomLevel + 10))} className="p-0.5 rounded cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
 
       {/* CREATE NEW ZONE MODAL POPUP */}
       {showNewZoneModal && (
@@ -1015,168 +1039,178 @@ const SeatMap = () => {
         
      {/* LEFT SIDEBAR: INDEPENDENTLY SCROLLABLE */}
     {viewMode === 'creator' && (
-      <aside className="w-40 bg-white border-r border-slate-200 flex flex-col p-2 shrink-0 overflow-y-auto select-none print:hidden h-full">
+      <aside className="w-30 bg-white border-r border-slate-200 flex flex-col p-2 shrink-0 overflow-y-auto select-none print:hidden h-full">
         <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-1">TOOLS</span>
         
-     {/* 2-COLUMN ICON GRID FOR TOOLS (CLEANER, INTUITIVE LAYOUT MATCHING YOUR REFERENCE UI) */}
-          <div className="grid grid-cols-2 gap-1.5 mb-4">
-            <button 
-              onClick={() => setActiveTool('selectRow')} 
-              title="Select Row (V)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'selectRow' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12h18M3 6h18M3 18h18" />
-              </svg>
-            </button>
+  <div className="grid grid-cols-2 gap-1.5 mb-1">
+    <button 
+      onClick={() => setActiveTool('selectRow')} 
+      title="Select Row (V)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'selectRow' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="18" height="18" viewBox="0 0 50 50" fill="currentColor">
+        <path d="M 29.699219 47 C 29.578125 47 29.457031 46.976563 29.339844 46.933594 C 29.089844 46.835938 28.890625 46.644531 28.78125 46.398438 L 22.945313 32.90625 L 15.683594 39.730469 C 15.394531 40.003906 14.96875 40.074219 14.601563 39.917969 C 14.238281 39.761719 14 39.398438 14 39 L 14 6 C 14 5.601563 14.234375 5.242188 14.601563 5.082031 C 14.964844 4.925781 15.390625 4.996094 15.683594 5.269531 L 39.683594 27.667969 C 39.972656 27.9375 40.074219 28.355469 39.945313 28.726563 C 39.816406 29.101563 39.480469 29.363281 39.085938 29.398438 L 28.902344 30.273438 L 35.007813 43.585938 C 35.117188 43.824219 35.128906 44.101563 35.035156 44.351563 C 34.941406 44.601563 34.757813 44.800781 34.515625 44.910156 L 30.113281 46.910156 C 29.980469 46.96875 29.84375 47 29.699219 47 Z"></path>
+      </svg>
+    </button>
 
-            <button 
-              onClick={() => setActiveTool('selectSeat')} 
-              title="Select Seat (S)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'selectSeat' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2z" />
-              </svg>
-            </button>
+    <button 
+      onClick={() => setActiveTool('selectSeat')} 
+      title="Select Seat (S)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'selectSeat' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="18" height="18" viewBox="0 0 50 50" fill="currentColor">
+        <path d="M 14.78125 5 C 14.75 5.007813 14.71875 5.019531 14.6875 5.03125 C 14.644531 5.050781 14.601563 5.070313 14.5625 5.09375 C 14.550781 5.09375 14.542969 5.09375 14.53125 5.09375 C 14.511719 5.101563 14.488281 5.113281 14.46875 5.125 C 14.457031 5.136719 14.449219 5.144531 14.4375 5.15625 C 14.425781 5.167969 14.417969 5.175781 14.40625 5.1875 C 14.375 5.207031 14.34375 5.226563 14.3125 5.25 C 14.289063 5.269531 14.269531 5.289063 14.25 5.3125 C 14.238281 5.332031 14.226563 5.355469 14.21875 5.375 C 14.183594 5.414063 14.152344 5.457031 14.125 5.5 C 14.113281 5.511719 14.105469 5.519531 14.09375 5.53125 C 14.09375 5.542969 14.09375 5.550781 14.09375 5.5625 C 14.082031 5.582031 14.070313 5.605469 14.0625 5.625 C 14.050781 5.636719 14.042969 5.644531 14.03125 5.65625 C 14.03125 5.675781 14.03125 5.699219 14.03125 5.71875 C 14.019531 5.757813 14.007813 5.800781 14 5.84375 C 14 5.875 14 5.90625 14 5.9375 C 14 5.949219 14 5.957031 14 5.96875 C 14 5.980469 14 5.988281 14 6 C 13.996094 6.050781 13.996094 6.105469 14 6.15625 L 14 39 C 14.003906 39.398438 14.242188 39.757813 14.609375 39.914063 C 14.972656 40.070313 15.398438 39.992188 15.6875 39.71875 L 22.9375 32.90625 L 28.78125 46.40625 C 28.890625 46.652344 29.09375 46.847656 29.347656 46.941406 C 29.601563 47.035156 29.882813 47.023438 30.125 46.90625 L 34.5 44.90625 C 34.996094 44.679688 35.21875 44.09375 35 43.59375 L 28.90625 30.28125 L 39.09375 29.40625 C 39.496094 29.378906 39.84375 29.113281 39.976563 28.730469 C 40.105469 28.347656 39.992188 27.921875 39.6875 27.65625 L 15.84375 5.4375 C 15.796875 5.378906 15.746094 5.328125 15.6875 5.28125 C 15.648438 5.234375 15.609375 5.195313 15.5625 5.15625 C 15.550781 5.15625 15.542969 5.15625 15.53125 5.15625 C 15.511719 5.132813 15.492188 5.113281 15.46875 5.09375 C 15.457031 5.09375 15.449219 5.09375 15.4375 5.09375 C 15.386719 5.070313 15.335938 5.046875 15.28125 5.03125 C 15.269531 5.03125 15.261719 5.03125 15.25 5.03125 C 15.230469 5.019531 15.207031 5.007813 15.1875 5 C 15.175781 5 15.167969 5 15.15625 5 C 15.136719 5 15.113281 5 15.09375 5 C 15.082031 5 15.074219 5 15.0625 5 C 15.042969 5 15.019531 5 15 5 C 14.988281 5 14.980469 5 14.96875 5 C 14.9375 5 14.90625 5 14.875 5 C 14.84375 5 14.8125 5 14.78125 5 Z M 16 8.28125 L 36.6875 27.59375 L 27.3125 28.40625 C 26.992188 28.4375 26.707031 28.621094 26.546875 28.902344 C 26.382813 29.179688 26.367188 29.519531 26.5 29.8125 L 32.78125 43.5 L 30.21875 44.65625 L 24.21875 30.8125 C 24.089844 30.515625 23.828125 30.296875 23.511719 30.230469 C 23.195313 30.160156 22.863281 30.25 22.625 30.46875 L 16 36.6875 Z"></path>
+      </svg>
+    </button>
 
-            <button 
-              onClick={() => setActiveTool('addRow')} 
-              title="Add Row (N)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'addRow' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <rect x="4" y="9" width="16" height="6" rx="1" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v4m0 10v4" />
-              </svg>
-            </button>
+    <button 
+      onClick={() => setActiveTool('addRow')} 
+      title="Add Row (N)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addRow' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px]">
+        <circle cx="3" cy="12" r="2.5" />
+        <circle cx="10" cy="12" r="2.5" />
+        <path stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" d="M19 9v6M16 12h6" />
+      </svg>
+    </button>
 
-            <button 
-              onClick={() => setActiveTool('addRowsBlock')} 
-              title="Add Rows Block (Shift+N)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'addRowsBlock' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
-              </svg>
-            </button>
+    <button 
+      onClick={() => setActiveTool('addRowsBlock')} 
+      title="Add Rows Block (Shift+N)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addRowsBlock' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px]">
+        <circle cx="5" cy="5" r="3" />
+        <circle cx="11" cy="5" r="3" />
+        <circle cx="5" cy="12" r="3" />
+        <circle cx="11" cy="12" r="3" />
+        <circle cx="5" cy="19" r="3" />
+        <circle cx="11" cy="19" r="3" />
+        <circle cx="17" cy="19" r="3" />
+        <path stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" d="M18 5v6M15 8h6" />
+      </svg>
+    </button>
 
-            <button 
-              onClick={() => setActiveTool('addSquare')} 
-              title="Square Box (M)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'addSquare' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <rect x="4" y="4" width="16" height="16" rx="2" />
-              </svg>
-            </button>
+    <button 
+      onClick={() => setActiveTool('addSquare')} 
+      title="Square Box (M)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addSquare' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+      </svg>
+    </button>
 
-            <button 
-              onClick={() => setActiveTool('addRectangle')} 
-              title="Rectangle Box (R)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'addRectangle' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <rect x="2" y="6" width="20" height="12" rx="2" />
-              </svg>
-            </button>
+    <button 
+      onClick={() => setActiveTool('addRectangle')} 
+      title="Rectangle Box (R)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addRectangle' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+      </svg>
+    </button>
 
-            <button 
-              onClick={() => setActiveTool('addCircle')} 
-              title="Circle / Oval (C / O)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'addCircle' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <circle cx="12" cy="12" r="9" />
-              </svg>
-            </button>
+    <button 
+      onClick={() => setActiveTool('addCircle')} 
+      title="Circle / Oval (C / O)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addCircle' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+        <circle cx="12" cy="12" r="9" />
+      </svg>
+    </button>
 
-            <button 
-              onClick={() => setActiveTool('addText')} 
-              title="Text Field (T)" 
-              className={`p-2 rounded border text-xs cursor-pointer flex items-center justify-center h-9 ${
-                activeTool === 'addText' 
-                  ? 'bg-blue-50 border-blue-400 text-blue-600 ring-2 ring-blue-200' 
-                  : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7V5h16v2M12 5v14" />
-              </svg>
-            </button>
-          </div>
+    <button 
+      onClick={() => setActiveTool('addText')} 
+      title="Text Field (T)" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addText' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[18px] h-[18px]">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 7V5h16v2M12 5v14" />
+      </svg>
+    </button>
+  </div>
 
-        <hr className="border-slate-200 my-1.5" />
+  <hr className="border-slate-200 my-2" />
 
-        {/* ADD TO MAP SECTION */}
-        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 px-1">ADD TO MAP</span>
-        <div className="space-y-0.5 w-full text-[11px] font-semibold text-slate-700 mb-3">
-          <button onClick={() => setActiveTool('stage')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'stage' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
-            <span className="text-xs">▬</span><span className="truncate">Stage / Screen</span>
-          </button>
-          <button onClick={() => setActiveTool('entrance')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'entrance' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
-            <span className="text-xs">↗</span><span className="truncate">Entrance</span>
-          </button>
-          <button onClick={() => setActiveTool('exit')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'exit' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
-            <span className="text-xs">✓</span><span className="truncate">Exit Gate</span>
-          </button>
-          <button onClick={() => setActiveTool('emergency')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'emergency' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
-            <span className="text-xs">⚠</span><span className="truncate">Emergency Exit</span>
-          </button>
-          <button onClick={() => setActiveTool('toilet')} className={`w-full text-left px-1.5 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-1.5 ${activeTool === 'toilet' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}>
-            <span className="text-xs">🚻</span><span className="truncate">Toilet</span>
-          </button>
-        </div>
+   {/* ADD TO MAP SECTION */}
+  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1 px-1">ADD TO MAP</span>
+  <div className="space-y-0.5 w-full text-xs font-semibold text-slate-700 mb-2">
+    <button type="button" onClick={() => handleAddShape('stage', 'Stage / Screen', 180, 40)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+      <span className="text-sm">▬</span><span className="truncate">Stage / Screen</span>
+    </button>
+    <button type="button" onClick={() => handleAddShape('entrance', 'Entrance', 100, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+      <span className="text-sm">↗</span><span className="truncate">Entrance</span>
+    </button>
+    <button type="button" onClick={() => handleAddShape('exit', 'Exit Gate', 100, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+      <span className="text-sm">↙</span><span className="truncate">Exit Gate</span>
+    </button>
+    <button type="button" onClick={() => handleAddShape('emergency', 'Emergency Exit', 120, 35)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+      <span className="text-sm">⚠</span><span className="truncate">Emergency Exit</span>
+    </button>
+    <button type="button" onClick={() => handleAddShape('toilet', 'Toilet', 80, 40)} className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 cursor-pointer flex items-center space-x-2">
+      <span className="text-sm">🚻</span><span className="truncate">Toilet</span>
+    </button>
+  </div>
 
-        {/* QUICK TIP BOX */}
-        <div className="mt-auto bg-slate-50 border border-slate-200 rounded p-2 text-[9px] text-slate-600 space-y-0.5">
-          <p className="font-bold text-slate-800">Quick tip</p>
-          <p>• Place Stage / Screen first</p>
-          <p>• Add sections -&gt; rows -&gt; seats</p>
-          <p>• Select seats or rows to edit</p>
-          <p>• Add aisles &amp; facilities</p>
-          <p>• Set category &amp; price</p>
-          <p>• Preview before saving</p>
-        </div>
+  {/* QUICK TIP BOX */}
+  <div className="bg-slate-50 border border-slate-200 rounded p-2 text-[9px] text-slate-600 space-y-0.5 mb-2">
+    <p className="font-bold text-slate-800">Quick tip</p>
+    <p>• Place Stage / Screen first</p>
+    <p>• Add sections -&gt; rows -&gt; seats</p>
+    <p>• Select seats or rows to edit</p>
+    <p>• Add aisles &amp; facilities</p>
+    <p>• Set category &amp; price</p>
+    <p>• Preview before saving</p>
+  </div>
       </aside>
     )}
 
-        {/* CANVAS WORKSPACE AREA: INDEPENDENTLY SCROLLABLE CENTER AREA */}
-        <main 
+ <main 
           ref={canvasRef}
           className={`${seatMapCanvasArea} flex-1 relative overflow-auto bg-slate-200/60 printable-canvas-area flex items-center justify-center p-10 h-full`}
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
+          onClick={() => {
+            setSelectedShapeId(null);
+            setSelectedSectionId(null);
+            setSelectedSeatKey(null);
+          }}
         >
           {/* DESIGN PAGE (FIXED 3:4 ASPECT RATIO DIMENSIONS WITH PADDING SPACE AROUND IT) */}
           <div 
@@ -1242,68 +1276,96 @@ const SeatMap = () => {
               </div>
             )}
 
-            {/* RENDER PAGE SHAPES & ELEMENTS */}
-            {pageShapes.map((sh) => {
-              const isSelected = sh.id === selectedShapeId;
+          {pageShapes.map((sh) => {
+                const isSelected = sh.id === selectedShapeId;
+                const rotationAngle = sh.rotation || 0;
 
-              if (['stage', 'entrance', 'exit', 'emergency', 'toilet', 'text'].includes(sh.type)) {
                 return (
                   <div
                     key={sh.id}
                     onMouseDown={(e) => handleShapeMouseDown(e, sh.id)}
-                    onClick={() => { setSelectedShapeId(sh.id); setSelectedSectionId(null); setSelectedSeatKey(null); }}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setSelectedShapeId(sh.id); 
+                      setSelectedSectionId(null); 
+                      setSelectedSeatKey(null); 
+                    }}
                     style={{
                       top: `${sh.y}px`,
                       left: `${sh.x}px`,
                       width: `${sh.width}px`,
                       height: `${sh.height}px`,
                       position: 'absolute',
-                      cursor: 'move',
+                      cursor: viewMode === 'preview' ? 'default' : 'move',
+                      transform: `rotate(${rotationAngle}deg)`,
+                      transformOrigin: 'center center',
                       zIndex: 25
                     }}
-                    className={`p-1 select-none flex items-center justify-center border rounded ${isSelected ? 'border-blue-600 ring-2 ring-blue-300 bg-blue-50/80 font-bold' : 'border-slate-400 bg-white/90 text-slate-800'}`}
+                  className={`select-none flex items-center justify-center border rounded-none ${
+                  isSelected && viewMode === 'creator'
+                    ? 'border-blue-600 ring-2 ring-blue-300 bg-blue-50/90 font-bold shadow-md' 
+                    : 'border-slate-400 bg-white/90 text-slate-800'
+                }`}
                   >
-                    <span className="text-xs font-bold truncate">{sh.text || sh.type}</span>
+                    {sh.isEditing ? (
+                      <input
+                        type="text"
+                        value={sh.text || ''}
+                        autoFocus
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          setShapes(shapes.map(s => s.id === sh.id ? { ...s, text: val, isEditing: false } : s));
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setShapes(shapes.map(s => s.id === sh.id ? { ...s, text: val } : s));
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setShapes(shapes.map(s => s.id === sh.id ? { ...s, isEditing: false } : s));
+                          }
+                        }}
+                        className="w-full h-full text-center bg-transparent border-none outline-none text-xs font-bold"
+                      />
+                    ) : (
+                      <span 
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          setShapes(shapes.map(s => s.id === sh.id ? { ...s, isEditing: true } : s));
+                        }}
+                        className="text-xs font-bold truncate px-1 w-full text-center"
+                        title="Double click to edit text"
+                      >
+                        {sh.text || sh.type}
+                      </span>
+                    )}
+
+                    {isSelected && viewMode === 'creator' && (
+                      <>
+                        {/* Rotation Handle */}
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto">
+                          <div className="w-[1px] h-5 bg-blue-600"></div>
+                          <div 
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setIsShapeRotating(true);
+                              setShapeRotateCenter({ x: sh.x + (sh.width / 2), y: sh.y + (sh.height / 2) });
+                            }}
+                            title="Click and drag to rotate shape"
+                            className="w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow cursor-grab active:cursor-grabbing"
+                          ></div>
+                        </div>
+
+                        {/* Corner Resize Handles */}
+                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('nw'); }} className="absolute -top-1.5 -left-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-nw-resize"></div>
+                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('ne'); }} className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-ne-resize"></div>
+                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('sw'); }} className="absolute -bottom-1.5 -left-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-sw-resize"></div>
+                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('se'); }} className="absolute -bottom-1.5 -right-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-se-resize"></div>
+                      </>
+                    )}
                   </div>
                 );
-              }
-
-              let shapeStyle = 'rounded-none bg-transparent';
-              if (sh.type === 'square') shapeStyle = 'rounded-none aspect-square bg-transparent';
-              if (sh.type === 'rectangle') shapeStyle = 'rounded-none bg-transparent';
-              if (sh.type === 'circle') shapeStyle = 'rounded-full aspect-square bg-transparent';
-
-              return (
-                <div
-                  key={sh.id}
-                  onMouseDown={(e) => handleShapeMouseDown(e, sh.id)}
-                  onClick={() => { setSelectedShapeId(sh.id); setSelectedSectionId(null); setSelectedSeatKey(null); }}
-                  style={{
-                    top: `${sh.y}px`,
-                    left: `${sh.x}px`,
-                    width: `${sh.width}px`,
-                    height: `${sh.height}px`,
-                    position: 'absolute'
-                  }}
-                  className={`border-2 ${isSelected ? 'border-blue-600 ring-2 ring-blue-300' : 'border-slate-600'} flex items-center justify-center cursor-move z-20 ${shapeStyle}`}
-                >
-                  <span className="text-xs font-bold text-slate-800 select-none">{sh.text || ''}</span>
-
-                  {isSelected && viewMode === 'creator' && (
-                    <>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('se'); }}
-                        className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-blue-600 border border-white rounded-full cursor-se-resize"
-                      ></div>
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('nw'); }}
-                        className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-blue-600 border border-white rounded-full cursor-nw-resize"
-                      ></div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+              })}
 
             {/* RENDER ALL SEATING SECTIONS */}
             {pageSections.map((sec) => {
@@ -1339,9 +1401,9 @@ const SeatMap = () => {
                     transform: `rotate(${rotationAngle}deg)`,
                     transformOrigin: 'center center',
                     opacity: isCurrentZone ? 1 : 0.35, 
-                    pointerEvents: isCurrentZone || viewMode === 'creator' ? 'auto' : 'none'
+                    pointerEvents: viewMode === 'preview' ? 'auto' : (isCurrentZone || viewMode === 'creator' ? 'auto' : 'none')
                   }}
-                  className={`absolute rounded bg-transparent ${isCurrentZone ? 'cursor-move' : 'cursor-pointer'} ${
+                  className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : isCurrentZone ? 'cursor-move' : 'cursor-pointer'} ${
                     isSelected && viewMode === 'creator' ? 'border border-dashed border-blue-500 z-30' : 'z-10'
                   }`}
                   title={isCurrentZone ? 'Active Zone' : 'Inactive Zone - Click to activate'}
@@ -1434,6 +1496,7 @@ const SeatMap = () => {
                                   onMouseDown={(e) => isCurrentZone && handleSeatMouseDown(e, sec.id, seatKey)}
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    if (viewMode === 'preview') return;
                                     if (!isCurrentZone) {
                                       setActiveZoneId(sec.zoneId || 'zone-1');
                                     } else {
@@ -1441,7 +1504,7 @@ const SeatMap = () => {
                                     }
                                   }}
                                   style={inlineStyle}
-                                  className={`text-[9px] flex items-center justify-center font-medium transition-transform hover:scale-110 cursor-pointer select-none border ${categoryColorBg}`}
+                                  className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : 'hover:scale-110 cursor-pointer'} select-none border ${categoryColorBg}`}
                                 >
                                   {seatData.status === 'wheelchair' ? '♿' : seatNumLabel}
                                 </div>

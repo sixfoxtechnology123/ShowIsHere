@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route,useLocation} from 'react-router-dom';
 import API from './utils/api';
 import Navbar from './components/Navbar';
 import SubNavbar from './components/SubNavbar';
@@ -23,6 +23,10 @@ const AppContent = () => {
   
   // INITIALIZED TO TRUE SO IT OPENS AUTOMATICALLY ON FIRST PAGE LOAD
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(true);
+
+
+const routerLocation = useLocation();
+const isSeatMapPage = routerLocation.pathname === '/seatmap';
 
   useEffect(() => {
     fetchEvents();
@@ -119,13 +123,16 @@ const AppContent = () => {
         }}
       />
 
-      <Navbar 
-        location={location} 
-        onDetectLocation={detectLocation} 
-        onOpenLocationModal={() => setIsLocationModalOpen(true)} 
-      />
-      
-      <SubNavbar />
+  {!isSeatMapPage && (
+  <>
+    <Navbar 
+      location={location} 
+      onDetectLocation={detectLocation} 
+      onOpenLocationModal={() => setIsLocationModalOpen(true)} 
+    />
+    <SubNavbar />
+  </>
+)}
 
       {/* URL-based Routing View Rendering */}
       <Routes>
