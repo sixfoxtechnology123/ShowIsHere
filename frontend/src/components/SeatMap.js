@@ -19,9 +19,101 @@ import {
   primaryButton
 } from '../styles/MasterCSSClass';
 
+const NumberInput = ({ label, value, onChange, min }) => {
+  const [textVal, setTextVal] = useState(value ?? 0);
+
+  useEffect(() => {
+    setTextVal(value ?? 0);
+  }, [value]);
+
+  return (
+    <div className="grid grid-cols-2 gap-2 items-center">
+      <span className="text-slate-700 font-semibold">{label}</span>
+      <div className="flex items-center border border-slate-300 rounded bg-white">
+        <button 
+          type="button"
+          onClick={() => {
+            const next = Number(textVal || 0) - 1;
+            if (min !== undefined && next < min) return;
+            setTextVal(next);
+            onChange(next);
+          }} 
+          className="px-2 py-1 font-bold hover:bg-slate-100 border-r border-slate-300 cursor-pointer text-slate-700"
+        >-</button>
+        <input 
+          type="text" 
+          value={textVal} 
+          onChange={(e) => {
+            const val = e.target.value;
+            setTextVal(val);
+            if (val !== '' && val !== '-') {
+              const num = Number(val);
+              if (!isNaN(num)) {
+                onChange(num);
+              }
+            }
+          }}
+          onBlur={() => {
+            if (textVal === '' || textVal === '-') {
+              setTextVal(min !== undefined ? min : 0);
+              onChange(min !== undefined ? min : 0);
+            }
+          }}
+          className="w-full text-center bg-transparent outline-none text-xs text-slate-800" 
+        />
+        <button 
+          type="button"
+          onClick={() => {
+            const next = Number(textVal || 0) + 1;
+            setTextVal(next);
+            onChange(next);
+          }} 
+          className="px-2 py-1 font-bold hover:bg-slate-100 border-l border-slate-300 cursor-pointer text-slate-700"
+        >+</button>
+      </div>
+    </div>
+  );
+};
+
+const ColorPickerField = ({ label, value, onChange }) => {
+  // Ensure the value is a valid hex for the color input element
+  const getSafeHex = (col) => {
+    if (!col) return '#000000';
+    if (col.startsWith('#') && col.length >= 7) return col.substring(0, 7);
+    return '#000000';
+  };
+
+  return (
+    <div className="space-y-1 mb-3">
+      <label className="block text-slate-700 font-semibold">{label}</label>
+      <div className="flex items-center space-x-2">
+        {/* Clickable Color Box to Pick Any Color */}
+        <input 
+          type="color" 
+          value={getSafeHex(value)} 
+          onChange={(e) => onChange(e.target.value)} 
+          className="w-10 h-8 rounded border border-slate-300 cursor-pointer p-0.5 bg-white shrink-0" 
+          title="Click to pick a color"
+        />
+
+        {/* Text Input to Type or Paste Any Color Code */}
+        <input 
+          type="text" 
+          value={value || ''} 
+          onChange={(e) => onChange(e.target.value)} 
+          placeholder="e.g. #ff0000 or rgba(...)" 
+          className="flex-1 bg-white border border-slate-300 rounded px-2 py-1 text-xs font-mono text-slate-800 outline-none" 
+        />
+      </div>
+    </div>
+  );
+};
+
+
 const SeatMap = () => {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isAutoFit, setIsAutoFit] = useState(true);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [clipboard, setClipboard] = useState(null); // Tracks copied/cut item
@@ -52,13 +144,13 @@ const SeatMap = () => {
   const [showNewZoneModal, setShowNewZoneModal] = useState(false);
   const [newZoneNameInput, setNewZoneNameInput] = useState('');
 
-  // Custom Categories & Colors Store
+// Custom Categories & Colors Store with Default Colors Added
   const [customCategories, setCustomCategories] = useState([
-    { name: 'Category I', color: '#f93822' },
-    { name: 'Category II', color: '#c0392b' },
-    { name: 'Category III', color: '#27ae60' },
-    { name: 'Category IV', color: '#2980b9' },
-    { name: 'Category V', color: '#16a085' }
+    { name: 'Regular', color: '#4f46e5' },
+    { name: 'Premium', color: '#f59e0b' },
+    { name: 'VIP', color: '#8b5cf6' },
+    { name: 'Accessible', color: '#10b981' },
+    
   ]);
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
   const [newCatNameInput, setNewCatNameInput] = useState('');
@@ -92,8 +184,27 @@ const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
 
   const canvasRef = useRef(null);
 
+  const justCreatedRef = useRef(false);
   const activePage = pages.find(p => p.id === activePageId) || pages[0];
   const isEmpty = sections.length === 0 && shapes.length === 0;
+
+useEffect(() => {
+    if (!isAutoFit) return;
+    const handleAutoFitZoom = () => {
+      if (!canvasRef.current) return;
+      const containerWidth = canvasRef.current.clientWidth - 40;
+      const containerHeight = canvasRef.current.clientHeight - 40;
+      const scaleX = (containerWidth / activePage.width) * 100;
+      const scaleY = (containerHeight / activePage.height) * 100;
+      const optimalZoom = Math.floor(Math.min(scaleX, scaleY, 200));
+      setZoomLevel(Math.max(20, Math.min(200, optimalZoom)));
+      setPanOffset({ x: 0, y: 0 });
+    };
+    handleAutoFitZoom();
+    window.addEventListener('resize', handleAutoFitZoom);
+    return () => window.removeEventListener('resize', handleAutoFitZoom);
+  }, [activePage.width, activePage.height, isAutoFit]);
+
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -378,29 +489,39 @@ const handleDuplicate = () => {
   const [draggingRowLetter, setDraggingRowLetter] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  const handleMouseDown = (e, secId) => {
-    if (viewMode === 'preview') return;
-    e.stopPropagation();
-    if (activeTool === 'pan') {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-      return;
-    }
-    setDraggingId(secId);
-    const sec = sections.find(s => s.id === secId);
-    setDragOffset({ x: e.clientX - sec.x, y: e.clientY - sec.y });
-    setSelectedSectionId(secId);
-    setSelectedShapeId(null);
-  };
+const handleMouseDown = (e, secId) => {
+  if (viewMode === 'preview') return;
+  e.stopPropagation();
+  if (activeTool === 'pan') {
+    setIsPanning(true);
+    setPanStart({ x: e.clientX, y: e.clientY, initialX: panOffset.x, initialY: panOffset.y });
+    return;
+  }
+  setDraggingId(secId);
+  const sec = sections.find(s => s.id === secId);
+  const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
+  const rect = boardEl.getBoundingClientRect();
+  const mouseX = (e.clientX - rect.left) / (zoomLevel / 100);
+  const mouseY = (e.clientY - rect.top) / (zoomLevel / 100);
+  setDragOffset({ x: mouseX - sec.x, y: mouseY - sec.y });
+  setSelectedSectionId(secId);
+  setSelectedShapeId(null);
+  setShowRightSidebar(true);
+};
 
   const handleShapeMouseDown = (e, shId) => {
     if (viewMode === 'preview') return;
     e.stopPropagation();
     setDraggingId(shId);
     const sh = shapes.find(s => s.id === shId);
-    setDragOffset({ x: e.clientX - sh.x, y: e.clientY - sh.y });
+    const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
+    const rect = boardEl.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) / (zoomLevel / 100);
+    const mouseY = (e.clientY - rect.top) / (zoomLevel / 100);
+    setDragOffset({ x: mouseX - sh.x, y: mouseY - sh.y });
     setSelectedShapeId(shId);
     setSelectedSectionId(null);
+    setShowRightSidebar(true);
   };
 
   const handleSeatMouseDown = (e, secId, seatKey) => {
@@ -410,6 +531,7 @@ const handleDuplicate = () => {
       setSelectedSectionId(secId);
       setSelectedSeatKey(seatKey);
       setSelectedRowKey(null);
+      setShowRightSidebar(true);
     }
   };
 
@@ -421,29 +543,40 @@ const handleDuplicate = () => {
     setSelectedSeatKey(null);
   };
 
-  const handleRotateStart = (e, sec) => {
+const handleRotateStart = (e, sec) => {
     e.stopPropagation();
     setIsRotating(true);
     setSelectedSectionId(sec.id);
-    const centerX = sec.x + 50;
-    const centerY = sec.y + 50;
-    setRotateCenter({ x: centerX, y: centerY });
+    const boxSize = sec.boxSize || 22;
+    const seatSpacing = sec.seatSpacing || 2;
+    const rowSpacing = sec.rowSpacing || 2;
+    const totalW = (sec.seatsPerRow * boxSize) + ((sec.seatsPerRow - 1) * seatSpacing);
+    const totalH = (sec.rows * boxSize) + ((sec.rows - 1) * rowSpacing);
+    
+    setRotateCenter({ 
+      x: sec.x + (totalW / 2), 
+      y: sec.y + (totalH / 2) 
+    });
   };
+const handleCanvasMouseDown = (e) => {
+  if (viewMode === 'preview') return;
 
-  const handleCanvasMouseDown = (e) => {
-    if (viewMode === 'preview') return;
+  if (activeTool === 'pan') {
+    setIsPanning(true);
+    setPanStart({ x: e.clientX, y: e.clientY, initialX: panOffset.x, initialY: panOffset.y });
+    return;
+  }
 
-    if (activeTool === 'pan') {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
-      return;
-    }
-
-    if (['selectRow', 'selectSeat'].includes(activeTool)) {
+    if (['selectRow', 'selectSeat', 'select'].includes(activeTool)) {
       const rect = e.currentTarget.getBoundingClientRect();
       const startX = (e.clientX - rect.left - panOffset.x) / (zoomLevel / 100);
       const startY = (e.clientY - rect.top - panOffset.y) / (zoomLevel / 100);
       setSelectionBox({ startX, startY, currentX: startX, currentY: startY });
+      setShowRightSidebar(true);
+      return;
+    }
+
+    if (!activeTool || ['selectRow', 'selectSeat', 'pan'].includes(activeTool)) {
       return;
     }
 
@@ -461,13 +594,14 @@ const handleDuplicate = () => {
     setDrawStart({ x: origin_x, y: origin_y });
     setDrawCurrent({ x: origin_x, y: origin_y });
     setIsDrawing(true);
+    setShowRightSidebar(true);
   };
 
-  const handleCanvasMouseMove = (e) => {
+const handleCanvasMouseMove = (e) => {
     if (isPanning) {
       setPanOffset({
-        x: e.clientX - panStart.x,
-        y: e.clientY - panStart.y
+        x: panStart.initialX + (e.clientX - panStart.x),
+        y: panStart.initialY + (e.clientY - panStart.y)
       });
       return;
     }
@@ -516,8 +650,7 @@ const handleDuplicate = () => {
       ));
       return;
     }
-
- if (resizingShapeId && resizeHandle) {
+if (resizingShapeId && resizeHandle) {
       const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
       const rect = boardEl.getBoundingClientRect();
       const currentX = (e.clientX - rect.left) / (zoomLevel / 100);
@@ -530,23 +663,66 @@ const handleDuplicate = () => {
           let newX = sh.x;
           let newY = sh.y;
 
-          if (resizeHandle === 'se') {
-            newW = Math.max(20, currentX - sh.x);
-            newH = Math.max(20, currentY - sh.y);
-          } else if (resizeHandle === 'nw') {
-            newW = Math.max(20, sh.width + (sh.x - currentX));
-            newH = Math.max(20, sh.height + (sh.y - currentY));
-            newX = currentX;
-            newY = currentY;
-          } else if (resizeHandle === 'ne') {
-            newW = Math.max(20, currentX - sh.x);
-            newH = Math.max(20, sh.height + (sh.y - currentY));
-            newY = currentY;
-          } else if (resizeHandle === 'sw') {
-            newW = Math.max(20, sh.width + (sh.x - currentX));
-            newH = Math.max(20, currentY - sh.y);
-            newX = currentX;
+          if (sh.type === 'square' || sh.type === 'circle') {
+            // Strictly enforce equal width and height for squares and circles
+            const deltaX = currentX - sh.x;
+            const deltaY = currentY - sh.y;
+            let dim = Math.max(20, Math.abs(deltaX), Math.abs(deltaY));
+
+            if (resizeHandle === 'se') {
+              newW = dim;
+              newH = dim;
+            } else if (resizeHandle === 'nw') {
+              newW = Math.max(20, sh.width + (sh.x - currentX));
+              newH = newW; // Lock height to width
+              newX = sh.x + sh.width - newW;
+              newY = sh.y + sh.height - newH;
+            } else if (resizeHandle === 'ne') {
+              newW = Math.max(20, currentX - sh.x);
+              newH = newW;
+              newY = sh.y + sh.height - newH;
+            } else if (resizeHandle === 'sw') {
+              newW = Math.max(20, sh.width + (sh.x - currentX));
+              newH = newW;
+              newX = sh.x + sh.width - newW;
+            }
+          } else if (sh.type === 'verticalLine') {
+            if (resizeHandle === 'se' || resizeHandle === 'ne') {
+              newH = Math.max(10, currentY - sh.y);
+            } else if (resizeHandle === 'nw' || resizeHandle === 'sw') {
+              newH = Math.max(10, sh.height + (sh.y - currentY));
+              newY = currentY;
+            }
+            newW = 4;
+          } else if (sh.type === 'horizontalLine') {
+            if (resizeHandle === 'se' || resizeHandle === 'sw') {
+              newW = Math.max(10, currentX - sh.x);
+            } else if (resizeHandle === 'nw' || resizeHandle === 'ne') {
+              newW = Math.max(10, sh.width + (sh.x - currentX));
+              newX = currentX;
+            }
+            newH = 4;
+          } else {
+            // Regular behavior for rectangles/other shapes
+            if (resizeHandle === 'se') {
+              newW = Math.max(20, currentX - sh.x);
+              newH = Math.max(20, currentY - sh.y);
+            } else if (resizeHandle === 'nw') {
+              newW = Math.max(20, sh.width + (sh.x - currentX));
+              newH = Math.max(20, sh.height + (sh.y - currentY));
+              newX = currentX;
+              newY = currentY;
+            } else if (resizeHandle === 'ne') {
+              newW = Math.max(20, currentX - sh.x);
+              newH = Math.max(20, sh.height + (sh.y - currentY));
+              newY = currentY;
+            } else if (resizeHandle === 'sw') {
+              newW = Math.max(20, sh.width + (sh.x - currentX));
+              newH = Math.max(20, currentY - sh.y);
+              newX = currentX;
+            }
           }
+
           return { ...sh, x: newX, y: newY, width: newW, height: newH };
         }
         return sh;
@@ -610,13 +786,17 @@ const handleDuplicate = () => {
     }
 
     if (draggingId && viewMode === 'creator') {
-      const newX = (e.clientX - dragOffset.x - panOffset.x) / (zoomLevel / 100);
-      const newY = (e.clientY - dragOffset.y - panOffset.y) / (zoomLevel / 100);
-      
-      if (selectedSectionId) {
-        setSections(sections.map(sec => sec.id === draggingId ? { ...sec, x: Math.max(0, newX), y: Math.max(0, newY) } : sec));
+      const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
+      const rect = boardEl.getBoundingClientRect();
+      const currentX = (e.clientX - rect.left) / (zoomLevel / 100);
+      const currentY = (e.clientY - rect.top) / (zoomLevel / 100);
+
+      const newX = currentX - dragOffset.x;
+      const newY = currentY - dragOffset.y;
+     if (selectedSectionId) {
+        setSections(sections.map(sec => sec.id === draggingId ? { ...sec, x: newX, y: newY } : sec));
       } else if (selectedShapeId) {
-        setShapes(shapes.map(sh => sh.id === draggingId ? { ...sh, x: Math.max(0, newX), y: Math.max(0, newY) } : sh));
+        setShapes(shapes.map(sh => sh.id === draggingId ? { ...sh, x: newX, y: newY } : sh));
       }
       return;
     }
@@ -656,20 +836,51 @@ const handleCanvasMouseUp = () => {
     setResizingShapeId(null);
     setResizingBlockId(null);
     setResizeHandle(null);
-  
 
     if (isDrawing && drawStart && drawCurrent) {
       const delta_x = drawCurrent.x - drawStart.x;
       const delta_y = drawCurrent.y - drawStart.y;
       
+      if (Math.abs(delta_x) < 5 && Math.abs(delta_y) < 5) {
+        setIsDrawing(false);
+        setDrawStart(null);
+        setDrawCurrent(null);
+        return;
+      }
+
       const boxSize = 22;
       const seatSpacing = 2;
       const rowSpacing = 2;
 
-      const calculatedSeats = activeTool === 'addRow' ? Math.max(2, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1) : Math.max(1, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1);
-      const calculatedRows = activeTool === 'addRow' ? 1 : Math.max(1, Math.floor(Math.abs(delta_y) / (boxSize + rowSpacing)) + 1);
+      let calculatedSeats;
+      let calculatedRows = 1;
+      let initialRotation = 0;
+      let blockX = drawStart.x;
+      let blockY = drawStart.y;
 
-      if (['addSquare', 'addRectangle', 'addCircle', 'addText', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool)) {
+      if (activeTool === 'addRow') {
+        const distance = Math.hypot(delta_x, delta_y);
+        calculatedSeats = Math.max(2, Math.floor(distance / (boxSize + seatSpacing)) + 1);
+        calculatedRows = 1;
+        initialRotation = Math.round(Math.atan2(delta_y, delta_x) * (180 / Math.PI));
+        blockX = drawStart.x;
+        blockY = drawStart.y;
+      } else if (activeTool === 'addRowsBlock') {
+        calculatedSeats = Math.max(1, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1);
+        calculatedRows = Math.max(1, Math.floor(Math.abs(delta_y) / (boxSize + rowSpacing)) + 1);
+        initialRotation = 0;
+        blockX = drawStart.x;
+        blockY = drawStart.y;
+      } else {
+        calculatedSeats = Math.max(1, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1);
+        calculatedRows = Math.max(1, Math.floor(Math.abs(delta_y) / (boxSize + rowSpacing)) + 1);
+        initialRotation = 0;
+        blockX = drawStart.x;
+        blockY = drawStart.y;
+      
+      }
+
+      if (['addSquare', 'addRectangle', 'addCircle', 'addText', 'addVerticalLine', 'addHorizontalLine', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool)) {
         const newShId = Date.now();
         const startX = Math.min(drawStart.x, drawCurrent.x);
         const startY = Math.min(drawStart.y, drawCurrent.y);
@@ -679,7 +890,16 @@ const handleCanvasMouseUp = () => {
         let initialHeight = Math.max(40, Math.abs(delta_y));
         let labelText = '';
 
-        if (activeTool === 'stage') {
+        if (activeTool === 'addVerticalLine') {
+          shapeType = 'verticalLine';
+          initialWidth = 4; // Thin line width
+          initialHeight = Math.max(60, Math.abs(delta_y));
+        } else if (activeTool === 'addHorizontalLine') {
+          shapeType = 'horizontalLine';
+          initialWidth = Math.max(60, Math.abs(delta_x));
+          initialHeight = 4; // Thin line height
+
+        }else if (activeTool === 'stage') {
           shapeType = 'stage';
           labelText = 'Stage / Screen';
           initialWidth = Math.max(180, Math.abs(delta_x));
@@ -714,14 +934,14 @@ const handleCanvasMouseUp = () => {
           const dim = Math.max(40, Math.abs(delta_x), Math.abs(delta_y));
           initialWidth = dim;
           initialHeight = dim;
-       } else if (activeTool === 'addText') {
+        } else if (activeTool === 'addText') {
           shapeType = 'text';
-          labelText = ''; // Blank by default when added
-          initialWidth = 140;
-          initialHeight = 40;
+          labelText = '';
+          initialWidth = Math.max(60, Math.abs(delta_x));
+          initialHeight = Math.max(30, Math.abs(delta_y));
         }
 
-      const newShape = {
+        const newShape = {
           id: newShId,
           pageId: activePageId,
           type: shapeType,
@@ -735,13 +955,16 @@ const handleCanvasMouseUp = () => {
         };
         pushHistory(sections, [...shapes, newShape]);
         setSelectedShapeId(newShId);
+        setSelectedSectionId(null);
+        setShowRightSidebar(true);
+        justCreatedRef.current = true;
         setIsDrawing(false);
         setDrawStart(null);
         setDrawCurrent(null);
-        setActiveTool(null); // Resets tool after one-time drawing use
         return;
       }
 
+      
       const newId = Date.now();
       const newSec = {
         id: newId,
@@ -751,14 +974,14 @@ const handleCanvasMouseUp = () => {
         price: 1500,
         rows: calculatedRows,
         seatsPerRow: calculatedSeats,
-        x: Math.min(drawStart.x, drawCurrent.x),
-        y: Math.min(drawStart.y, drawCurrent.y),
+        x: (activeTool === 'addRow' ? drawStart.x : Math.min(drawStart.x, drawCurrent.x)) - 8, // 👈 Subtract padding offset
+        y: activeTool === 'addRow' ? drawStart.y : Math.min(drawStart.y, drawCurrent.y), // 👈 Subtract padding offset
         rowSpacing: 2,
         seatSpacing: 2,
-        rotation: 0,
+        rotation: initialRotation,
         showRowNumbersLeft: true,
         showRowNumbersRight: true,
-        rowNumberingType: '1, 2, 3, ...',
+        rrowNumberingType: 'capital',
         rowStartingAt: 1,
         rowReversed: false,
         seatNumberingType: '1, 2, 3, ...',
@@ -767,11 +990,14 @@ const handleCanvasMouseUp = () => {
         seatLabelFormat: 'Seat %s',
         boxSize: 22,
         seatRadius: 4,
-        seats: generateSeats(calculatedRows, calculatedSeats, '1, 2, 3, ...', 1, false, '1, 2, 3, ...', 1, false, '')
+        seats: generateSeats(calculatedRows, calculatedSeats, 'capital', 1, false, '1, 2, 3, ...', 1, false, '')
       };
 
       pushHistory([...sections, newSec], shapes);
       setSelectedSectionId(newId);
+      setSelectedShapeId(null);
+      setShowRightSidebar(true);
+      justCreatedRef.current = true;
       setIsDrawing(false);
       setDrawStart(null);
       setDrawCurrent(null);
@@ -814,9 +1040,12 @@ const handleAddShape = (type, defaultText, w, h) => {
       type: type,
       text: defaultText,
       color: '#1e293b',
+      bgColor: type === 'stage' ? '#e2e8f0' : '#ffffff',
+      borderColor: '#000000',
+      borderWidth: 1,
       fontSize: 14,
-      x: (activePage.width / 2) - (w / 2) + ((count % 5) * 20),
-      y: (activePage.height / 2) - (h / 2) + ((count % 5) * 20), // Appears in the middle
+      x: Math.max(10, (activePage.width / 2) - (w / 2) + ((count % 5) * 20)),
+      y: Math.max(10, (activePage.height / 2) - (h / 2) + ((count % 5) * 20)),
       width: w,
       height: h
     };
@@ -899,9 +1128,14 @@ const handlePropertyChange = (field, value) => {
   return (
     <div className={`${seatMapWrapper} h-screen overflow-hidden flex flex-col bg-slate-50`}>
       
-      {/* PRINT & DOWNLOAD MEDIA QUERY STYLING */}
+  {/* PRINT & DOWNLOAD MEDIA QUERY STYLING */}
       <style>{`
         @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
           body, html {
             background-color: #ffffff !important;
             margin: 0 !important;
@@ -1056,17 +1290,16 @@ const handlePropertyChange = (field, value) => {
 
         <div className="h-5 w-[1px] bg-slate-300"></div>
 
-        {/* ZOOM CONTROLS (Always Active) */}
-        <div className="bg-slate-100 rounded px-1.5 py-0.5 flex items-center space-x-1 text-[11px]">
-          <button onClick={() => setZoomLevel(Math.max(10, zoomLevel - 10))} className="p-0.5 rounded cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
+      <div className="bg-slate-100 rounded px-1.5 py-0.5 flex items-center space-x-1 text-[11px]">
+          <button onClick={() => { setZoomLevel(Math.max(10, zoomLevel - 10)); setIsAutoFit(false); }} className="p-0.5 rounded cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700" title="Zoom Out">
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
             </svg>
           </button>
           <span className="font-bold text-slate-800 w-8 text-center">{zoomLevel}%</span>
-          <button onClick={() => setZoomLevel(Math.min(300, zoomLevel + 10))} className="p-0.5 rounded cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
+          <button onClick={() => { setZoomLevel(Math.min(300, zoomLevel + 10)); setIsAutoFit(false); }} className="p-0.5 rounded cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 bg-transparent text-slate-700" title="Zoom In">
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-[18px] h-[18px]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
             </svg>
           </button>
         </div>
@@ -1202,6 +1435,34 @@ const handlePropertyChange = (field, value) => {
       </svg>
     </button>
 
+{/* ADD THIS AROUND LINE 1000 - Inside the tools grid */}
+    <button 
+      onClick={() => setActiveTool('addHorizontalLine')} 
+      title="Horizontal Line" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addHorizontalLine' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-[18px] h-[18px]">
+        <line x1="2" y1="12" x2="22" y2="12" />
+      </svg>
+    </button>
+
+    <button 
+      onClick={() => setActiveTool('addVerticalLine')} 
+      title="Vertical Line" 
+      className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center h-8 border ${
+        activeTool === 'addVerticalLine' 
+          ? 'border-blue-400 text-blue-600 bg-blue-50/50' 
+          : 'border-transparent hover:border-slate-300 text-slate-700 bg-transparent'
+      }`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-[18px] h-[18px]">
+        <line x1="12" y1="2" x2="12" y2="22" />
+      </svg>
+    </button>
     <button 
       onClick={() => setActiveTool('addSquare')} 
       title="Square Box (M)" 
@@ -1312,28 +1573,38 @@ const handlePropertyChange = (field, value) => {
       </aside>
     )}
 
- <main 
-          ref={canvasRef}
-          className={`${seatMapCanvasArea} flex-1 relative overflow-auto bg-slate-200/60 printable-canvas-area flex items-center justify-center p-10 h-full`}
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseUp={handleCanvasMouseUp}
-          onClick={() => {
-            setSelectedShapeId(null);
-            setSelectedSectionId(null);
-            setSelectedSeatKey(null);
+<main 
+  ref={canvasRef}
+  className={`${seatMapCanvasArea} flex-1 relative overflow-auto bg-zinc-800 printable-canvas-area h-full`}
+  onMouseDown={handleCanvasMouseDown}
+  onMouseMove={handleCanvasMouseMove}
+  onMouseUp={handleCanvasMouseUp}
+  onClick={() => {
+    if (justCreatedRef.current) {
+      justCreatedRef.current = false;
+      return;
+    }
+    setSelectedShapeId(null);
+    setSelectedSectionId(null);
+    setSelectedSeatKey(null);
+  }}
+>
+    <div 
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+      style={{
+        width: `${activePage.width}px`,
+        height: `${activePage.height}px`
+      }}
+    >
+      <div 
+          className="canvasBoard bg-white shadow-xl relative overflow-visible rounded-lg"
+          style={{ 
+            width: `${activePage.width}px`,
+            height: `${activePage.height}px`,
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel / 100})`, 
+            transformOrigin: 'center center'
           }}
         >
-          {/* DESIGN PAGE (FIXED 3:4 ASPECT RATIO DIMENSIONS WITH PADDING SPACE AROUND IT) */}
-          <div 
-            className="canvasBoard bg-white shadow-xl relative overflow-hidden rounded-lg shrink-0"
-            style={{ 
-              width: `${activePage.width}px`,
-              height: `${activePage.height}px`,
-              transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel / 100})`, 
-              transformOrigin: 'center center'
-            }}
-          >
             <div className={canvasGridBg}></div>
 
             {selectionBox && (
@@ -1347,44 +1618,74 @@ const handlePropertyChange = (field, value) => {
                 }}
               ></div>
             )}
+{isDrawing && drawStart && drawCurrent && (Math.abs(drawCurrent.x - drawStart.x) > 5 || Math.abs(drawCurrent.y - drawStart.y) > 5) && ['addSquare', 'addRectangle', 'addCircle', 'addText', 'addVerticalLine', 'addHorizontalLine', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool) && (
+  <div 
+    className={`absolute pointer-events-none z-50 flex items-center justify-center border shadow-md ${activeTool === 'addCircle' ? 'rounded-full' : 'rounded-none'}`}
+    style={{
+      left: `${Math.min(drawStart.x, drawCurrent.x)}px`,
+      top: `${Math.min(drawStart.y, drawCurrent.y)}px`,
+      width: `${activeTool === 'addVerticalLine' ? 4 : Math.max(40, Math.abs(drawCurrent.x - drawStart.x))}px`,
+      height: `${activeTool === 'addHorizontalLine' ? 4 : (activeTool === 'addSquare' || activeTool === 'addCircle' ? Math.max(40, Math.abs(drawCurrent.x - drawStart.x)) : Math.max(40, Math.abs(drawCurrent.y - drawStart.y)))}px`,
+      backgroundColor: activeTool === 'stage' ? '#e2e8f0' : '#1e293b',
+      borderColor: '#000000',
+      borderWidth: '0px',
+      borderStyle: 'solid'
+    }}
+  >
+    <span className="text-xs font-bold text-slate-800 text-center px-1">
+      {activeTool === 'stage' && 'Stage / Screen'}
+      {activeTool === 'entrance' && 'Entrance'}
+      {activeTool === 'exit' && 'Exit Gate'}
+      {activeTool === 'emergency' && 'Emergency Exit'}
+      {activeTool === 'toilet' && 'Toilet'}
+    </span>
+  </div>
+)}
 
-            {/* LIVE SIMULTANEOUS DRAG PREVIEW FOR SHAPES */}
-            {isDrawing && drawStart && drawCurrent && ['addSquare', 'addRectangle', 'addCircle', 'addText', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool) && (
-              <div 
-                className="absolute border-2 border-dashed border-blue-600 bg-blue-500/10 pointer-events-none z-50"
-                style={{
-                  left: `${Math.min(drawStart.x, drawCurrent.x)}px`,
-                  top: `${Math.min(drawStart.y, drawCurrent.y)}px`,
-                  width: `${Math.max(40, Math.abs(drawCurrent.x - drawStart.x))}px`,
-                  height: `${activeTool === 'addSquare' || activeTool === 'addCircle' ? Math.max(40, Math.abs(drawCurrent.x - drawStart.x)) : Math.max(40, Math.abs(drawCurrent.y - drawStart.y))}px`,
-                  borderRadius: activeTool === 'addCircle' ? '50%' : '0px'
-                }}
-              ></div>
-            )}
-
-            {/* LIVE SIMULTANEOUS DRAG SEAT MATRIX PREVIEW RENDERING */}
-            {isDrawing && drawStart && drawCurrent && ['addRowsBlock', 'addRow'].includes(activeTool) && (
+            {/* LIVE SIMULTANEOUS DRAG PREVIEW FOR ROW TOOLS */}
+            {isDrawing && drawStart && drawCurrent && (Math.abs(drawCurrent.x - drawStart.x) > 5 || Math.abs(drawCurrent.y - drawStart.y) > 5) && ['addRowsBlock', 'addRow'].includes(activeTool) && (
               <div 
                 className="absolute pointer-events-none z-50 flex flex-col"
                 style={{
-                  left: `${Math.min(drawStart.x, drawCurrent.x)}px`,
-                  top: `${Math.min(drawStart.y, drawCurrent.y)}px`,
+                  left: activeTool === 'addRow' ? `${drawStart.x}px` : `${Math.min(drawStart.x, drawCurrent.x)}px`,
+                  top: activeTool === 'addRow' ? `${drawStart.y}px` : `${Math.min(drawStart.y, drawCurrent.y)}px`,
+                  transform: activeTool === 'addRow' ? `rotate(${Math.atan2(drawCurrent.y - drawStart.y, drawCurrent.x - drawStart.x) * (180 / Math.PI)}deg)` : 'none',
+                  transformOrigin: 'left center',
                   gap: '2px'
                 }}
               >
-                {Array.from({ length: previewRows }).map((_, rIdx) => (
-                  <div key={rIdx} className="flex" style={{ gap: '2px' }}>
-                    {Array.from({ length: previewSeats }).map((_, sIdx) => (
+                {activeTool === 'addRow' ? (
+                  <div className="flex relative items-center justify-center" style={{ gap: '2px' }}>
+                    {/* Fully extended line guideline visible live during mouse drag */}
+                    <div 
+                      className="absolute pointer-events-none bg-blue-400 opacity-70 z-0"
+                      style={{ height: '1px', left: '-1500px', right: '-1500px', top: '50%', transform: 'translateY(-50%)' }}
+                    />
+                    {Array.from({ length: Math.max(2, Math.floor(Math.hypot(drawCurrent.x - drawStart.x, drawCurrent.y - drawStart.y) / 24) + 1) }).map((_, sIdx) => (
                       <div 
                         key={sIdx}
                         style={{ width: '22px', height: '22px' }}
-                        className="rounded-[4px] border border-slate-700 bg-white text-[9px] flex items-center justify-center font-medium text-slate-800 shadow-xs"
+                        className="rounded-[4px] border border-slate-700 bg-white text-[9px] flex items-center justify-center font-medium text-slate-800 shadow-xs z-10"
                       >
                         {sIdx + 1}
                       </div>
                     ))}
                   </div>
-                ))}
+                ) : (
+                  Array.from({ length: previewRows }).map((_, rIdx) => (
+                    <div key={rIdx} className="flex" style={{ gap: '2px' }}>
+                      {Array.from({ length: previewSeats }).map((_, sIdx) => (
+                        <div 
+                          key={sIdx}
+                          style={{ width: '22px', height: '22px' }}
+                          className="rounded-[4px] border border-slate-700 bg-white text-[9px] flex items-center justify-center font-medium text-slate-800 shadow-xs"
+                        >
+                          {sIdx + 1}
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                )}
               </div>
             )}
 
@@ -1406,24 +1707,32 @@ const handlePropertyChange = (field, value) => {
                       setShapes(shapes.map(s => s.id === sh.id ? { ...s, isEditing: true } : s));
                     }
                   }}
-                   style={{
-                        top: `${sh.y}px`,
-                        left: `${sh.x}px`,
-                        width: `${sh.width}px`,
-                        minHeight: `${sh.height}px`,
-                        position: 'absolute',
-                        cursor: viewMode === 'preview' ? 'default' : 'move',
-                        transform: `rotate(${rotationAngle}deg)`,
-                        transformOrigin: 'center center',
-                        zIndex: 25
-                      }}
-                        className={`select-none flex items-center justify-center border ${sh.type === 'circle' ? 'rounded-full' : 'rounded-none'} ${
-                  isSelected && viewMode === 'creator'
-                    ? 'border-blue-600 ring-2 ring-blue-300 bg-transparent font-bold shadow-md' 
-                    : sh.type === 'text' 
-                      ? 'border-transparent bg-transparent text-slate-800' 
-                      : 'border-slate-400 bg-transparent text-slate-800'
-                }`}
+               style={{
+                      top: `${sh.y}px`,
+                      left: `${sh.x}px`,
+                    width: `${sh.type === 'verticalLine' ? (sh.width || 4) : sh.width}px`,       // 👈 Ensure this reads sh.width
+                    height: `${sh.type === 'horizontalLine' ? (sh.height || 4) : sh.height}px`,
+                      position: 'absolute',
+                      cursor: viewMode === 'preview' ? 'default' : 'move',
+                      transform: `rotate(${rotationAngle}deg)`,
+                      transformOrigin: 'center center',
+                      zIndex: 25,
+                      backgroundColor: sh.type === 'verticalLine' || sh.type === 'horizontalLine' ? (sh.bgColor || '#1e293b') : (sh.bgColor || 'transparent'),
+                      borderColor: sh.type === 'verticalLine' || sh.type === 'horizontalLine' ? 'transparent' : (sh.borderColor || '#000000'),
+                      borderWidth: `${sh.type === 'verticalLine' || sh.type === 'horizontalLine' ? 0 : (sh.borderWidth ?? 1)}px`,
+                      borderStyle: 'solid'
+                  }}
+                  className={`select-none flex items-center justify-center ${sh.type === 'circle' ? 'rounded-full' : 'rounded-none'} ${
+                    sh.type === 'verticalLine' || sh.type === 'horizontalLine' ? '' : 'border'
+                  } ${
+                    isSelected && viewMode === 'creator'
+                      ? 'border-blue-600 ring-2 ring-blue-300 bg-transparent font-bold shadow-md' 
+                      : sh.type === 'text' 
+                        ? 'border-transparent bg-transparent text-slate-800' 
+                        : sh.type === 'verticalLine' || sh.type === 'horizontalLine'
+                          ? ''
+                          : 'border-slate-400 bg-transparent text-slate-800'
+                  }`}
                   >
                     {sh.isEditing ? (
                       <input
@@ -1446,24 +1755,25 @@ const handlePropertyChange = (field, value) => {
                         className="w-full h-full text-center bg-transparent border-none outline-none text-xs font-bold"
                       />
                     ) : (
-                     <span 
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          setShapes(shapes.map(s => s.id === sh.id ? { ...s, isEditing: true } : s));
-                        }}
-                        className="text-xs font-bold w-full text-center block"
-                        style={{
-                          color: sh.color || '#1e293b',
-                          fontSize: `${sh.fontSize || 14}px`,
-                          lineHeight: 'normal'
-                        }}
-                        title="Double click to edit text"
-                      >
-                        {sh.text}
-                      </span>
+                    <span 
+                className="text-xs font-bold w-full text-center block"
+                style={{
+                  color: sh.color || '#1e293b',
+                  fontSize: `${sh.fontSize || 14}px`,
+                  fontFamily: sh.fontFamily || 'Inter, sans-serif',
+                  fontWeight: sh.fontWeight || 'normal',
+                  fontStyle: sh.fontStyle || 'normal',
+                  textDecoration: sh.textDecoration || 'none',
+                  lineHeight: 'normal',
+                  transform: `translate(${sh.textOffsetX || 0}px, ${sh.textOffsetY || 0}px)`
+                }}
+                title="Double click to edit text"
+              >
+                {sh.text}
+              </span>
                     )}
 
-                    {isSelected && viewMode === 'creator' && (
+                   {isSelected && viewMode === 'creator' && (
                       <>
                         {/* Rotation Handle */}
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto">
@@ -1479,11 +1789,25 @@ const handlePropertyChange = (field, value) => {
                           ></div>
                         </div>
 
-                        {/* Corner Resize Handles */}
-                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('nw'); }} className="absolute -top-1.5 -left-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-nw-resize"></div>
-                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('ne'); }} className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-ne-resize"></div>
-                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('sw'); }} className="absolute -bottom-1.5 -left-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-sw-resize"></div>
-                        <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('se'); }} className="absolute -bottom-1.5 -right-1.5 w-1.5 h-1.5 bg-white border border-blue-600 rounded-none cursor-se-resize"></div>
+                        {/* Resize Handles (Length-only for lines, Corner handles for other shapes) */}
+                        {sh.type === 'verticalLine' ? (
+                          <>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('nw'); }} className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-1.5 bg-white border border-blue-600 cursor-ns-resize"></div>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('se'); }} className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-1.5 bg-white border border-blue-600 cursor-ns-resize"></div>
+                          </>
+                        ) : sh.type === 'horizontalLine' ? (
+                          <>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('nw'); }} className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-1.5 h-3 bg-white border border-blue-600 cursor-ew-resize"></div>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('se'); }} className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-1.5 h-3 bg-white border border-blue-600 cursor-ew-resize"></div>
+                          </>
+                        ) : (
+                          <>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('nw'); }} className="absolute -top-1.5 -left-1.5 w-1.5 h-1.5 bg-white border border-blue-600 cursor-nw-resize"></div>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('ne'); }} className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 bg-white border border-blue-600 cursor-ne-resize"></div>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('sw'); }} className="absolute -bottom-1.5 -left-1.5 w-1.5 h-1.5 bg-white border border-blue-600 cursor-sw-resize"></div>
+                            <div onMouseDown={(e) => { e.stopPropagation(); setResizingShapeId(sh.id); setResizeHandle('se'); }} className="absolute -bottom-1.5 -right-1.5 w-1.5 h-1.5 bg-white border border-blue-600 cursor-se-resize"></div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
@@ -1500,7 +1824,7 @@ const handlePropertyChange = (field, value) => {
               const seatCount = sec.seatsPerRow;
               const rowLabelsList = [];
               for (let r = 0; r < rowCount; r++) {
-                rowLabelsList.push(getLabel(r, sec.rowNumberingType, sec.rowStartingAt, sec.rowReversed, rowCount));
+                rowLabelsList.push(getLabel(r, sec.rowNumberingType || 'capital', sec.rowStartingAt, sec.rowReversed, rowCount));
               }
 
               return (
@@ -1522,7 +1846,7 @@ const handlePropertyChange = (field, value) => {
                     position: 'absolute', 
                     padding: '8px',
                     transform: `rotate(${rotationAngle}deg)`,
-                    transformOrigin: 'center center',
+                    transformOrigin: 'left center',
                     opacity: isCurrentZone ? 1 : 0.35, 
                     pointerEvents: viewMode === 'preview' ? 'auto' : (isCurrentZone || viewMode === 'creator' ? 'auto' : 'none')
                   }}
@@ -1531,6 +1855,18 @@ const handlePropertyChange = (field, value) => {
                   }`}
                   title={isCurrentZone ? 'Active Zone' : 'Inactive Zone - Click to activate'}
                 >
+                  {sec.rows === 1 && (
+                  <div 
+                    className="absolute pointer-events-none bg-blue-400 opacity-60 z-0"
+                    style={{
+                      height: '1px',
+                      left: '-30px',
+                      right: '-30px',
+                      top: '50%',
+                      transform: 'translateY(-50%)'
+                    }}
+                  />
+                )}
                   {isSelected && viewMode === 'creator' && isCurrentZone && (
                     <>
                       <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto">
@@ -1572,7 +1908,7 @@ const handlePropertyChange = (field, value) => {
                             </span>
                           )}
 
-                          <div className="flex z-10" style={{ gap: `${sec.seatSpacing || 2}px` }}>
+                         <div className="flex z-10" style={{ gap: `${sec.seatSpacing || 2}px` }}>
                             {seatLabelsList.map((seatNumLabel) => {
                               const seatKey = `${rowLabel}-${seatNumLabel}`;
                               const seatData = sec.seats[seatKey] || { status: 'available', category: sec.category || '', offsetX: 0, offsetY: 0 };
@@ -1583,11 +1919,7 @@ const handlePropertyChange = (field, value) => {
                               const customCatObj = customCategories.find(c => c.name === cat);
                               if (customCatObj) {
                                 categoryColorBg = 'text-white border-black/20';
-                              } else if (cat === 'Category I') categoryColorBg = 'bg-[#f93822] text-white border-[#d92812]';
-                              else if (cat === 'Category II') categoryColorBg = 'bg-[#c0392b] text-white border-[#a93226]';
-                              else if (cat === 'Category III') categoryColorBg = 'bg-[#27ae60] text-white border-[#1e8449]';
-                              else if (cat === 'Category IV') categoryColorBg = 'bg-[#2980b9] text-white border-[#1f618d]';
-                              else if (cat === 'Category V') categoryColorBg = 'bg-[#16a085] text-white border-[#117a65]';
+                              }
 
                               if (seatData.status === 'blocked') categoryColorBg = 'bg-slate-200 text-slate-400 border-slate-400';
                               if (seatData.status === 'sold') categoryColorBg = 'bg-rose-500 text-white border-rose-600';
@@ -1622,6 +1954,11 @@ const handlePropertyChange = (field, value) => {
                                     if (viewMode === 'preview') return;
                                     if (!isCurrentZone) {
                                       setActiveZoneId(sec.zoneId || 'zone-1');
+                                    } else if (activeTool === 'selectSeat') {
+                                      setSelectedSeatKey(seatKey);
+                                      setSelectedSectionId(sec.id);
+                                    } else if (activeTool === 'selectRow' || activeTool === 'select') {
+                                      return;
                                     } else {
                                       handleSeatClick(sec.id, seatKey, e);
                                     }
@@ -1647,11 +1984,12 @@ const handlePropertyChange = (field, value) => {
               );
             })}
           </div>
+          </div>
         </main>
 
         {/* RIGHT SIDE PROPERTIES PANEL: INDEPENDENTLY SCROLLABLE */}
         {viewMode === 'creator' && showRightSidebar && (
-          <aside className={`${propertiesSidebar} w-72 bg-white border-l border-slate-200 p-4 overflow-y-auto shrink-0 print:hidden text-xs h-full`}>
+          <aside className={`${propertiesSidebar} w-68 bg-white border-l border-slate-200 p-4 overflow-y-auto shrink-0 print:hidden text-xs h-full`}>
             
             {/* ZONES HEADER WITH FULL ZONE DELETE BUTTON */}
             <div className="mb-3">
@@ -1786,44 +2124,26 @@ const handlePropertyChange = (field, value) => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 items-center pt-1">
-                      <span className="text-slate-700">Show numbers</span>
-                      <div className="flex items-center justify-end space-x-2">
-                        <label className="text-[10px] text-slate-500">L</label>
-                        <input 
-                          type="checkbox" 
-                          checked={activeSection.showRowNumbersLeft !== false} 
-                          onChange={(e) => handlePropertyChange('showRowNumbersLeft', e.target.checked)}
-                          className="w-4 h-4 accent-[#68228b] rounded cursor-pointer"
-                        />
-                        <label className="text-[10px] text-slate-500">R</label>
-                        <input 
-                          type="checkbox" 
-                          checked={activeSection.showRowNumbersRight !== false} 
-                          onChange={(e) => handlePropertyChange('showRowNumbersRight', e.target.checked)}
-                          className="w-4 h-4 accent-[#68228b] rounded cursor-pointer"
-                        />
-                      </div>
-                    </div>
+                   
                   </div>
                 </div>
 
                 <hr className="border-slate-200" />
 
-                {/* ROW NUMBERS SECTION */}
+             {/* ROW NUMBERS SECTION */}
                 <div>
                   <span className="font-extrabold text-slate-900 uppercase tracking-wider block mb-2">Row numbers</span>
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2 items-center">
                       <span className="text-slate-700">Numbering</span>
                       <select 
-                        value={activeSection.rowNumberingType || '1, 2, 3, ...'} 
+                        value={activeSection.rowNumberingType || 'capital'} 
                         onChange={(e) => handlePropertyChange('rowNumberingType', e.target.value)}
                         className="bg-white border border-slate-300 rounded px-2 py-1 font-medium w-full"
                       >
+                        <option value="capital">A, B, C</option>
                         <option value="1, 2, 3, ...">1, 2, 3</option>
                         <option value="roman">i, ii, iii</option>
-                        <option value="capital">A, B, C</option>
                         <option value="small">a, b, c</option>
                       </select>
                     </div>
@@ -1859,23 +2179,48 @@ const handlePropertyChange = (field, value) => {
                         >+</button>
                       </div>
                     </div>
+                     <div className="grid grid-cols-2 gap-2 items-center pt-1">
+                      <span className="text-slate-700">Show numbers</span>
+                      <div className="flex items-center justify-end space-x-9">
+                        <label className="flex items-center space-x-1 cursor-pointer">
+                        <span className="text-xs text-slate-700 font-medium">L</span>
 
-                    <div className="grid grid-cols-2 gap-2 items-center pt-1">
-                      <span className="text-slate-700">Reversed</span>
-                      <div className="flex justify-end">
-                        <label className="relative inline-flex items-center cursor-pointer">
                           <input 
                             type="checkbox" 
-                            checked={activeSection.rowReversed || false} 
-                            onChange={(e) => handlePropertyChange('rowReversed', e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#68228b]"></div>
-                        </label>
-                      </div>
+                            checked={activeSection.showRowNumbersLeft !== false} 
+                            onChange={(e) => handlePropertyChange('showRowNumbersLeft', e.target.checked)}
+                            className="w-4 h-4 accent-[#68228b] rounded cursor-pointer"
+                        />
+                      </label>
+                      <label className="flex items-center space-x-1 cursor-pointer">
+                         <span className="text-xs text-slate-700 font-medium">R</span>
+                        <input 
+                            type="checkbox" 
+                            checked={activeSection.showRowNumbersRight !== false} 
+                            onChange={(e) => handlePropertyChange('showRowNumbersRight', e.target.checked)}
+                        className="w-4 h-4 accent-[#68228b] rounded cursor-pointer"
+                        />
+                       
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 items-center pt-1">
+                    <span className="text-slate-700">Reversed</span>
+                    <div className="flex justify-end">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={activeSection.rowReversed || false} 
+                          onChange={(e) => handlePropertyChange('rowReversed', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#68228b]"></div>
+                      </label>
                     </div>
                   </div>
                 </div>
+              </div>
 
                 <hr className="border-slate-200" />
 
@@ -2012,122 +2357,122 @@ const handlePropertyChange = (field, value) => {
                 </div>
 
               </div>
-            ) : activeShape ? (
-              <>
-                <div>
-                  <h3 className="font-extrabold text-slate-900 text-xs mb-2 uppercase tracking-wider">Text Field Formatting</h3>
-                  <div className="space-y-3 text-xs">
+        ) : activeShape ? (
+                  <>
                     <div>
-                      <label className="block  text-slate-600 mb-1 font-semibold">Text Content</label>
-                      <input 
-                        type="text" 
-                        placeholder="Type here..."
-                        value={activeShape.text || ''} 
-                        onChange={(e) => handlePropertyChange('text', e.target.value)}
-                        className="w-full border border-slate-300 rounded px-2 py-1"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-slate-600 mb-1 font-semibold">Text Color</label>
-                        <input 
-                          type="color" 
-                          value={activeShape.color || '#1e293b'} 
-                          onChange={(e) => handlePropertyChange('color', e.target.value)}
-                          className="w-full h-8 bg-slate-50 border border-slate-300 rounded cursor-pointer p-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-slate-600 mb-1 font-semibold">Font Size</label>
-                        <input 
-                          type="number" 
-                          min="10" max="72"
-                          value={activeShape.fontSize || 14} 
-                          onChange={(e) => handlePropertyChange('fontSize', Number(e.target.value))}
-                          className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                      <h3 className="font-extrabold text-slate-900 text-xs mb-1 uppercase tracking-wider">Shape Properties</h3>
+                      <div className="space-y-2 text-xs">
+                        
+                        {/* Rotation */}
+                        <NumberInput label="Rotation" value={activeShape.rotation || 0} onChange={(val) => handlePropertyChange('rotation', val)} />
 
-                <div className="pt-4">
-                  <button 
-                    onClick={handleDeleteSelected}
-                    className="w-full bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold py-2 rounded text-xs transition cursor-pointer"
-                  >
-                    Delete Text Field
-                  </button>
-                </div>
-              </>
-           ) : activeShape ? (
-              <>
-                <div>
-                  <h3 className="font-extrabold text-slate-900 text-xs mb-2 uppercase tracking-wider">Shape & Text Properties</h3>
-                  <div className="space-y-3 text-xs">
-                    <div>
-                      <label className="block text-slate-600 mb-1 font-semibold">Text Content</label>
-                      <input 
-                        type="text" 
-                        value={activeShape.text || ''} 
-                        onChange={(e) => handlePropertyChange('text', e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-slate-600 mb-1 font-semibold">Text Color</label>
-                        <input 
-                          type="color" 
-                          value={activeShape.color || '#1e293b'} 
-                          onChange={(e) => handlePropertyChange('color', e.target.value)}
-                          className="w-full h-8 bg-slate-50 border border-slate-300 rounded cursor-pointer p-1"
+                        {/* Width */}
+                        <NumberInput 
+                          label="Width" 
+                          min={1} 
+                          value={activeShape.width || 40} 
+                          onChange={(val) => {
+                            handlePropertyChange('width', val);
+                            if (activeShape.type === 'square' || activeShape.type === 'circle') handlePropertyChange('height', val);
+                          }} 
                         />
-                      </div>
-                      <div>
-                        <label className="block text-slate-600 mb-1 font-semibold">Font Size</label>
-                        <input 
-                          type="number" 
-                          min="10" max="72"
-                          value={activeShape.fontSize || 14} 
-                          onChange={(e) => handlePropertyChange('fontSize', Number(e.target.value))}
-                          className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
-                      <div>
-                        <label className="block text-slate-600 mb-1 font-semibold">Width</label>
-                        <input 
-                          type="number" 
-                          value={activeShape.width} 
-                          onChange={(e) => handlePropertyChange('width', Number(e.target.value))}
-                          className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-slate-600 mb-1 font-semibold">Height</label>
-                        <input 
-                          type="number" 
-                          value={activeShape.height} 
-                          onChange={(e) => handlePropertyChange('height', Number(e.target.value))}
-                          className="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="pt-4">
-                  <button 
-                    onClick={handleDeleteSelected}
-                    className="w-full bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold py-2 rounded text-xs transition cursor-pointer"
-                  >
-                    Delete Selected Shape
-                  </button>
-                </div>
-              </>
-            ) : (
+                        {/* Height */}
+                        <NumberInput 
+                          label="Height" 
+                          min={1} 
+                          value={activeShape.height || 40} 
+                          onChange={(val) => {
+                            handlePropertyChange('height', val);
+                            if (activeShape.type === 'square' || activeShape.type === 'circle') handlePropertyChange('width', val);
+                          }} 
+                        />
+
+                        {/* Color (Fill) */}
+                        <ColorPickerField label="Color" value={activeShape.bgColor || '#cccccc'} onChange={(col) => handlePropertyChange('bgColor', col)} />
+
+                        {/* Border Color */}
+                        <ColorPickerField label="Border" value={activeShape.borderColor || '#000000'} onChange={(col) => handlePropertyChange('borderColor', col)} />
+                        <NumberInput label="Border width" min={0} value={activeShape.borderWidth ?? 1} onChange={(val) => handlePropertyChange('borderWidth', val)} />
+
+                        <hr className="border-slate-200 my-2" />
+
+                        {/* Text Content */}
+                        <div>
+                          <label className="block text-slate-600 mb-1 font-semibold">Text</label>
+                          <input type="text" value={activeShape.text || ''} onChange={(e) => handlePropertyChange('text', e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1 bg-white text-slate-800" />
+                        </div>
+
+                      {/* Font Family Dropdown */}
+                  <div>
+                    <label className="block text-slate-600 mb-1 font-semibold">Font Family</label>
+                    <select 
+                      value={activeShape.fontFamily || 'Inter, sans-serif'} 
+                      onChange={(e) => handlePropertyChange('fontFamily', e.target.value)}
+                      className="bg-white border border-slate-300 rounded px-2 py-1.5 font-medium text-slate-800 w-full"
+                    >
+                      <option value="Inter, sans-serif">Inter</option>
+                      <option value="Roboto, sans-serif">Roboto</option>
+                      <option value="Open Sans, sans-serif">Open Sans</option>
+                      <option value="Poppins, sans-serif">Poppins</option>
+                      <option value="Montserrat, sans-serif">Montserrat</option>
+                      <option value="Arial, sans-serif">Arial</option>
+                      <option value="Helvetica, sans-serif">Helvetica</option>
+                      <option value="'Times New Roman', serif">Times New Roman</option>
+                      <option value="'Courier New', monospace">Courier New</option>
+                      <option value="Georgia, serif">Georgia</option>
+                      <option value="Verdana, sans-serif">Verdana</option>
+                      <option value="Impact, sans-serif">Impact</option>
+                      <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
+                    </select>
+                  </div>
+
+                        {/* Text Style (Bold, Italic, Underline Toggles) */}
+                        <div>
+                          <label className="block text-slate-600 mb-1 font-semibold">Text Style</label>
+                          <div className="grid grid-cols-3 gap-1">
+                            <button 
+                              type="button"
+                              onClick={() => handlePropertyChange('fontWeight', activeShape.fontWeight === 'bold' ? 'normal' : 'bold')}
+                              className={`py-1 rounded font-bold border cursor-pointer ${activeShape.fontWeight === 'bold' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}
+                            >
+                              Bold
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => handlePropertyChange('fontStyle', activeShape.fontStyle === 'italic' ? 'normal' : 'italic')}
+                              className={`py-1 rounded italic border cursor-pointer ${activeShape.fontStyle === 'italic' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}
+                            >
+                              Italic
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => handlePropertyChange('textDecoration', activeShape.textDecoration === 'underline' ? 'none' : 'underline')}
+                              className={`py-1 rounded underline border cursor-pointer ${activeShape.textDecoration === 'underline' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}
+                            >
+                              Underline
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Text Size */}
+                        <NumberInput label="Text size" min={1} value={activeShape.fontSize || 14} onChange={(val) => handlePropertyChange('fontSize', val)} />
+
+                        {/* Text Position (x) */}
+                        <NumberInput label="Text position (x)" value={activeShape.textOffsetX || 0} onChange={(val) => handlePropertyChange('textOffsetX', val)} />
+
+                        {/* Text Position (y) */}
+                        <NumberInput label="Text position (y)" value={activeShape.textOffsetY || 0} onChange={(val) => handlePropertyChange('textOffsetY', val)} />
+
+                        {/* Text Color */}
+                        <ColorPickerField label="Text color" value={activeShape.color || '#333333'} onChange={(col) => handlePropertyChange('color', col)} />
+
+                      </div>
+                    </div>
+
+                  
+                  </>
+                ) : (
               <div className="text-slate-400 text-xs italic text-center py-6">
                 No object selected. Click an element on the canvas to edit its properties.
               </div>
@@ -2137,54 +2482,61 @@ const handlePropertyChange = (field, value) => {
 
       </div>
 
-     {/* FIXED FOOTER SUMMARY BAR */}
-      <footer className={`${seatMapFooter} bg-white border-t border-slate-200 h-12 px-6 flex items-center justify-between shrink-0 print:hidden text-xs z-50`}>
-        <div className="flex items-center space-x-8">
-          <div className="flex flex-col items-center">
-            <span className="font-extrabold text-slate-900 text-sm">{totalSeats}</span>
-            <span className="text-[10px] text-slate-500 font-medium">Total Seats</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="font-extrabold text-slate-900 text-sm">
-              {sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'available').length, 0)}
-            </span>
-            <span className="text-[10px] text-slate-500 font-medium">Available</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="font-extrabold text-slate-900 text-sm">
-              {sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'sold' || st.status === 'blocked').length, 0)}
-            </span>
-            <span className="text-[10px] text-slate-500 font-medium">Reserved</span>
-          </div>
+    {/* FIXED FOOTER SUMMARY BAR */}
+     <footer className={`${seatMapFooter} bg-white border-t border-slate-200 h-14 px-6 flex items-center justify-between shrink-0 print:hidden text-xs z-50`}>
+       <div className="flex items-center space-x-6 text-sm">
+         <div className="flex flex-col items-center">
+           <span className="font-extrabold text-slate-900 text-base">{totalSeats}</span>
+           <span className="text-[11px] text-slate-500 font-medium">Total Seats</span>
+         </div>
+         <div className="flex flex-col items-center">
+           <span className="font-extrabold text-slate-900 text-base">
+             {sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'available').length, 0)}
+           </span>
+           <span className="text-[11px] text-slate-500 font-medium">Available</span>
+         </div>
+         <div className="flex flex-col items-center">
+           <span className="font-extrabold text-slate-900 text-base">
+             {sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'sold' || st.status === 'blocked').length, 0)}
+           </span>
+           <span className="text-[11px] text-slate-500 font-medium">Reserved</span>
+         </div>
 
-          <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
+         <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
+       </div>
 
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-2">
-              <span className="w-4 h-5 rounded bg-[#4f46e5] inline-block shadow-xs"></span>
-              <span className="text-slate-600 font-semibold">Regular</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-4 h-5 rounded bg-[#f59e0b] inline-block shadow-xs"></span>
-              <span className="text-slate-600 font-semibold">Premium</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-4 h-5 rounded bg-[#8b5cf6] inline-block shadow-xs"></span>
-              <span className="text-slate-600 font-semibold">VIP</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-4 h-5 rounded bg-[#10b981] inline-block shadow-xs"></span>
-              <span className="text-slate-600 font-semibold">Accessible</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-4 h-5 rounded bg-[#94a3b8] inline-block shadow-xs"></span>
-              <span className="text-slate-600 font-semibold">Reserved</span>
-            </div>
-          </div>
+      <div className="flex items-center space-x-6 absolute left-1/2 -translate-x-1/2">
+  {(() => {
+    const activeColorsMap = new Map();
+    sections.forEach(sec => {
+      const secCat = sec.category;
+      if (secCat) {
+        const foundCat = customCategories.find(c => c.name === secCat);
+        if (foundCat) activeColorsMap.set(foundCat.name, foundCat.color);
+      }
+      Object.values(sec.seats || {}).forEach(st => {
+        const seatCat = st.category;
+        if (seatCat) {
+          const foundCat = customCategories.find(c => c.name === seatCat);
+          if (foundCat) activeColorsMap.set(foundCat.name, foundCat.color);
+        }
+      });
+    });
+    const activeColorEntries = Array.from(activeColorsMap.entries());
+    if (activeColorEntries.length === 0) return null;
+    return activeColorEntries.map(([name, color], idx) => {
+      const isGrad = color.includes('gradient');
+      return (
+        <div key={idx} className="flex items-center space-x-2">
+          <span className="w-4 h-5 rounded inline-block shadow-xs" style={isGrad ? { backgroundImage: color } : { backgroundColor: color }}></span>
+          <span className="text-slate-600 font-semibold text-xs">{name}</span>
         </div>
-
+      );
+    });
+  })()}
+</div>
       {viewMode === 'creator' && (
-        <div className="flex items-center space-x-10">
+        <div className="flex items-center space-x-4">
           <button 
             onClick={handleSaveMap} 
             disabled={isEmpty}
