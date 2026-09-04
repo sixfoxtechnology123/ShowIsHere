@@ -119,6 +119,7 @@ const SeatMap = () => {
   const [clipboard, setClipboard] = useState(null); // Tracks copied/cut item
   const [viewMode, setViewMode] = useState('creator');
   const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [tempDrawingId, setTempDrawingId] = useState(null);
 
   // Tools: 'selectRow', 'selectSeat', 'addRow', 'addRowsBlock', 'addSquare', 'addRectangle', 'addCircle', 'addText'
   const [activeTool, setActiveTool] = useState('addRowsBlock');
@@ -126,7 +127,7 @@ const SeatMap = () => {
   // Application History Stack
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
-
+const [showGrid, setShowGrid] = useState(true); 
   // Multi-Page Support State with 3:4 Default Design Page Ratio Dimensions (e.g. 900px width by 1200px height)
   const [pages, setPages] = useState([
     { id: 'page-1', name: 'Plan 1', width: 900, height: 1200 }
@@ -166,13 +167,13 @@ const SeatMap = () => {
   const [selectedSeatKey, setSelectedSeatKey] = useState(null); 
   const [isShapeRotating, setIsShapeRotating] = useState(false);
 const [shapeRotateCenter, setShapeRotateCenter] = useState({ x: 0, y: 0 });
-
+const [isOpenCategoryDropdown, setIsOpenCategoryDropdown] = useState(false);
   // Simultaneous Drag & Move / Resize States
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState(null);
   const [drawCurrent, setDrawCurrent] = useState(null);
   const [selectionBox, setSelectionBox] = useState(null);
-
+const [editingCatIndex, setEditingCatIndex] = useState(null);
   // Manual rotation handle state
   const [isRotating, setIsRotating] = useState(false);
   const [rotateCenter, setRotateCenter] = useState({ x: 0, y: 0 });
@@ -306,18 +307,19 @@ useEffect(() => {
     return String(actualIndex);
   }
 
-  function generateSeats(rowCount, seatCount, rowNumType, rowStart, rowRev, seatNumType, seatStart, seatRev, defaultCategory = '') {
-    const seatMap = {};
-    for (let r = 0; r < rowCount; r++) {
-      const rowLabel = getLabel(r, rowNumType, rowStart, rowRev, rowCount);
-      for (let s = 0; s < seatCount; s++) {
-        const seatLabel = getLabel(s, seatNumType, seatStart, seatRev, seatCount);
-        const seatKey = `${rowLabel}-${seatLabel}`;
-        seatMap[seatKey] = { status: 'available', category: defaultCategory, offsetX: 0, offsetY: 0 };
-      }
+function generateSeats(rowCount, seatCount, rowNumType, rowStart, rowRev, seatNumType, seatStart, seatRev, defaultCategory = '', hiddenRows = []) {
+  const seatMap = {};
+  for (let r = 0; r < rowCount; r++) {
+    const rowLabel = getLabel(r, rowNumType, rowStart, rowRev, rowCount);
+    if (hiddenRows.includes(rowLabel)) continue; 
+    for (let s = 0; s < seatCount; s++) {
+      const seatLabel = getLabel(s, seatNumType, seatStart, seatRev, seatCount);
+      const seatKey = `${rowLabel}-${seatLabel}`;
+      seatMap[seatKey] = { status: 'available', category: defaultCategory, offsetX: 0, offsetY: 0 };
     }
-    return seatMap;
   }
+  return seatMap;
+}
 
   const pageSections = sections.filter(s => (s.pageId || 'page-1') === activePageId);
   const pageShapes = shapes.filter(sh => (sh.pageId || 'page-1') === activePageId);
@@ -430,23 +432,45 @@ const handleDuplicate = () => {
     }
   };
 
-  const handleDeleteSelected = () => {
-    if (selectedSeatKey && activeSection) {
-      const updatedSeats = { ...activeSection.seats };
-      delete updatedSeats[selectedSeatKey];
-      const newSecs = sections.map(sec => sec.id === activeSection.id ? { ...sec, seats: updatedSeats } : sec);
-      pushHistory(newSecs, shapes);
-      setSelectedSeatKey(null);
-    } else if (activeSection) {
-      const filtered = sections.filter(s => s.id !== activeSection.id);
-      pushHistory(filtered, shapes);
-      setSelectedSectionId(filtered.length > 0 ? filtered[0].id : null);
-    } else if (activeShape) {
-      const filtered = shapes.filter(sh => sh.id !== activeShape.id);
-      pushHistory(sections, filtered);
-      setSelectedShapeId(null);
-    }
-  };
+const handleDeleteSelected = () => {
+  if (selectedRowKey && activeSection) {
+    const updatedSeats = { ...activeSection.seats };
+    Object.keys(updatedSeats).forEach(sk => {
+      if (sk.startsWith(selectedRowKey + '-')) {
+        delete updatedSeats[sk];
+      }
+    });
+    const hiddenRows = activeSection.hiddenRows || [];
+    const updatedHiddenRows = [...hiddenRows, selectedRowKey];
+
+    const newSecs = sections.map(sec => sec.id === activeSection.id ? { 
+      ...sec, 
+      seats: updatedSeats,
+      hiddenRows: updatedHiddenRows
+    } : sec);
+    pushHistory(newSecs, shapes);
+    setSelectedRowKey(null);
+  } else if (selectedSeatKey && activeSection) {
+    const updatedSeats = { ...activeSection.seats };
+    delete updatedSeats[selectedSeatKey];
+    
+    const newSecs = sections.map(sec => sec.id === activeSection.id ? { 
+      ...sec, 
+      seats: updatedSeats 
+    } : sec);
+    
+    pushHistory(newSecs, shapes);
+    setSelectedSeatKey(null);
+  } else if (activeSection) {
+    const filtered = sections.filter(s => s.id !== activeSection.id);
+    pushHistory(filtered, shapes);
+    setSelectedSectionId(filtered.length > 0 ? filtered[0].id : null);
+  } else if (activeShape) {
+    const filtered = shapes.filter(sh => sh.id !== activeShape.id);
+    pushHistory(sections, filtered);
+    setSelectedShapeId(null);
+  }
+};
 
   const handleDeletePage = (pageIdToRemove, e) => {
     e.stopPropagation();
@@ -524,7 +548,7 @@ const handleMouseDown = (e, secId) => {
     setShowRightSidebar(true);
   };
 
-  const handleSeatMouseDown = (e, secId, seatKey) => {
+const handleSeatMouseDown = (e, secId, seatKey) => {
     if (activeTool === 'selectSeat') {
       e.stopPropagation();
       setDraggingSeatKey(seatKey);
@@ -535,12 +559,14 @@ const handleMouseDown = (e, secId) => {
     }
   };
 
-  const handleRowMarkerMouseDown = (e, secId, rowLetter) => {
+const handleRowMarkerMouseDown = (e, secId, rowLetter) => {
     e.stopPropagation();
+    if (activeTool !== 'selectRow' && activeTool !== 'select') return;
     setDraggingRowLetter(rowLetter);
     setSelectedSectionId(secId);
     setSelectedRowKey(rowLetter);
     setSelectedSeatKey(null);
+    setShowRightSidebar(true);
   };
 
 const handleRotateStart = (e, sec) => {
@@ -559,13 +585,13 @@ const handleRotateStart = (e, sec) => {
     });
   };
 const handleCanvasMouseDown = (e) => {
-  if (viewMode === 'preview') return;
+    if (viewMode === 'preview') return;
 
-  if (activeTool === 'pan') {
-    setIsPanning(true);
-    setPanStart({ x: e.clientX, y: e.clientY, initialX: panOffset.x, initialY: panOffset.y });
-    return;
-  }
+    if (activeTool === 'pan') {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY, initialX: panOffset.x, initialY: panOffset.y });
+      return;
+    }
 
     if (['selectRow', 'selectSeat', 'select'].includes(activeTool)) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -594,9 +620,191 @@ const handleCanvasMouseDown = (e) => {
     setDrawStart({ x: origin_x, y: origin_y });
     setDrawCurrent({ x: origin_x, y: origin_y });
     setIsDrawing(true);
+
+    // 1. Create a single ID right when you click down and open the sidebar instantly
+    const newId = Date.now();
+    setTempDrawingId(newId);
+
+    const isShapeTool = ['addSquare', 'addRectangle', 'addCircle', 'addText', 'addVerticalLine', 'addHorizontalLine', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool);
+
+    if (isShapeTool) {
+      setSelectedShapeId(newId);
+      setSelectedSectionId(null);
+    } else {
+      setSelectedSectionId(newId);
+      setSelectedShapeId(null);
+    }
     setShowRightSidebar(true);
   };
 
+  const handleCanvasMouseUp = () => {
+    setIsPanning(false);
+    setIsRotating(false);
+    setIsShapeRotating(false);
+    setDraggingId(null);
+    setDraggingSeatKey(null);
+    setDraggingRowLetter(null);
+    setSelectionBox(null);
+    setResizingShapeId(null);
+    setResizingBlockId(null);
+    setResizeHandle(null);
+
+    if (isDrawing && drawStart && drawCurrent) {
+      const delta_x = drawCurrent.x - drawStart.x;
+      const delta_y = drawCurrent.y - drawStart.y;
+      
+      if (Math.abs(delta_x) < 5 && Math.abs(delta_y) < 5) {
+        setIsDrawing(false);
+        setDrawStart(null);
+        setDrawCurrent(null);
+        setTempDrawingId(null);
+        setSelectedShapeId(null);
+        setSelectedSectionId(null);
+        return;
+      }
+
+      const boxSize = 22;
+      const seatSpacing = 2;
+      const rowSpacing = 2;
+
+      let calculatedSeats;
+      let calculatedRows = 1;
+      let initialRotation = 0;
+
+      if (activeTool === 'addRow') {
+        const distance = Math.hypot(delta_x, delta_y);
+        calculatedSeats = Math.max(2, Math.floor(distance / (boxSize + seatSpacing)) + 1);
+        calculatedRows = 1;
+        initialRotation = Math.round(Math.atan2(delta_y, delta_x) * (180 / Math.PI));
+      } else {
+        calculatedSeats = Math.max(1, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1);
+        calculatedRows = Math.max(1, Math.floor(Math.abs(delta_y) / (boxSize + rowSpacing)) + 1);
+        initialRotation = 0;
+      }
+
+      // 2. Use the exact same ID from mouse down
+      const finalId = tempDrawingId || Date.now();
+      const isShapeTool = ['addSquare', 'addRectangle', 'addCircle', 'addText', 'addVerticalLine', 'addHorizontalLine', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool);
+
+      if (isShapeTool) {
+        const startX = Math.min(drawStart.x, drawCurrent.x);
+        const startY = Math.min(drawStart.y, drawCurrent.y);
+
+        let shapeType = 'rectangle';
+        let initialWidth = Math.max(60, Math.abs(delta_x));
+        let initialHeight = Math.max(40, Math.abs(delta_y));
+        let labelText = '';
+
+        if (activeTool === 'addVerticalLine') {
+          shapeType = 'verticalLine';
+          initialWidth = 4;
+          initialHeight = Math.max(60, Math.abs(delta_y));
+        } else if (activeTool === 'addHorizontalLine') {
+          shapeType = 'horizontalLine';
+          initialWidth = Math.max(60, Math.abs(delta_x));
+          initialHeight = 4;
+        } else if (activeTool === 'stage') {
+          shapeType = 'stage';
+          labelText = 'Stage / Screen';
+          initialWidth = Math.max(180, Math.abs(delta_x));
+          initialHeight = 40;
+        } else if (activeTool === 'entrance') {
+          shapeType = 'entrance';
+          labelText = 'Entrance';
+          initialWidth = 100;
+          initialHeight = 35;
+        } else if (activeTool === 'exit') {
+          shapeType = 'exit';
+          labelText = 'Exit Gate';
+          initialWidth = 100;
+          initialHeight = 35;
+        } else if (activeTool === 'emergency') {
+          shapeType = 'emergency';
+          labelText = 'Emergency Exit';
+          initialWidth = 120;
+          initialHeight = 35;
+        } else if (activeTool === 'toilet') {
+          shapeType = 'toilet';
+          labelText = 'Toilet';
+          initialWidth = 80;
+          initialHeight = 40;
+        } else if (activeTool === 'addSquare') {
+          shapeType = 'square';
+          const dim = Math.max(40, Math.abs(delta_x), Math.abs(delta_y));
+          initialWidth = dim;
+          initialHeight = dim;
+        } else if (activeTool === 'addCircle') {
+          shapeType = 'circle';
+          const dim = Math.max(40, Math.abs(delta_x), Math.abs(delta_y));
+          initialWidth = dim;
+          initialHeight = dim;
+        } else if (activeTool === 'addText') {
+          shapeType = 'text';
+          labelText = '';
+          initialWidth = Math.max(60, Math.abs(delta_x));
+          initialHeight = Math.max(30, Math.abs(delta_y));
+        }
+
+        const newShape = {
+          id: finalId,
+          pageId: activePageId,
+          type: shapeType,
+          text: labelText,
+          color: '#1e293b',
+          fontSize: 14,
+          x: startX,
+          y: startY,
+          width: initialWidth,
+          height: initialHeight
+        };
+        pushHistory(sections, [...shapes, newShape]);
+        
+        // Keep it selected on mouse up so sidebar stays open
+        setSelectedShapeId(finalId);
+        setSelectedSectionId(null);
+      } else {
+        const newSec = {
+          id: finalId,
+          pageId: activePageId,
+          zoneId: activeZoneId,
+          category: '', 
+          price: 1500,
+          rows: calculatedRows,
+          seatsPerRow: calculatedSeats,
+          x: (activeTool === 'addRow' ? drawStart.x : Math.min(drawStart.x, drawCurrent.x)) - 8,
+          y: (activeTool === 'addRow' ? drawStart.y : Math.min(drawStart.y, drawCurrent.y)),
+          rowSpacing: 2,
+          seatSpacing: 2,
+          rotation: initialRotation,
+          showRowNumbersLeft: true,
+          showRowNumbersRight: true,
+          rowNumberingType: 'capital',
+          rowStartingAt: 1,
+          rowReversed: false,
+          seatNumberingType: '1, 2, 3, ...',
+          seatStartingAt: 1,
+          seatReversed: false,
+          seatLabelFormat: 'Seat %s',
+          boxSize: 22,
+          seatRadius: 4,
+          seats: generateSeats(calculatedRows, calculatedSeats, 'capital', 1, false, '1, 2, 3, ...', 1, false, '')
+        };
+
+        pushHistory([...sections, newSec], shapes);
+        
+        // Keep it selected on mouse up so sidebar stays open
+        setSelectedSectionId(finalId);
+        setSelectedShapeId(null);
+      }
+
+      setShowRightSidebar(true);
+      justCreatedRef.current = true;
+      setIsDrawing(false);
+      setDrawStart(null);
+      setDrawCurrent(null);
+      setTempDrawingId(null);
+    }
+  };
 const handleCanvasMouseMove = (e) => {
     if (isPanning) {
       setPanOffset({
@@ -606,7 +814,7 @@ const handleCanvasMouseMove = (e) => {
       return;
     }
 
-    if (resizingBlockId) {
+   if (resizingBlockId) {
       const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
       const rect = boardEl.getBoundingClientRect();
       const currentX = (e.clientX - rect.left) / (zoomLevel / 100);
@@ -617,17 +825,19 @@ const handleCanvasMouseMove = (e) => {
           const deltaX = Math.max(50, currentX - sec.x);
           const deltaY = Math.max(50, currentY - sec.y);
           const newCols = Math.max(1, Math.floor(deltaX / (sec.boxSize + (sec.seatSpacing || 2) + 2)));
-          const newRows = Math.max(1, Math.floor(deltaY / (sec.boxSize + (sec.rowSpacing || 2) + 2)));
+         const newRows = sec.rows === 1 ? 1 : Math.max(1, Math.floor(deltaY / (sec.boxSize + (sec.rowSpacing || 2) + 2)));
+          
           const updatedSeats = generateSeats(
             newRows,
             newCols,
-            sec.rowNumberingType,
-            sec.rowStartingAt,
-            sec.rowReversed,
-            sec.seatNumberingType,
-            sec.seatStartingAt,
-            sec.seatReversed,
-            sec.category
+            sec.rowNumberingType || 'capital',
+            sec.rowStartingAt ?? 1,
+            sec.rowReversed || false,
+            sec.seatNumberingType || '1, 2, 3, ...',
+            sec.seatStartingAt ?? 1,
+            sec.seatReversed || false,
+            sec.category || '',
+            sec.hiddenRows || []
           );
           return { ...sec, rows: newRows, seatsPerRow: newCols, seats: updatedSeats };
         }
@@ -635,7 +845,6 @@ const handleCanvasMouseMove = (e) => {
       }));
       return;
     }
-
     if (isShapeRotating && selectedShapeId) {
       const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
       const rect = boardEl.getBoundingClientRect();
@@ -749,26 +958,23 @@ if (resizingShapeId && resizeHandle) {
       return;
     }
 
-    if (draggingRowLetter && selectedSectionId) {
-      const movementY = e.movementY / (zoomLevel / 100);
-      setSections(sections.map(sec => {
-        if (sec.id === selectedSectionId) {
-          const updatedSeats = { ...sec.seats };
-          Object.keys(updatedSeats).forEach(sk => {
-            if (sk.startsWith(draggingRowLetter + '-')) {
-              const seatObj = updatedSeats[sk];
-              updatedSeats[sk] = {
-                ...seatObj,
-                offsetY: (seatObj.offsetY || 0) + movementY
-              };
-            }
-          });
-          return { ...sec, seats: updatedSeats };
-        }
-        return sec;
-      }));
-      return;
-    }
+if (draggingRowLetter && selectedSectionId) {
+    const movementX = e.movementX / (zoomLevel / 100);
+    const movementY = e.movementY / (zoomLevel / 100);
+    setSections(sections.map(sec => {
+      if (sec.id === selectedSectionId) {
+        const rowOffsets = { ...(sec.rowOffsets || {}) };
+        const currentOffset = rowOffsets[draggingRowLetter] || { x: 0, y: 0 };
+        rowOffsets[draggingRowLetter] = {
+          x: currentOffset.x + movementX,
+          y: currentOffset.y + movementY
+        };
+        return { ...sec, rowOffsets };
+      }
+      return sec;
+    }));
+    return;
+  }
 
     if (isRotating && selectedSectionId) {
       const boardEl = canvasRef.current.querySelector('.canvasBoard') || canvasRef.current;
@@ -825,184 +1031,7 @@ if (resizingShapeId && resizeHandle) {
     }
   };
 
-const handleCanvasMouseUp = () => {
-    setIsPanning(false);
-    setIsRotating(false);
-    setIsShapeRotating(false);
-    setDraggingId(null);
-    setDraggingSeatKey(null);
-    setDraggingRowLetter(null);
-    setSelectionBox(null);
-    setResizingShapeId(null);
-    setResizingBlockId(null);
-    setResizeHandle(null);
 
-    if (isDrawing && drawStart && drawCurrent) {
-      const delta_x = drawCurrent.x - drawStart.x;
-      const delta_y = drawCurrent.y - drawStart.y;
-      
-      if (Math.abs(delta_x) < 5 && Math.abs(delta_y) < 5) {
-        setIsDrawing(false);
-        setDrawStart(null);
-        setDrawCurrent(null);
-        return;
-      }
-
-      const boxSize = 22;
-      const seatSpacing = 2;
-      const rowSpacing = 2;
-
-      let calculatedSeats;
-      let calculatedRows = 1;
-      let initialRotation = 0;
-      let blockX = drawStart.x;
-      let blockY = drawStart.y;
-
-      if (activeTool === 'addRow') {
-        const distance = Math.hypot(delta_x, delta_y);
-        calculatedSeats = Math.max(2, Math.floor(distance / (boxSize + seatSpacing)) + 1);
-        calculatedRows = 1;
-        initialRotation = Math.round(Math.atan2(delta_y, delta_x) * (180 / Math.PI));
-        blockX = drawStart.x;
-        blockY = drawStart.y;
-      } else if (activeTool === 'addRowsBlock') {
-        calculatedSeats = Math.max(1, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1);
-        calculatedRows = Math.max(1, Math.floor(Math.abs(delta_y) / (boxSize + rowSpacing)) + 1);
-        initialRotation = 0;
-        blockX = drawStart.x;
-        blockY = drawStart.y;
-      } else {
-        calculatedSeats = Math.max(1, Math.floor(Math.abs(delta_x) / (boxSize + seatSpacing)) + 1);
-        calculatedRows = Math.max(1, Math.floor(Math.abs(delta_y) / (boxSize + rowSpacing)) + 1);
-        initialRotation = 0;
-        blockX = drawStart.x;
-        blockY = drawStart.y;
-      
-      }
-
-      if (['addSquare', 'addRectangle', 'addCircle', 'addText', 'addVerticalLine', 'addHorizontalLine', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool)) {
-        const newShId = Date.now();
-        const startX = Math.min(drawStart.x, drawCurrent.x);
-        const startY = Math.min(drawStart.y, drawCurrent.y);
-
-        let shapeType = 'rectangle';
-        let initialWidth = Math.max(60, Math.abs(delta_x));
-        let initialHeight = Math.max(40, Math.abs(delta_y));
-        let labelText = '';
-
-        if (activeTool === 'addVerticalLine') {
-          shapeType = 'verticalLine';
-          initialWidth = 4; // Thin line width
-          initialHeight = Math.max(60, Math.abs(delta_y));
-        } else if (activeTool === 'addHorizontalLine') {
-          shapeType = 'horizontalLine';
-          initialWidth = Math.max(60, Math.abs(delta_x));
-          initialHeight = 4; // Thin line height
-
-        }else if (activeTool === 'stage') {
-          shapeType = 'stage';
-          labelText = 'Stage / Screen';
-          initialWidth = Math.max(180, Math.abs(delta_x));
-          initialHeight = 40;
-        } else if (activeTool === 'entrance') {
-          shapeType = 'entrance';
-          labelText = 'Entrance';
-          initialWidth = 100;
-          initialHeight = 35;
-        } else if (activeTool === 'exit') {
-          shapeType = 'exit';
-          labelText = 'Exit Gate';
-          initialWidth = 100;
-          initialHeight = 35;
-        } else if (activeTool === 'emergency') {
-          shapeType = 'emergency';
-          labelText = 'Emergency Exit';
-          initialWidth = 120;
-          initialHeight = 35;
-        } else if (activeTool === 'toilet') {
-          shapeType = 'toilet';
-          labelText = 'Toilet';
-          initialWidth = 80;
-          initialHeight = 40;
-        } else if (activeTool === 'addSquare') {
-          shapeType = 'square';
-          const dim = Math.max(40, Math.abs(delta_x), Math.abs(delta_y));
-          initialWidth = dim;
-          initialHeight = dim;
-        } else if (activeTool === 'addCircle') {
-          shapeType = 'circle';
-          const dim = Math.max(40, Math.abs(delta_x), Math.abs(delta_y));
-          initialWidth = dim;
-          initialHeight = dim;
-        } else if (activeTool === 'addText') {
-          shapeType = 'text';
-          labelText = '';
-          initialWidth = Math.max(60, Math.abs(delta_x));
-          initialHeight = Math.max(30, Math.abs(delta_y));
-        }
-
-        const newShape = {
-          id: newShId,
-          pageId: activePageId,
-          type: shapeType,
-          text: labelText,
-          color: '#1e293b',
-          fontSize: 14,
-          x: startX,
-          y: startY,
-          width: initialWidth,
-          height: initialHeight
-        };
-        pushHistory(sections, [...shapes, newShape]);
-        setSelectedShapeId(newShId);
-        setSelectedSectionId(null);
-        setShowRightSidebar(true);
-        justCreatedRef.current = true;
-        setIsDrawing(false);
-        setDrawStart(null);
-        setDrawCurrent(null);
-        return;
-      }
-
-      
-      const newId = Date.now();
-      const newSec = {
-        id: newId,
-        pageId: activePageId,
-        zoneId: activeZoneId,
-        category: '', 
-        price: 1500,
-        rows: calculatedRows,
-        seatsPerRow: calculatedSeats,
-        x: (activeTool === 'addRow' ? drawStart.x : Math.min(drawStart.x, drawCurrent.x)) - 8, // 👈 Subtract padding offset
-        y: activeTool === 'addRow' ? drawStart.y : Math.min(drawStart.y, drawCurrent.y), // 👈 Subtract padding offset
-        rowSpacing: 2,
-        seatSpacing: 2,
-        rotation: initialRotation,
-        showRowNumbersLeft: true,
-        showRowNumbersRight: true,
-        rrowNumberingType: 'capital',
-        rowStartingAt: 1,
-        rowReversed: false,
-        seatNumberingType: '1, 2, 3, ...',
-        seatStartingAt: 1,
-        seatReversed: false,
-        seatLabelFormat: 'Seat %s',
-        boxSize: 22,
-        seatRadius: 4,
-        seats: generateSeats(calculatedRows, calculatedSeats, 'capital', 1, false, '1, 2, 3, ...', 1, false, '')
-      };
-
-      pushHistory([...sections, newSec], shapes);
-      setSelectedSectionId(newId);
-      setSelectedShapeId(null);
-      setShowRightSidebar(true);
-      justCreatedRef.current = true;
-      setIsDrawing(false);
-      setDrawStart(null);
-      setDrawCurrent(null);
-    }
-  };
 
   const handleSeatClick = (secId, seatKey, e) => {
     e.stopPropagation();
@@ -1040,7 +1069,7 @@ const handleAddShape = (type, defaultText, w, h) => {
       type: type,
       text: defaultText,
       color: '#1e293b',
-      bgColor: type === 'stage' ? '#e2e8f0' : '#ffffff',
+      backgroundColor: 'transparent',
       borderColor: '#000000',
       borderWidth: 1,
       fontSize: 14,
@@ -1049,56 +1078,77 @@ const handleAddShape = (type, defaultText, w, h) => {
       width: w,
       height: h
     };
+    
+    // Push to history correctly
     pushHistory(sections, [...shapes, newShape]);
+    
+    // 👈 Instantly select the added facility/shape and open the sidebar
     setSelectedShapeId(newShId);
+    setSelectedSectionId(null);
+    setSelectedSeatKey(null);
+    setSelectedRowKey(null);
+    setShowRightSidebar(true);
+    
+    justCreatedRef.current = true;
     setActiveTool(null);
   };
 
 
 const handlePropertyChange = (field, value) => {
-    if (selectedSeatKey && activeSection && field === 'category') {
-      const updatedSeats = {
-        ...activeSection.seats,
-        [selectedSeatKey]: {
-          ...activeSection.seats[selectedSeatKey],
-          category: value
-        }
-      };
-      setSections(sections.map(sec => sec.id === activeSection.id ? { ...sec, seats: updatedSeats } : sec));
-      return;
-    }
+  // If an individual seat is selected, update ONLY that specific seat
+  if (selectedSeatKey && activeSection && field === 'category') {
+    const updatedSeats = { ...activeSection.seats };
+    const currentSeat = updatedSeats[selectedSeatKey] || { status: 'available', offsetX: 0, offsetY: 0 };
+    updatedSeats[selectedSeatKey] = {
+      ...currentSeat,
+      category: value
+    };
+    setSections(sections.map(sec => sec.id === activeSection.id ? { ...sec, seats: updatedSeats } : sec));
+    return;
+  }
 
-    if (activeSection) {
-      setSections(sections.map(sec => {
-        if (sec.id === selectedSectionId) {
-          let updatedSec = { ...sec, [field]: value };
-          if (field === 'category') {
-            Object.keys(updatedSec.seats).forEach(sk => {
-              updatedSec.seats[sk] = { ...updatedSec.seats[sk], category: value };
-            });
-          }
-          if (['rows', 'seatsPerRow', 'rowNumberingType', 'rowStartingAt', 'rowReversed', 'seatNumberingType', 'seatStartingAt', 'seatReversed'].includes(field)) {
-            updatedSec.seats = generateSeats(
-              updatedSec.rows, 
-              updatedSec.seatsPerRow, 
-              updatedSec.rowNumberingType, 
-              updatedSec.rowStartingAt, 
-              updatedSec.rowReversed, 
-              updatedSec.seatNumberingType, 
-              updatedSec.seatStartingAt, 
-              updatedSec.seatReversed,
-              updatedSec.category
-            );
-          }
-          return updatedSec;
+  if (selectedRowKey && activeSection && field === 'category') {
+    const updatedSeats = { ...activeSection.seats };
+    Object.keys(updatedSeats).forEach(sk => {
+      if (sk.startsWith(selectedRowKey + '-')) {
+        updatedSeats[sk] = { ...updatedSeats[sk], category: value };
+      }
+    });
+    setSections(sections.map(sec => sec.id === activeSection.id ? { ...sec, seats: updatedSeats } : sec));
+    return;
+  }
+
+  if (activeSection) {
+    setSections(sections.map(sec => {
+      if (sec.id === selectedSectionId) {
+        let updatedSec = { ...sec, [field]: value };
+        if (field === 'category') {
+          // Only apply to all seats if NO individual seat is selected
+          Object.keys(updatedSec.seats).forEach(sk => {
+            updatedSec.seats[sk] = { ...updatedSec.seats[sk], category: value };
+          });
         }
-        return sec;
-      }));
-    } else if (activeShape) {
-      // Ensure this updates the shape property properly
-      setShapes(shapes.map(sh => sh.id === selectedShapeId ? { ...sh, [field]: value } : sh));
-    }
-  };
+        if (['rows', 'seatsPerRow', 'rowNumberingType', 'rowStartingAt', 'rowReversed', 'seatNumberingType', 'seatStartingAt', 'seatReversed'].includes(field)) {
+          updatedSec.seats = generateSeats(
+            updatedSec.rows, 
+            updatedSec.seatsPerRow, 
+            updatedSec.rowNumberingType, 
+            updatedSec.rowStartingAt, 
+            updatedSec.rowReversed, 
+            updatedSec.seatNumberingType, 
+            updatedSec.seatStartingAt, 
+            updatedSec.seatReversed,
+            updatedSec.category
+          );
+        }
+        return updatedSec;
+      }
+      return sec;
+    }));
+  } else if (activeShape) {
+    setShapes(shapes.map(sh => sh.id === selectedShapeId ? { ...sh, [field]: value } : sh));
+  }
+};
 
   const handleSaveMap = async () => {
     try {
@@ -1147,6 +1197,7 @@ const handlePropertyChange = (field, value) => {
           header, footer, .bg-slate-100, aside, .fixed, [class*="print:hidden"] {
             display: none !important;
           }
+            
           .printable-canvas-area {
             position: fixed !important;
             left: 0 !important;
@@ -1302,6 +1353,35 @@ const handlePropertyChange = (field, value) => {
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
             </svg>
           </button>
+         <div className="h-5 w-[1px] bg-slate-300"></div>
+        <button 
+          onClick={() => setShowGrid(!showGrid)} 
+          title={showGrid ? "Hide Grid" : "Show Grid"} 
+          className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 ${
+            showGrid ? 'bg-slate-200 text-blue-700' : 'bg-transparent text-slate-700'
+          }`}
+        >
+          {showGrid ? (
+            /* Enabled Grid Icon (Clean Grid matching your second image) */
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="3" y1="15" x2="21" y2="15" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <line x1="15" y1="3" x2="15" y2="21" />
+            </svg>
+          ) : (
+            /* Disabled Grid Icon (Grid with Slash matching your first image) */
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="3" y1="15" x2="21" y2="15" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <line x1="15" y1="3" x2="15" y2="21" />
+              <line x1="2" y1="2" x2="22" y2="22" />
+            </svg>
+          )}
+        </button>
         </div>
       </div>
   </header>
@@ -1329,35 +1409,104 @@ const handlePropertyChange = (field, value) => {
         </div>
       )}
 
-      {/* CREATE NEW CATEGORY/COLOR MODAL POPUP */}
-      {showNewCategoryModal && (
-        <div className={modalOverlay}>
-          <div className={modalBox}>
-            <button onClick={() => setShowNewCategoryModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">✕</button>
-            <h2 className="text-lg font-extrabold text-slate-900 text-center mb-4">Add Custom Category</h2>
-            <div className="space-y-3 mb-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-600 mb-1">Category Name</label>
-                <input type="text" value={newCatNameInput} onChange={(e) => setNewCatNameInput(e.target.value)} placeholder="e.g. Balcony VIP" className={inputFieldStyle} autoFocus />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-600 mb-1">Color / Gradient Picker</label>
-                <div className="flex items-center space-x-2">
-                  <input type="color" value={newCatColorInput} onChange={(e) => setNewCatColorInput(e.target.value)} className="w-10 h-8 rounded border border-slate-300 cursor-pointer p-0.5 bg-white" />
-                  <input type="text" value={newCatColorInput} onChange={(e) => setNewCatColorInput(e.target.value)} className="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="Hex or linear-gradient(...)" />
-                </div>
-              </div>
-            </div>
-            <button onClick={() => {
-              if (newCatNameInput.trim()) {
-                setCustomCategories([...customCategories, { name: newCatNameInput.trim(), color: newCatColorInput }]);
-                setNewCatNameInput('');
-                setShowNewCategoryModal(false);
-              }
-            }} className={primaryButton}>Add Category</button>
+     {/* ADD / EDIT CATEGORY MODAL POPUP */}
+{showNewCategoryModal && (
+  <div className={modalOverlay}>
+    <div className={modalBox}>
+      <button 
+        onClick={() => {
+          setShowNewCategoryModal(false);
+          setEditingCatIndex(null);
+          setNewCatNameInput('');
+          setNewCatColorInput('#8b5cf6');
+        }} 
+        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+      >
+        ✕
+      </button>
+
+      <h2 className="text-lg font-extrabold text-slate-900 text-center mb-4">
+        {editingCatIndex !== null ? 'Edit Custom Category' : 'Add Custom Category'}
+      </h2>
+
+      <div className="space-y-3 mb-4 text-xs">
+        <div>
+          <label className="block font-bold text-slate-600 mb-1">Category Name</label>
+          <input 
+            type="text" 
+            value={newCatNameInput} 
+            onChange={(e) => setNewCatNameInput(e.target.value)} 
+            placeholder="e.g. Balcony VIP" 
+            className={inputFieldStyle} 
+            autoFocus 
+          />
+        </div>
+        <div>
+          <label className="block font-bold text-slate-600 mb-1">Color / Gradient Picker</label>
+          <div className="flex items-center space-x-2">
+            <input 
+              type="color" 
+              value={newCatColorInput.startsWith('#') ? newCatColorInput.substring(0, 7) : '#000000'} 
+              onChange={(e) => setNewCatColorInput(e.target.value)} 
+              className="w-10 h-8 rounded border border-slate-300 cursor-pointer p-0.5 bg-white" 
+            />
+            <input 
+              type="text" 
+              value={newCatColorInput} 
+              onChange={(e) => setNewCatColorInput(e.target.value)} 
+              className="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1.5 font-mono text-xs" 
+              placeholder="Hex or linear-gradient(...)" 
+            />
           </div>
         </div>
-      )}
+      </div>
+
+      <button 
+        onClick={() => {
+          if (newCatNameInput.trim()) {
+            const nameTrimmed = newCatNameInput.trim();
+            
+            if (editingCatIndex !== null) {
+              // EDIT MODE
+              const oldName = customCategories[editingCatIndex].name;
+              setCustomCategories(prev => prev.map((c, i) => i === editingCatIndex ? { ...c, name: nameTrimmed, color: newCatColorInput } : c));
+              
+              // Update references in sections/seats if name changed
+              if (oldName !== nameTrimmed) {
+                setSections(prevSecs => prevSecs.map(sec => {
+                  let updatedSec = { ...sec };
+                  if (updatedSec.category === oldName) updatedSec.category = nameTrimmed;
+                  if (updatedSec.seats) {
+                    const updatedSeats = { ...updatedSec.seats };
+                    Object.keys(updatedSeats).forEach(sk => {
+                      if (updatedSeats[sk].category === oldName) {
+                        updatedSeats[sk] = { ...updatedSeats[sk], category: nameTrimmed };
+                      }
+                    });
+                    updatedSec.seats = updatedSeats;
+                  }
+                  return updatedSec;
+                }));
+              }
+            } else {
+              // ADD MODE
+              setCustomCategories([...customCategories, { name: nameTrimmed, color: newCatColorInput }]);
+            }
+
+            // Reset fields and close
+            setNewCatNameInput('');
+            setNewCatColorInput('#8b5cf6');
+            setEditingCatIndex(null);
+            setShowNewCategoryModal(false);
+          }
+        }} 
+        className={primaryButton}
+      >
+        {editingCatIndex !== null ? 'Save Changes' : 'Add Category'}
+      </button>
+    </div>
+  </div>
+)}
 
    
 
@@ -1605,7 +1754,8 @@ const handlePropertyChange = (field, value) => {
             transformOrigin: 'center center'
           }}
         >
-            <div className={canvasGridBg}></div>
+          {showGrid && <div className={canvasGridBg}></div>}
+            
 
             {selectionBox && (
               <div 
@@ -1618,29 +1768,29 @@ const handlePropertyChange = (field, value) => {
                 }}
               ></div>
             )}
-{isDrawing && drawStart && drawCurrent && (Math.abs(drawCurrent.x - drawStart.x) > 5 || Math.abs(drawCurrent.y - drawStart.y) > 5) && ['addSquare', 'addRectangle', 'addCircle', 'addText', 'addVerticalLine', 'addHorizontalLine', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool) && (
-  <div 
-    className={`absolute pointer-events-none z-50 flex items-center justify-center border shadow-md ${activeTool === 'addCircle' ? 'rounded-full' : 'rounded-none'}`}
-    style={{
-      left: `${Math.min(drawStart.x, drawCurrent.x)}px`,
-      top: `${Math.min(drawStart.y, drawCurrent.y)}px`,
-      width: `${activeTool === 'addVerticalLine' ? 4 : Math.max(40, Math.abs(drawCurrent.x - drawStart.x))}px`,
-      height: `${activeTool === 'addHorizontalLine' ? 4 : (activeTool === 'addSquare' || activeTool === 'addCircle' ? Math.max(40, Math.abs(drawCurrent.x - drawStart.x)) : Math.max(40, Math.abs(drawCurrent.y - drawStart.y)))}px`,
-      backgroundColor: activeTool === 'stage' ? '#e2e8f0' : '#1e293b',
-      borderColor: '#000000',
-      borderWidth: '0px',
-      borderStyle: 'solid'
-    }}
-  >
-    <span className="text-xs font-bold text-slate-800 text-center px-1">
-      {activeTool === 'stage' && 'Stage / Screen'}
-      {activeTool === 'entrance' && 'Entrance'}
-      {activeTool === 'exit' && 'Exit Gate'}
-      {activeTool === 'emergency' && 'Emergency Exit'}
-      {activeTool === 'toilet' && 'Toilet'}
-    </span>
-  </div>
-)}
+            {isDrawing && drawStart && drawCurrent && (Math.abs(drawCurrent.x - drawStart.x) > 5 || Math.abs(drawCurrent.y - drawStart.y) > 5) && ['addSquare', 'addRectangle', 'addCircle', 'addText', 'addVerticalLine', 'addHorizontalLine', 'stage', 'entrance', 'exit', 'emergency', 'toilet'].includes(activeTool) && (
+              <div 
+                className={`absolute pointer-events-none z-50 flex items-center justify-center shadow-md ${activeTool === 'addCircle' ? 'rounded-full' : 'rounded-none'}`}
+                style={{
+                  left: `${drawStart.x < drawCurrent.x ? drawStart.x : drawCurrent.x}px`,
+                  top: `${drawStart.y < drawCurrent.y ? drawStart.y : drawCurrent.y}px`,
+                  width: `${activeTool === 'addVerticalLine' ? 4 : Math.max(20, Math.abs(drawCurrent.x - drawStart.x))}px`,
+                  height: `${activeTool === 'addHorizontalLine' ? 4 : (activeTool === 'addSquare' || activeTool === 'addCircle' ? Math.max(20, Math.abs(drawCurrent.x - drawStart.x)) : Math.max(20, Math.abs(drawCurrent.y - drawStart.y)))}px`,
+                  backgroundColor: activeTool === 'stage' ? '#e2e8f0' : 'transparent', 
+                  borderColor: '#000000',    
+                  borderWidth: '2px',        
+                  borderStyle: 'solid'
+                }}
+              >
+                <span className="text-xs font-bold text-slate-800 text-center px-1">
+                  {activeTool === 'stage' && 'Stage / Screen'}
+                  {activeTool === 'entrance' && 'Entrance'}
+                  {activeTool === 'exit' && 'Exit Gate'}
+                  {activeTool === 'emergency' && 'Emergency Exit'}
+                  {activeTool === 'toilet' && 'Toilet'}
+                </span>
+              </div>
+            )}
 
             {/* LIVE SIMULTANEOUS DRAG PREVIEW FOR ROW TOOLS */}
             {isDrawing && drawStart && drawCurrent && (Math.abs(drawCurrent.x - drawStart.x) > 5 || Math.abs(drawCurrent.y - drawStart.y) > 5) && ['addRowsBlock', 'addRow'].includes(activeTool) && (
@@ -1654,24 +1804,24 @@ const handlePropertyChange = (field, value) => {
                   gap: '2px'
                 }}
               >
-                {activeTool === 'addRow' ? (
-                  <div className="flex relative items-center justify-center" style={{ gap: '2px' }}>
-                    {/* Fully extended line guideline visible live during mouse drag */}
-                    <div 
-                      className="absolute pointer-events-none bg-blue-400 opacity-70 z-0"
-                      style={{ height: '1px', left: '-1500px', right: '-1500px', top: '50%', transform: 'translateY(-50%)' }}
-                    />
-                    {Array.from({ length: Math.max(2, Math.floor(Math.hypot(drawCurrent.x - drawStart.x, drawCurrent.y - drawStart.y) / 24) + 1) }).map((_, sIdx) => (
-                      <div 
-                        key={sIdx}
-                        style={{ width: '22px', height: '22px' }}
-                        className="rounded-[4px] border border-slate-700 bg-white text-[9px] flex items-center justify-center font-medium text-slate-800 shadow-xs z-10"
-                      >
-                        {sIdx + 1}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
+               {activeTool === 'addRow' ? (
+    <div className="flex relative items-center justify-center" style={{ gap: '2px' }}>
+        {/* 👈 This extended guideline will now ONLY show live while drawing, and disappear completely when finished! */}
+        <div 
+            className="absolute pointer-events-none bg-blue-400 opacity-70 z-0"
+            style={{ height: '1px', left: '-1500px', right: '-1500px', top: '50%', transform: 'translateY(-50%)' }}
+        />
+        {Array.from({ length: Math.max(2, Math.floor(Math.hypot(drawCurrent.x - drawStart.x, drawCurrent.y - drawStart.y) / 24) + 1) }).map((_, sIdx) => (
+            <div 
+                key={sIdx}
+                style={{ width: '22px', height: '22px' }}
+                className="rounded-[4px] border border-slate-700 bg-white text-[9px] flex items-center justify-center font-medium text-slate-800 shadow-xs z-10"
+            >
+                {sIdx + 1}
+            </div>
+        ))}
+    </div>
+) : (
                   Array.from({ length: previewRows }).map((_, rIdx) => (
                     <div key={rIdx} className="flex" style={{ gap: '2px' }}>
                       {Array.from({ length: previewSeats }).map((_, sIdx) => (
@@ -1820,12 +1970,15 @@ const handlePropertyChange = (field, value) => {
               const isSelected = sec.id === selectedSectionId && isCurrentZone;
               const rotationAngle = sec.rotation || 0;
 
-              const rowCount = sec.rows;
-              const seatCount = sec.seatsPerRow;
-              const rowLabelsList = [];
-              for (let r = 0; r < rowCount; r++) {
-                rowLabelsList.push(getLabel(r, sec.rowNumberingType || 'capital', sec.rowStartingAt, sec.rowReversed, rowCount));
-              }
+             const rowCount = sec.rows;
+            const seatCount = sec.seatsPerRow;
+            const hiddenRows = sec.hiddenRows || [];
+            
+            const rowLabelsList = [];
+
+            for (let r = 0; r < rowCount; r++) {
+              rowLabelsList.push(getLabel(r, sec.rowNumberingType || 'capital', sec.rowStartingAt, sec.rowReversed, rowCount));
+            }
 
               return (
                 <div 
@@ -1850,135 +2003,178 @@ const handlePropertyChange = (field, value) => {
                     opacity: isCurrentZone ? 1 : 0.35, 
                     pointerEvents: viewMode === 'preview' ? 'auto' : (isCurrentZone || viewMode === 'creator' ? 'auto' : 'none')
                   }}
-                  className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : isCurrentZone ? 'cursor-move' : 'cursor-pointer'} ${
-                    isSelected && viewMode === 'creator' ? 'border border-dashed border-blue-500 z-30' : 'z-10'
-                  }`}
+                 // ✅ New code:
+className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : isCurrentZone ? 'cursor-move' : 'cursor-pointer'} ${
+    isSelected && viewMode === 'creator' && !selectedRowKey ? 'border border-dashed border-blue-500 z-30' : 'z-10'
+}`}
                   title={isCurrentZone ? 'Active Zone' : 'Inactive Zone - Click to activate'}
                 >
-                  {sec.rows === 1 && (
-                  <div 
-                    className="absolute pointer-events-none bg-blue-400 opacity-60 z-0"
-                    style={{
-                      height: '1px',
-                      left: '-30px',
-                      right: '-30px',
-                      top: '50%',
-                      transform: 'translateY(-50%)'
-                    }}
-                  />
-                )}
-                  {isSelected && viewMode === 'creator' && isCurrentZone && (
+               
+                {isSelected && viewMode === 'creator' && isCurrentZone && (
                     <>
-                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto">
-                        <div className="w-[1px] h-6 bg-blue-600"></div>
-                        <div 
-                          onMouseDown={(e) => handleRotateStart(e, sec)}
-                          title="Click and drag to bend or tilt rows"
-                          className="w-3.5 h-3.5 bg-blue-600 rounded-full border-2 border-white shadow cursor-grab active:cursor-grabbing"
-                        ></div>
-                      </div>
+                      {/* 1. Rotation Handle (stays fixed to parent block) */}
+                  <div 
+                    className="absolute -top-10 left-1/2 flex flex-col items-center pointer-events-auto"
+                    style={{ transform: 'translateX(-50%)' }}
+                  >
+                    <div className="w-[1px] h-6 bg-blue-600"></div>
+                    <div 
+                      onMouseDown={(e) => handleRotateStart(e, sec)}
+                      title="Click and drag to bend or tilt rows"
+                      className="w-3.5 h-3.5 bg-blue-600 rounded-full border-2 border-white shadow cursor-grab active:cursor-grabbing"
+                    ></div>
+                  </div>
 
-                      <div 
-                        onMouseDown={(e) => { e.stopPropagation(); setResizingBlockId(sec.id); }}
-                        title="Click and drag to expand box size and rows/columns"
-                        className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-600 border-2 border-white rounded-full cursor-cell flex items-center justify-center text-white text-[10px] font-bold shadow z-40"
-                      >
-                        +
-                      </div>
+                  {/* 2. Expand/Resize Handle (stays fixed to parent block) */}
+                  <div 
+                    onMouseDown={(e) => { e.stopPropagation(); setResizingBlockId(sec.id); }}
+                    title="Click and drag to expand box size and rows/columns"
+                    className="absolute -bottom-2 -right-2 w-4 h-4 bg-blue-600 border-2 border-white rounded-full cursor-cell flex items-center justify-center text-white text-[10px] font-bold shadow z-40"
+                  >
+                    +
+                  </div>
                     </>
                   )}
 
                   <div className="flex flex-col relative" style={{ gap: `${sec.rowSpacing || 2}px` }}>
-                    {rowLabelsList.map((rowLabel) => {
-                      const seatLabelsList = [];
-                      for (let s = 0; s < seatCount; s++) {
-                        seatLabelsList.push(getLabel(s, sec.seatNumberingType, sec.seatStartingAt, sec.seatReversed, seatCount));
-                      }
+                
+            {rowLabelsList.map((rowLabel) => {
+              const isRowHidden = hiddenRows.includes(rowLabel);
+              const seatLabelsList = [];
+              for (let s = 0; s < seatCount; s++) {
+                  seatLabelsList.push(getLabel(s, sec.seatNumberingType, sec.seatStartingAt, sec.seatReversed, seatCount));
+              }
 
-                      return (
-                        <div key={rowLabel} className="flex items-center justify-center relative" style={{ gap: `2px` }}>
-                          
-                          {sec.showRowNumbersLeft !== false && (
-                            <span 
-                              onMouseDown={(e) => isCurrentZone && handleRowMarkerMouseDown(e, sec.id, rowLabel)}
-                              title="Click and drag to move row anywhere"
-                              className={`text-[10px] font-medium w-4 text-right select-none ${isCurrentZone ? 'cursor-grab active:cursor-grabbing' : ''} z-10 ${selectedRowKey === rowLabel && isCurrentZone ? 'text-blue-600 font-bold underline' : 'text-slate-600'}`}
-                            >
-                              {rowLabel}
-                            </span>
-                          )}
+              const rowOffset = (sec.rowOffsets && sec.rowOffsets[rowLabel]) || { x: 0, y: 0 };
+              const isRowSelected = selectedRowKey === rowLabel && isSelected && !selectedSeatKey;
 
-                         <div className="flex z-10" style={{ gap: `${sec.seatSpacing || 2}px` }}>
-                            {seatLabelsList.map((seatNumLabel) => {
-                              const seatKey = `${rowLabel}-${seatNumLabel}`;
-                              const seatData = sec.seats[seatKey] || { status: 'available', category: sec.category || '', offsetX: 0, offsetY: 0 };
-                              const isSeatSelected = selectedSeatKey === seatKey && isSelected;
-                              
-                              let categoryColorBg = 'bg-white text-slate-800 border-slate-700';
-                              const cat = seatData.category !== undefined ? seatData.category : sec.category;
-                              const customCatObj = customCategories.find(c => c.name === cat);
-                              if (customCatObj) {
-                                categoryColorBg = 'text-white border-black/20';
-                              }
+              if (isRowHidden) {
+                  return <div key={rowLabel} style={{ height: `${sec.boxSize || 22}px`, marginBottom: `${sec.rowSpacing || 2}px` }} />;
+              }
 
-                              if (seatData.status === 'blocked') categoryColorBg = 'bg-slate-200 text-slate-400 border-slate-400';
-                              if (seatData.status === 'sold') categoryColorBg = 'bg-rose-500 text-white border-rose-600';
-                              if (seatData.status === 'wheelchair') categoryColorBg = 'bg-indigo-600 text-white border-indigo-700';
-                              if (isSeatSelected) categoryColorBg += ' ring-2 ring-blue-500';
+              return (
+                <div 
+                    key={rowLabel} 
+                    onMouseDown={(e) => {
+                        if (isCurrentZone && (activeTool === 'selectRow' || activeTool === 'select')) {
+                            handleRowMarkerMouseDown(e, sec.id, rowLabel);
+                        }
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRowKey(rowLabel);
+                        setSelectedSeatKey(null);
+                        setSelectedSectionId(sec.id);
+                        setSelectedShapeId(null);
+                    }}
+                    style={{ 
+                        gap: '8px',
+                        transform: `translate(${rowOffset.x}px, ${rowOffset.y}px)`,
+                        position: 'relative',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        // 👈 Move selection border directly into inline styles so it translates with the row
+                        border: isRowSelected ? '1px dashed #2563eb' : '1px solid transparent',
+                        backgroundColor: isRowSelected ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                        borderRadius: '4px',
+                        padding: '0px 4px'
+                    }} 
+                    className={`px-1 ${activeTool === 'selectRow' ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                >
+            
+            {/* Left Row Number Label */}
+            {sec.showRowNumbersLeft !== false && (
+                <span 
+                    title="Click and drag anywhere on this row to move it"
+                    className={`text-[10px] font-medium w-4 text-right select-none z-10 ${
+                        selectedRowKey === rowLabel && isCurrentZone ? 'text-blue-600 font-bold underline' : 'text-slate-600'
+                    }`}
+                >
+                    {rowLabel}
+                </span>
+            )}
 
-                              const boxSz = sec.boxSize || 22;
-                              const seatOffsetX = seatData.offsetX || 0;
-                              const seatOffsetY = seatData.offsetY || 0;
+            {/* Seats Container */}
+            <div className="flex z-10" style={{ gap: `${sec.seatSpacing || 2}px` }}>
+                {seatLabelsList.map((seatNumLabel) => {
+                    const seatKey = `${rowLabel}-${seatNumLabel}`;
+                    const seatData = sec.seats[seatKey];
+                   if (!seatData) {
+                    return <div key={seatKey} style={{ width: `${sec.boxSize || 22}px`, height: `${sec.boxSize || 22}px` }} />;
+                }
 
-                              const inlineStyle = {
-                                width: `${boxSz}px`, 
-                                height: `${boxSz}px`,
-                                borderRadius: `${sec.seatRadius ?? 4}px`,
-                                transform: `translate(${seatOffsetX}px, ${seatOffsetY}px)`
-                              };
-                              if (customCatObj && seatData.status === 'available' && !isSeatSelected) {
-                                if (customCatObj.color.includes('gradient')) {
-                                  inlineStyle.backgroundImage = customCatObj.color;
-                                } else {
-                                  inlineStyle.backgroundColor = customCatObj.color;
+                    const isSeatSelected = selectedSeatKey === seatKey && isSelected;
+                    
+                    let categoryColorBg = 'bg-white text-slate-800 border-slate-700';
+                    const cat = seatData.category !== undefined ? seatData.category : sec.category;
+                    const customCatObj = customCategories.find(c => c.name === cat);
+                    if (customCatObj) {
+                        categoryColorBg = 'text-white border-black/20';
+                    }
+
+                    if (seatData.status === 'blocked') categoryColorBg = 'bg-slate-200 text-slate-400 border-slate-400';
+                    if (seatData.status === 'sold') categoryColorBg = 'bg-rose-500 text-white border-rose-600';
+                    if (seatData.status === 'wheelchair') categoryColorBg = 'bg-indigo-600 text-white border-indigo-700';
+                    if (isSeatSelected) categoryColorBg += ' ring-2 ring-blue-500';
+
+                    const boxSz = sec.boxSize || 22;
+
+                    const inlineStyle = {
+                        width: `${boxSz}px`, 
+                        height: `${boxSz}px`,
+                        borderRadius: `${sec.seatRadius ?? 4}px`,
+                        position: 'relative',
+                        left: `${seatData.offsetX || 0}px`,
+                        top: `${seatData.offsetY || 0}px`
+                    };
+                    if (customCatObj && seatData.status === 'available') {
+                        if (customCatObj.color.includes('gradient')) {
+                            inlineStyle.backgroundImage = customCatObj.color;
+                        } else {
+                            inlineStyle.backgroundColor = customCatObj.color;
+                        }
+                    }
+
+                    return (
+                        <div 
+                            key={seatKey} 
+                            title={`Seat ${seatKey}`}
+                            onMouseDown={(e) => {
+                                if (activeTool === 'selectSeat') {
+                                    handleSeatMouseDown(e, sec.id, seatKey);
                                 }
-                              }
-
-                              return (
-                                <div 
-                                  key={seatKey} 
-                                  title={`Seat ${seatKey} - Zone: ${zones.find(z => z.id === sec.zoneId)?.name || 'Ground floor'}`}
-                                  onMouseDown={(e) => isCurrentZone && handleSeatMouseDown(e, sec.id, seatKey)}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (viewMode === 'preview') return;
-                                    if (!isCurrentZone) {
-                                      setActiveZoneId(sec.zoneId || 'zone-1');
-                                    } else if (activeTool === 'selectSeat') {
-                                      setSelectedSeatKey(seatKey);
-                                      setSelectedSectionId(sec.id);
-                                    } else if (activeTool === 'selectRow' || activeTool === 'select') {
-                                      return;
-                                    } else {
-                                      handleSeatClick(sec.id, seatKey, e);
-                                    }
-                                  }}
-                                  style={inlineStyle}
-                                  className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : 'hover:scale-110 cursor-pointer'} select-none border ${categoryColorBg}`}
-                                >
-                                  {seatData.status === 'wheelchair' ? '♿' : seatNumLabel}
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {sec.showRowNumbersRight !== false && (
-                            <span className="text-[10px] font-medium w-4 text-left select-none pl-1 z-10 text-slate-600">{rowLabel}</span>
-                          )}
-
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (viewMode === 'preview') return;
+                                if (!isCurrentZone) {
+                                    setActiveZoneId(sec.zoneId || 'zone-1');
+                                } else if (activeTool === 'selectSeat') {
+                                    setSelectedSeatKey(seatKey);
+                                    setSelectedSectionId(sec.id);
+                                } else if (activeTool === 'selectRow' || activeTool === 'select') {
+                                    setSelectedRowKey(rowLabel);
+                                    setSelectedSectionId(sec.id);
+                                    return;
+                                } 
+                            }}
+                            style={inlineStyle}
+                            className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : 'hover:scale-110 cursor-pointer'} select-none border ${categoryColorBg}`}
+                        >
+                            {seatData.status === 'wheelchair' ? '♿' : seatNumLabel}
                         </div>
-                      );
-                    })}
+                    );
+                })}
+            </div>
+
+            {/* Right Row Number Label */}
+            {sec.showRowNumbersRight !== false && (
+                <span className="text-[10px] font-medium w-4 text-left select-none pl-1 z-10 text-slate-600">{rowLabel}</span>
+            )}
+        </div>
+    );
+})}
                   </div>
                 </div>
               );
@@ -2035,59 +2231,131 @@ const handlePropertyChange = (field, value) => {
 
             <hr className="border-slate-200 my-3" />
 
-            {selectedSeatKey && activeSection ? (
-              <>
-                <div>
-                  <h3 className="font-extrabold text-slate-900 text-xs mb-2 uppercase tracking-wider">Selected Seat Properties</h3>
-                  <div className="space-y-3 text-xs">
-                    <div>
-                      <span className="font-bold text-blue-600">Seat Key: {selectedSeatKey}</span>
-                      <p className="text-slate-500 text-[11px] mt-1">Select tool "Select Seat" to click and drag this seat independently.</p>
-                    </div>
 
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="font-semibold text-slate-600">Seat Category Color</label>
-                        <button 
-                          onClick={() => setShowNewCategoryModal(true)}
-                          className="text-blue-600 font-bold text-xs hover:underline cursor-pointer"
-                        >
-                          + Add Custom Color
-                        </button>
-                      </div>
-                      <select 
-                        value={activeSection.seats[selectedSeatKey]?.category || activeSection.category || ''} 
-                        onChange={(e) => handlePropertyChange('category', e.target.value)}
-                        className="bg-white border border-slate-300 rounded px-2 py-1.5 w-full font-medium text-slate-800"
-                      >
-                        <option value="">⚪ Default (White)</option>
-                        {customCategories.map((cat, idx) => (
-                          <option key={idx} value={cat.name}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+{selectedSeatKey && activeSection ? (
+  <>
+    <div>
+      <h3 className="font-extrabold text-slate-900 text-xs mb-2 uppercase tracking-wider">Selected Seat Properties</h3>
+      <div className="space-y-3 text-xs">
+        <div>
+          <span className="font-bold text-blue-600">Seat Key: {selectedSeatKey}</span>
+          <p className="text-slate-500 text-[11px] mt-1">Select tool "Select Seat" to click and drag this seat independently.</p>
+        </div>
 
-                    <div className="flex space-x-2 pt-2">
-                      <button 
-                        onClick={handleDeleteSelected}
-                        className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold py-2 rounded text-xs transition cursor-pointer"
-                      >
-                        Delete Seat
-                      </button>
-                      <button 
-                        onClick={() => setSelectedSeatKey(null)}
-                        className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded text-xs transition cursor-pointer"
-                      >
-                        Deselect
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : activeSection ? (
-              <div className="space-y-3 text-xs">
+     <div>
+  <div className="flex justify-between items-center mb-1">
+    <label className="font-semibold text-slate-600">Seat Category Color</label>
+    <button 
+      onClick={() => {
+        setEditingCatIndex(null);
+        setNewCatNameInput('');
+        setNewCatColorInput('#8b5cf6');
+        setShowNewCategoryModal(true);
+      }}
+      className="text-blue-600 font-bold text-xs hover:underline cursor-pointer"
+    >
+      + Add Custom Color
+    </button>
+  </div>
+
+  {/* Full-Width Custom Dropdown for Individual Seats */}
+  <div className="relative w-full">
+    <div 
+      onClick={() => setIsOpenCategoryDropdown(!isOpenCategoryDropdown)}
+      className="bg-white border border-slate-300 rounded px-2.5 py-1.5 font-medium text-slate-800 w-full flex items-center justify-between cursor-pointer text-xs shadow-xs"
+    >
+      <div className="flex items-center space-x-2 truncate">
+        {activeSection.seats[selectedSeatKey]?.category ? (
+          <>
+            <span 
+              className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-300 shadow-xs" 
+              style={{ backgroundColor: customCategories.find(c => c.name === activeSection.seats[selectedSeatKey]?.category)?.color || '#ccc' }}
+            />
+            <span className="truncate">{activeSection.seats[selectedSeatKey]?.category}</span>
+          </>
+        ) : (
+          <>
+            <span className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 shadow-xs" />
+            <span className="text-slate-500 truncate">Default (White / Parent)</span>
+          </>
+        )}
+      </div>
+      <span className="text-slate-400 text-[10px]">▼</span>
+    </div>
+
+    {isOpenCategoryDropdown && (
+      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto w-full">
+        <div 
+          onClick={() => {
+            handlePropertyChange('category', '');
+            setIsOpenCategoryDropdown(false);
+          }}
+          className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-slate-100 cursor-pointer text-slate-700 text-xs"
+        >
+          <span className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 shadow-xs" />
+          <span>Default</span>
+        </div>
+
+        {customCategories.map((cat, idx) => (
+          <div 
+            key={idx}
+            className="flex items-center justify-between px-2.5 py-1.5 hover:bg-slate-100 text-slate-800 text-xs group"
+          >
+            {/* Click item to select category for this specific seat */}
+            <div 
+              onClick={() => {
+                handlePropertyChange('category', cat.name);
+                setIsOpenCategoryDropdown(false);
+              }}
+              className="flex items-center space-x-2 flex-1 cursor-pointer truncate"
+            >
+              <span 
+                className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-300 shadow-xs" 
+                style={{ backgroundColor: cat.color }}
+              />
+              <span className="font-medium truncate">{cat.name}</span>
+            </div>
+
+            {/* Edit & Delete Action Icons */}
+            <div className="flex items-center space-x-1 shrink-0">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingCatIndex(idx);
+                  setNewCatNameInput(cat.name);
+                  setNewCatColorInput(cat.color);
+                  setIsOpenCategoryDropdown(false);
+                  setShowNewCategoryModal(true);
+                }}
+                className="p-1 text-slate-400 hover:text-blue-600 rounded cursor-pointer"
+                title="Edit Category"
+              >
+                ✏️
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm(`Are you sure you want to delete the "${cat.name}" category?`)) {
+                    setCustomCategories(prev => prev.filter((_, i) => i !== idx));
+                  }
+                }}
+                className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                title="Delete Category"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</div>
+      </div>
+    </div>
+  </>
+) : activeSection ? (
+  <div className="space-y-3 text-xs">
                 
                 {/* ROW SPACING & SEAT SPACING */}
                 <div>
@@ -2329,30 +2597,115 @@ const handlePropertyChange = (field, value) => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 items-center pt-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-700">Category</span>
-                        <button 
-                          onClick={() => setShowNewCategoryModal(true)}
-                          className="w-4 h-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full flex items-center justify-center text-[10px] cursor-pointer"
-                          title="Add custom category color"
-                        >
-                          +
-                        </button>
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-700 font-medium">Category</span>
+                    <button 
+                      onClick={() => {
+                        setEditingCatIndex(null);
+                        setNewCatNameInput('');
+                        setNewCatColorInput('#8b5cf6');
+                        setShowNewCategoryModal(true);
+                      }}
+                      className="text-blue-600 font-bold hover:underline text-[11px] cursor-pointer"
+                    >
+                      + Add New
+                    </button>
+                  </div>
+                  
+                  {/* Full-Width Custom Dropdown */}
+                  <div className="relative w-full">
+                    <div 
+                      onClick={() => setIsOpenCategoryDropdown(!isOpenCategoryDropdown)}
+                      className="bg-white border border-slate-300 rounded px-2.5 py-1.5 font-medium text-slate-800 w-full flex items-center justify-between cursor-pointer text-xs shadow-xs"
+                    >
+                      <div className="flex items-center space-x-2 truncate">
+                        {activeSection.category ? (
+                          <>
+                            <span 
+                              className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-300 shadow-xs" 
+                              style={{ backgroundColor: customCategories.find(c => c.name === activeSection.category)?.color || '#ccc' }}
+                            />
+                            <span className="truncate">{activeSection.category}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 shadow-xs" />
+                            <span className="text-slate-500 truncate">Default</span>
+                          </>
+                        )}
                       </div>
-                      <select 
-                        value={activeSection.category || ''} 
-                        onChange={(e) => handlePropertyChange('category', e.target.value)}
-                        className="bg-white border border-slate-300 rounded px-2 py-1 font-medium text-slate-800 w-full"
-                      >
-                        <option value="">⚪ Default (White)</option>
-                        {customCategories.map((cat, idx) => (
-                          <option key={idx} value={cat.name}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
+                      <span className="text-slate-400 text-[10px]">▼</span>
                     </div>
+
+                    {isOpenCategoryDropdown && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto w-full">
+                        <div 
+                          onClick={() => {
+                            handlePropertyChange('category', '');
+                            setIsOpenCategoryDropdown(false);
+                          }}
+                          className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-slate-100 cursor-pointer text-slate-700 text-xs"
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 shadow-xs" />
+                          <span>Default</span>
+                        </div>
+
+                        {customCategories.map((cat, idx) => (
+                          <div 
+                            key={idx}
+                            className="flex items-center justify-between px-2.5 py-1.5 hover:bg-slate-100 text-slate-800 text-xs group"
+                          >
+                            {/* Click item to select category */}
+                            <div 
+                              onClick={() => {
+                                handlePropertyChange('category', cat.name);
+                                setIsOpenCategoryDropdown(false);
+                              }}
+                              className="flex items-center space-x-2 flex-1 cursor-pointer truncate"
+                            >
+                              <span 
+                                className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-300 shadow-xs" 
+                                style={{ backgroundColor: cat.color }}
+                              />
+                              <span className="font-medium truncate">{cat.name}</span>
+                            </div>
+
+                            {/* Edit & Delete Action Icons */}
+                            <div className="flex items-center space-x-1 shrink-0">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingCatIndex(idx);
+                                  setNewCatNameInput(cat.name);
+                                  setNewCatColorInput(cat.color);
+                                  setIsOpenCategoryDropdown(false);
+                                  setShowNewCategoryModal(true);
+                                }}
+                                className="p-1 text-slate-400 hover:text-blue-600 rounded cursor-pointer"
+                                title="Edit Category"
+                              >
+                                ✏️
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`Are you sure you want to delete the "${cat.name}" category?`)) {
+                                    setCustomCategories(prev => prev.filter((_, i) => i !== idx));
+                                  }
+                                }}
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                                title="Delete Category"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                   </div>
                 </div>
 
@@ -2505,31 +2858,51 @@ const handlePropertyChange = (field, value) => {
          <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
        </div>
 
-      <div className="flex items-center space-x-6 absolute left-1/2 -translate-x-1/2">
+<div className="flex items-center space-x-6 absolute left-1/2 -translate-x-1/2">
   {(() => {
+    // 1. Tally up seat counts per category and collect active category objects
     const activeColorsMap = new Map();
+    const categorySeatCounts = {};
+
     sections.forEach(sec => {
+      // Check section level category (if applied to entire section)
       const secCat = sec.category;
       if (secCat) {
         const foundCat = customCategories.find(c => c.name === secCat);
-        if (foundCat) activeColorsMap.set(foundCat.name, foundCat.color);
+        if (foundCat) activeColorsMap.set(foundCat.name, foundCat);
       }
+
+      // Check individual seat level categories
       Object.values(sec.seats || {}).forEach(st => {
-        const seatCat = st.category;
+        const seatCat = st.category !== undefined && st.category !== '' ? st.category : sec.category;
         if (seatCat) {
           const foundCat = customCategories.find(c => c.name === seatCat);
-          if (foundCat) activeColorsMap.set(foundCat.name, foundCat.color);
+          if (foundCat) {
+            activeColorsMap.set(foundCat.name, foundCat);
+            categorySeatCounts[foundCat.name] = (categorySeatCounts[foundCat.name] || 0) + 1;
+          }
         }
       });
     });
-    const activeColorEntries = Array.from(activeColorsMap.entries());
-    if (activeColorEntries.length === 0) return null;
-    return activeColorEntries.map(([name, color], idx) => {
-      const isGrad = color.includes('gradient');
+
+    const activeCatEntries = Array.from(activeColorsMap.values());
+    if (activeCatEntries.length === 0) return null;
+
+    return activeCatEntries.map((cat, idx) => {
+      const isGrad = cat.color.includes('gradient');
+      const seatCount = categorySeatCounts[cat.name] || 0;
+
       return (
         <div key={idx} className="flex items-center space-x-2">
-          <span className="w-4 h-5 rounded inline-block shadow-xs" style={isGrad ? { backgroundImage: color } : { backgroundColor: color }}></span>
-          <span className="text-slate-600 font-semibold text-xs">{name}</span>
+          <span 
+            className="w-4 h-4 rounded-full inline-block shadow-xs border border-slate-300 shrink-0" 
+            style={isGrad ? { backgroundImage: cat.color } : { backgroundColor: cat.color }}
+          />
+          <span className="text-slate-800 font-semibold text-xs">
+            {cat.name} 
+            {cat.price !== undefined && cat.price !== '' ? ` (₹${cat.price})` : ''} 
+            <span className="text-slate-600 font-normal ml-1">({seatCount} {seatCount === 1 ? 'seat' : 'seats'})</span>
+          </span>
         </div>
       );
     });
