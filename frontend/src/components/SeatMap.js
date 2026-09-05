@@ -1194,9 +1194,9 @@ const handlePropertyChange = (field, value) => {
             height: 100% !important;
             overflow: hidden !important;
           }
-          header, footer, .bg-slate-100, aside, .fixed, [class*="print:hidden"] {
-            display: none !important;
-          }
+        header, footer, .bg-slate-100, aside, .fixed, [class*="print:hidden"], [class*="canvasGridBg"] {
+          display: none !important;
+        }
             
           .printable-canvas-area {
             position: fixed !important;
@@ -1353,9 +1353,11 @@ const handlePropertyChange = (field, value) => {
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
             </svg>
           </button>
-         <div className="h-5 w-[1px] bg-slate-300"></div>
-        <button 
-          onClick={() => setShowGrid(!showGrid)} 
+         {viewMode === 'creator' && (
+           <>
+             <div className="h-5 w-[1px] bg-slate-300"></div>
+             <button 
+               onClick={() => setShowGrid(!showGrid)} 
           title={showGrid ? "Hide Grid" : "Show Grid"} 
           className={`p-1.5 rounded text-xs cursor-pointer flex items-center justify-center border border-transparent hover:border-slate-300 ${
             showGrid ? 'bg-slate-200 text-blue-700' : 'bg-transparent text-slate-700'
@@ -1382,6 +1384,8 @@ const handlePropertyChange = (field, value) => {
             </svg>
           )}
         </button>
+           </>
+         )}
         </div>
       </div>
   </header>
@@ -1754,7 +1758,7 @@ const handlePropertyChange = (field, value) => {
             transformOrigin: 'center center'
           }}
         >
-          {showGrid && <div className={canvasGridBg}></div>}
+          {showGrid && viewMode === 'creator' && <div className={canvasGridBg}></div>}
             
 
             {selectionBox && (
