@@ -727,12 +727,12 @@ const handleCanvasMouseDown = (e) => {
 
         if (activeTool === 'addVerticalLine') {
           shapeType = 'verticalLine';
-          initialWidth = 4;
+          initialWidth = 1;
           initialHeight = Math.max(60, Math.abs(delta_y));
         } else if (activeTool === 'addHorizontalLine') {
           shapeType = 'horizontalLine';
           initialWidth = Math.max(60, Math.abs(delta_x));
-          initialHeight = 4;
+          initialHeight = 1;
         } else if (activeTool === 'stage') {
           shapeType = 'stage';
           labelText = 'Stage / Screen';
@@ -804,7 +804,7 @@ const handleCanvasMouseDown = (e) => {
           x: (activeTool === 'addRow' ? drawStart.x : Math.min(drawStart.x, drawCurrent.x)) - 8,
           y: (activeTool === 'addRow' ? drawStart.y : Math.min(drawStart.y, drawCurrent.y)),
           rowSpacing: 2,
-          seatSpacing: 2,
+          seatSpacing: 4,
           rotation: initialRotation,
           showRowNumbersLeft: true,
           showRowNumbersRight: true,
@@ -1079,7 +1079,7 @@ if (draggingRowLetter && selectedSectionId) {
         let nextStatus = 'available';
         if (currentSeat.status === 'available') nextStatus = 'blocked';
         else if (currentSeat.status === 'blocked') nextStatus = 'wheelchair';
-        else if (currentSeat.status === 'wheelchair') nextStatus = 'sold';
+        // else if (currentSeat.status === 'wheelchair') nextStatus = 'sold';
         else nextStatus = 'available';
 
         return {
@@ -1108,7 +1108,8 @@ const handleAddShape = (type, defaultText, w, h) => {
       x: Math.max(10, (activePage.width / 2) - (w / 2) + ((count % 5) * 20)),
       y: Math.max(10, (activePage.height / 2) - (h / 2) + ((count % 5) * 20)),
       width: w,
-      height: h
+      height: h,
+      isEditing: type === 'text' && !defaultText
     };
     
     // Push to history correctly
@@ -1801,6 +1802,7 @@ const handlePropertyChange = (field, value) => {
     setSelectedShapeId(null);
     setSelectedSectionId(null);
     setSelectedSeatKey(null);
+    setSelectedRowKey(null);
   }}
 >
     <div 
@@ -1839,8 +1841,8 @@ const handlePropertyChange = (field, value) => {
                 style={{
                   left: `${drawStart.x < drawCurrent.x ? drawStart.x : drawCurrent.x}px`,
                   top: `${drawStart.y < drawCurrent.y ? drawStart.y : drawCurrent.y}px`,
-                  width: `${activeTool === 'addVerticalLine' ? 4 : Math.max(20, Math.abs(drawCurrent.x - drawStart.x))}px`,
-                  height: `${activeTool === 'addHorizontalLine' ? 4 : (activeTool === 'addSquare' || activeTool === 'addCircle' ? Math.max(20, Math.abs(drawCurrent.x - drawStart.x)) : Math.max(20, Math.abs(drawCurrent.y - drawStart.y)))}px`,
+                 width: `${activeTool === 'addVerticalLine' ? 1 : Math.max(20, Math.abs(drawCurrent.x - drawStart.x))}px`,
+                height: `${activeTool === 'addHorizontalLine' ? 1 : (activeTool === 'addSquare' || activeTool === 'addCircle' ? Math.max(20, Math.abs(drawCurrent.x - drawStart.x)) : Math.max(20, Math.abs(drawCurrent.y - drawStart.y)))}px`,
                   backgroundColor: activeTool === 'stage' ? '#e2e8f0' : 'transparent', 
                   borderColor: '#000000',    
                   borderWidth: '1px',        
@@ -1918,7 +1920,10 @@ const handlePropertyChange = (field, value) => {
                     setSelectedShapeId(sh.id); 
                     setSelectedSectionId(null); 
                     setSelectedSeatKey(null); 
-                    // Automatically activate inline editing if it's a text shape
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if (viewMode === 'preview') return;
                     if (sh.type === 'text') {
                       setShapes(shapes.map(s => s.id === sh.id ? { ...s, isEditing: true } : s));
                     }
@@ -2130,8 +2135,16 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                     onClick={(e) => {
                         e.stopPropagation();
                         if (viewMode === 'preview') return;
-                        setSelectedRowKey(rowLabel);
-                        setSelectedSeatKey(null);
+                        
+                        // 👈 Only select a single row if the Select Row tool is active!
+                        if (activeTool === 'selectRow' || activeTool === 'select') {
+                            setSelectedRowKey(rowLabel);
+                            setSelectedSeatKey(null);
+                        } else {
+                            // Otherwise, clear row selection and select the whole section block
+                            setSelectedRowKey(null);
+                        }
+                        
                         setSelectedSectionId(sec.id);
                         setSelectedShapeId(null);
                     }}
@@ -2178,7 +2191,7 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                     const cat = seatData.category !== undefined ? seatData.category : sec.category;
                     const customCatObj = customCategories.find(c => c.name === cat);
                     if (customCatObj) {
-                        categoryColorBg = 'text-white border-black/20';
+                        categoryColorBg = 'text-slate-800 border-black/20';
                     }
 
                     if (seatData.status === 'blocked') categoryColorBg = 'bg-slate-200 text-slate-400 border-slate-400';
@@ -2194,15 +2207,18 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                         borderRadius: `${sec.seatRadius ?? 4}px`,
                         position: 'relative',
                         left: `${seatData.offsetX || 0}px`,
-                        top: `${seatData.offsetY || 0}px`
+                        top: `${seatData.offsetY || 0}px`,
+                        fontSize: '11px',
                     };
-                    if (customCatObj && seatData.status === 'available') {
-                        if (customCatObj.color.includes('gradient')) {
-                            inlineStyle.backgroundImage = customCatObj.color;
-                        } else {
-                            inlineStyle.backgroundColor = customCatObj.color;
-                        }
-                    }
+                   if (seatData.status === 'wheelchair') {
+                  inlineStyle.backgroundColor = '#003F87';
+                  
+                  } else if (customCatObj && seatData.status === 'available') {
+                      // Apply color as an outline border instead of filling the background
+                      inlineStyle.borderColor = customCatObj.color;
+                      inlineStyle.borderWidth = '2px';
+                      inlineStyle.backgroundColor = '#ffffff'; // Keeps the inside clean and white
+                  }
 
                     return (
                         <div 
@@ -2231,9 +2247,17 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                           
                             }}
                             style={inlineStyle}
-                            className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : 'hover:scale-110 cursor-pointer'} select-none border ${categoryColorBg}`}
+                            className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : seatData.status === 'wheelchair' ? 'cursor-pointer' : 'hover:scale-110 cursor-pointer'} select-none border ${categoryColorBg}`}
                         >
-                            {seatData.status === 'wheelchair' ? '♿' : seatNumLabel}
+                          {seatData.status === 'wheelchair' ? (
+                          <img 
+                            src={require('../assets/wheelchair.jpg')} 
+                            alt="Wheelchair" 
+                            className="w-full h-full object-cover rounded-[inherit] brightness-200 contrast-200" 
+                          />
+                      ) : (
+                          seatNumLabel
+                      )}
                         </div>
                     );
                 })}
@@ -2887,32 +2911,44 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
            </span>
            <span className="text-[11px] text-slate-500 font-medium">Available</span>
          </div>
-         <div className="flex flex-col items-center">
+         {/* <div className="flex flex-col items-center">
            <span className="font-extrabold text-slate-900 text-base">
              {sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'sold' || st.status === 'blocked').length, 0)}
            </span>
            <span className="text-[11px] text-slate-500 font-medium">Reserved</span>
-         </div>
+         </div> */}
 
          <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
        </div>
 
-<div className="flex items-center space-x-6 absolute left-1/2 -translate-x-1/2">
+<div className="flex items-center space-x-3 absolute left-1/2 -translate-x-1/2">
   {(() => {
-    // 1. Tally up seat counts per category and collect active category objects
     const activeColorsMap = new Map();
     const categorySeatCounts = {};
+    let reservedCount = 0;
+    const reservedSeatLabels = [];
 
     sections.forEach(sec => {
-      // Check section level category (if applied to entire section)
       const secCat = sec.category;
       if (secCat) {
         const foundCat = customCategories.find(c => c.name === secCat);
         if (foundCat) activeColorsMap.set(foundCat.name, foundCat);
       }
 
-      // Check individual seat level categories
-      Object.values(sec.seats || {}).forEach(st => {
+Object.entries(sec.seats || {}).forEach(([seatKey, st]) => {
+        // 1. Only 'blocked' or 'sold' count towards the Reserved footer tally
+        if (st.status === 'blocked' || st.status === 'sold') {
+          reservedCount++;
+          reservedSeatLabels.push(seatKey);
+          return;
+        }
+
+        // 2. Wheelchair seats are excluded from category/VIP totals, but DO NOT count as Reserved
+        if (st.status === 'wheelchair') {
+          return;
+        }
+
+        // 3. Regular category counting for available seats
         const seatCat = st.category !== undefined && st.category !== '' ? st.category : sec.category;
         if (seatCat) {
           const foundCat = customCategories.find(c => c.name === seatCat);
@@ -2925,26 +2961,39 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
     });
 
     const activeCatEntries = Array.from(activeColorsMap.values());
-    if (activeCatEntries.length === 0) return null;
+    if (activeCatEntries.length === 0 && reservedCount === 0) return null;
 
-    return activeCatEntries.map((cat, idx) => {
-      const isGrad = cat.color.includes('gradient');
-      const seatCount = categorySeatCounts[cat.name] || 0;
-
-      return (
-        <div key={idx} className="flex items-center space-x-2">
-          <span 
-            className="w-4 h-4 rounded-full inline-block shadow-xs border border-slate-300 shrink-0" 
-            style={isGrad ? { backgroundImage: cat.color } : { backgroundColor: cat.color }}
-          />
-          <span className="text-slate-800 font-semibold text-xs">
-            {cat.name} 
-            {cat.price !== undefined && cat.price !== '' ? ` (₹${cat.price})` : ''} 
-            <span className="text-slate-600 font-normal ml-1">({seatCount} {seatCount === 1 ? 'seat' : 'seats'})</span>
+    return (
+      <div className="flex items-center space-x-6">
+        {reservedCount > 0 && (
+          <div className="flex items-center space-x-2">
+            <span className="w-4 h-4 rounded-full inline-block shadow-xs border border-slate-300 bg-slate-200 shrink-0" />
+           <span className="text-slate-800 font-semibold text-xs">
+            Reserved <span className="text-slate-600 font-normal ml-1">({reservedCount} {reservedCount === 1 ? 'seat' : 'seats'})</span>
           </span>
-        </div>
-      );
-    });
+          </div>
+        )}
+
+        {activeCatEntries.map((cat, idx) => {
+          const isGrad = cat.color.includes('gradient');
+          const seatCount = categorySeatCounts[cat.name] || 0;
+
+          return (
+            <div key={idx} className="flex items-center space-x-2">
+              <span 
+                className="w-4 h-4 rounded-full inline-block shadow-xs border border-slate-300 shrink-0" 
+                style={isGrad ? { backgroundImage: cat.color } : { backgroundColor: cat.color }}
+              />
+              <span className="text-slate-800 font-semibold text-xs">
+                {cat.name} 
+                {cat.price !== undefined && cat.price !== '' ? ` (₹${cat.price})` : ''} 
+                <span className="text-slate-600 font-normal ml-1">({seatCount} {seatCount === 1 ? 'seat' : 'seats'})</span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
   })()}
 </div>
       {viewMode === 'creator' && (
