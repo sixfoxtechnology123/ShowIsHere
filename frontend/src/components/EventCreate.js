@@ -1,496 +1,649 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Logo from '../assets/Logo.jpeg';
 import {
   mainContainer,
-  primaryButton,
-  inputFieldStyle
+  inputFieldStyle,
+  accountHeaderInner,
+  accountLogoContainer,
+  accountLogoImg,
+  accountBrandText,
+  accountStepsBar,
+  accountStepItemActive,
+  accountStepItemInactive,
+  accountStepBadgeActive,
+  accountStepBadgeInactive,
+  accountUserIconBox,
+  accountMainContainer,
+  accountTitleSection,
+  accountMainTitle,
+  accountMainSubTitle,
+  accountFormCard,
+  accountSectionHeading,
+  accountThreeColGrid,
+  accountLabelStyle,
+  accountRadioGroup,
+  accountRadioLabel,
+  accountCheckboxWrapper,
+  accountNoticeBox,
+  accountFooterInner,
+  accountSecondaryBtn,
+  accountPrimaryBtn,
+  accountUploadStepWrapper,
+  accountUploadGrid,
+  accountUploadContainer,
+  accountUploadIconBox,
+  accountUploadBtn,
+  accountUploadOrText,
+  accountUploadSubtext,
+  accountPreviewBox,
+  accountPreviewList,
+  accountPreviewListItem,
+  accountPreviewBullet,
+  accountPreviewFooter,
+  accountSampleCardWrapper,
+  accountSampleCardTitle,
+  accountSampleCardBox,
+  gstModalOverlay,
+  gstModalCard,
+  gstModalHeader,
+  gstModalTitle,
+  gstModalBody,
+  gstModalFooter,
+  gstModalProceedBtn,
+  gstModalCancelBtn,
+  gstModalBrandRight,
+  gstModalLogo
 } from '../styles/MasterCSSClass';
 
 const EventCreate = () => {
-  // Navigation Flow: 'landing' (Get Started) -> 'auth' (Login Page) -> 'wizard' (Form Details)
-  const [currentView, setIcurrentView] = useState('landing');
-  const [activeStep, setActiveStep] = useState(1);
+const [activeStep, setActiveStep] = useState(1);
+const [isStateOpen, setIsStateOpen] = useState(false);
+const [searchTerm, setSearchTerm] = useState('');
+const dropdownRef = useRef(null);
+const [uploadedDoc, setUploadedDoc] = useState(null);
+const [docPreview, setDocPreview] = useState(null);
+const [fileType, setFileType] = useState('');
+const [isGstModalOpen, setIsGstModalOpen] = useState(false);
+const [modalCheckboxChecked, setModalCheckboxChecked] = useState(false);
+const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
 
-  // Auth / Login states
-  const [loginInput, setLoginInput] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpInput, setOtpInput] = useState('');
+const handleOpenGstModal = () => {
+    // Open modal only if the checkbox is not already checked
+    if (!formData.gstDeclaration) {
+      setModalCheckboxChecked(false);
+      setHasScrolledToBottom(false); // Reset scroll status every time it opens
+      setIsGstModalOpen(true);
+    }
+  };
+const handleModalScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    // Check if scrolled within 5 pixels of the bottom
+    if (scrollHeight - scrollTop <= clientHeight + 5) {
+      setHasScrolledToBottom(true);
+    }
+  };
 
-  // IFSC Auto-fetch loading state
-  const [isFetchingIfsc, setIsFetchingIfsc] = useState(false);
+  const handleConfirmGstModal = () => {
+    setFormData({ ...formData, gstDeclaration: true });
+    setIsGstModalOpen(false);
+  };
 
-  // Form Data State
+const handleDocumentUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadedDoc(file.name);
+      setDocPreview(URL.createObjectURL(file));
+      setFileType(file.type); // Save file type (e.g., 'application/pdf' or 'image/jpeg')
+      toast.success('Document uploaded successfully!');
+    }
+  };
+
+  // Lock background scroll when GST modal is open
+  useEffect(() => {
+    if (isGstModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isGstModalOpen]);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsStateOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Form Data State initialized completely blank by default
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    contactNumber: '',
+    orgName: '',
+    orgAddress: '',
+    panLinkedAadhaar: '',
     panNumber: '',
-    gstinNumber: '',
-    accountHolderName: '',
+    gstDeclaration: false,
+    state: '',
+    contactFullName: '',
+    contactEmail: '',
+    contactMobile: '',
     accountNumber: '',
-    confirmAccountNumber: '',
     bankIfsc: '',
-    bankName: '',
-    branchName: '',
-    bankAddress: ''
+    bankName: ''
   });
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  // Trigger Dummy OTP Send
-  const handleSendOtp = () => {
-    if (!loginInput || loginInput.trim().length < 5) {
-      toast.error('Please enter a valid mobile number or email ID');
-      return;
-    }
-    setOtpSent(true);
-    setFormData(prev => ({ ...prev, contactNumber: loginInput }));
-    toast.success('Dummy OTP sent: Use any 4 digits (e.g. 1234)');
-  };
-
-  // Verify Dummy OTP & Proceed to Form
-  const handleVerifyOtp = () => {
-    if (!otpInput || otpInput.length < 4) {
-      toast.error('Please enter a valid 4-digit OTP');
-      return;
-    }
-    toast.success('Logged in successfully!');
-    setIcurrentView('wizard'); 
-  };
-
-  // Auto-fetch Bank Details using native fetch
-  const handleFetchIfscDetails = async () => {
-    const ifsc = formData.bankIfsc.trim().toUpperCase();
-    if (!ifsc || ifsc.length < 11) {
-      toast.error('Please enter a valid 11-character IFSC code');
-      return;
-    }
-
-    setIsFetchingIfsc(true);
-    try {
-      const res = await fetch(`https://ifsc.razorpay.com/${ifsc}`);
-      if (!res.ok) throw new Error('Invalid IFSC');
-      const data = await res.json();
-      
-      setFormData((prev) => ({
-        ...prev,
-        bankName: data.BANK || '',
-        branchName: data.BRANCH || '',
-        bankAddress: data.ADDRESS || ''
-      }));
-      toast.success('Bank details fetched successfully!');
-    } catch (error) {
-      toast.error('Invalid IFSC code or network error. Please check and try again.');
-    } finally {
-      setIsFetchingIfsc(false);
-    }
+    const { name, value, type, checked } = e.target;
+    
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
   };
 
   const steps = [
     { id: 1, label: 'Create profile' },
-    { id: 2, label: 'PAN details' },
-    { id: 3, label: 'GST details' },
-    { id: 4, label: 'Bank details' },
-    { id: 5, label: 'Agreement' }
+    { id: 2, label: 'Upload document' },
+    { id: 3, label: 'Sign Agreement' }
   ];
+
+  const handleSaveDetails = () => {
+    toast.success('Account details saved successfully!');
+  };
+
+  const handleProceed = () => {
+    if (activeStep < 3) {
+      setActiveStep(activeStep + 1);
+    } else {
+      toast.success('Registration completed successfully!');
+    }
+  };
 
   return (
     <div className={mainContainer}>
-      {/* 1. FIRST: GET STARTED LANDING PAGE (Matched to Logo Blue Color Theme) */}
-      {currentView === 'landing' && (
-        <div className="min-h-screen bg-[#071126] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/30 via-[#071126] to-[#071126] pointer-events-none"></div>
-          
-          <div className="max-w-3xl mx-auto text-center z-10 space-y-6">
-            <div className="flex justify-center mb-2">
-              <img src={Logo} alt="Logo" className="w-16 h-16 object-cover rounded-2xl border-2 border-blue-500 shadow-xl" />
-            </div>
-            
-            <div className="inline-block px-4 py-1.5 rounded-full bg-blue-950/80 border border-blue-500/30 text-blue-300 text-xs font-bold tracking-wider shadow-inner">
-              Elevate your Events to new heights
-            </div>
-            
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight">
-              List all your <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">"Going-Out"</span> events with us
-            </h1>
-            
-            <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-medium">
-              Maximise your event’s reach by listing it on our platform, where millions discover and book exciting events every day.
-            </p>
+      {/* Header aligned strictly to the same width container bounds */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs w-full">
+        <div className={accountHeaderInner}>
+          <div className={accountLogoContainer}>
+            <img src={Logo} alt="Logo" className={accountLogoImg} />
+            <span className={accountBrandText}>let's do it</span>
+          </div>
 
-            <div className="pt-4 flex justify-center items-center space-x-4">
-              <button
-                onClick={() => setIcurrentView('auth')}
-                className="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition transform hover:-translate-y-0.5 cursor-pointer text-sm"
-              >
-                Get Started
-              </button>
-            </div>
+          <div className={accountStepsBar}>
+            {steps.map((step) => {
+              const isActive = activeStep === step.id;
+              const isCompleted = activeStep > step.id;
+              return (
+                <div
+                  key={step.id}
+                  onClick={() => setActiveStep(step.id)}
+                  className={isActive ? accountStepItemActive : accountStepItemInactive}
+                >
+                  <span className={isActive ? accountStepBadgeActive : accountStepBadgeInactive}>
+                    {isCompleted ? '✓' : `0${step.id}`}
+                  </span>
+                  <span>{step.label}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={accountUserIconBox}>
+            <span>👤</span>
           </div>
         </div>
-      )}
+      </header>
 
-      {/* 2. SECOND: LOGIN PAGE (Phone Number / Email ID verification) */}
-      {currentView === 'auth' && (
-        <div className="min-h-screen bg-white flex flex-col lg:flex-row">
-          <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center bg-slate-50 border-r border-slate-200">
-            <div className="flex items-center space-x-3 mb-6">
-              <img src={Logo} alt="Logo" className="w-10 h-10 object-cover rounded-xl border border-slate-200" />
-              <span className="text-xl font-black tracking-tight text-slate-900">Event Portal</span>
-            </div>
-            <h1 className="text-3xl lg:text-4xl font-black mb-6 text-slate-900 leading-tight">
-              Benefits of using our new event management tool
-            </h1>
-            <div className="space-y-6">
-              <div className="flex items-start space-x-4">
-                <div className="p-3 bg-blue-50 rounded-xl text-blue-600 font-bold text-lg">⚡</div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Take your events live superfast!</h3>
-                  <p className="text-slate-600 text-xs">Publish your event within just 15 minutes! Add event details, tickets and BAM! Ready.</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-4">
-                <div className="p-3 bg-blue-50 rounded-xl text-blue-600 font-bold text-lg">📊</div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Monitor analytics & insights</h3>
-                  <p className="text-slate-600 text-xs">Track event sales, daily ticketing, and get insights in real-time.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Main Account Setup Content Area */}
+      <main className={accountMainContainer}>
+        <div className={accountTitleSection}>
+          <h1 className={accountMainTitle}>Account Setup</h1>
+          <p className={accountMainSubTitle}>
+            Please fill in the below details so that we can setup an account for your organisation in our system and give you access to the Do-It-Yourself portal for listing your event.
+          </p>
+        </div>
 
-          <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center">
-            <div className="w-full max-w-md bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900 mb-2">Sign in to continue</h2>
-              <p className="text-xs text-slate-500 mb-6">Enter your mobile number or email ID to log in.</p>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-                    Mobile no. / Email ID
-                  </label>
-                  <input
-                    type="text"
-                    disabled={otpSent}
-                    placeholder="Enter mobile no or email"
-                    value={loginInput}
-                    onChange={(e) => setLoginInput(e.target.value)}
-                    className={inputFieldStyle}
-                  />
-                </div>
-
-                {!otpSent ? (
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    className={primaryButton + " bg-blue-600 hover:bg-blue-700"}
-                  >
-                    Send OTP / Continue
-                  </button>
-                ) : (
-                  <div className="space-y-3 pt-2">
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      Enter 4-digit OTP (e.g., 1234)
-                    </label>
+        <div className={accountFormCard}>
+          {activeStep === 1 && (
+            <div className="space-y-4">
+              {/* 1. Organisation Details */}
+              <div>
+                <h3 className={accountSectionHeading}>Organisation Details</h3>
+                
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <label className={accountLabelStyle}>Organisation/Individual Name</label>
                     <input
                       type="text"
-                      maxLength="4"
-                      placeholder="Enter OTP"
-                      value={otpInput}
-                      onChange={(e) => setOtpInput(e.target.value)}
+                      name="orgName"
+                      placeholder="Enter organisation or individual name"
+                      value={formData.orgName}
+                      onChange={handleInputChange}
                       className={inputFieldStyle}
                     />
-                    <button
-                      type="button"
-                      onClick={handleVerifyOtp}
-                      className={primaryButton + " bg-emerald-600 hover:bg-emerald-700"}
-                    >
-                      Verify & Login
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. THIRD: FORM DETAILS PAGE (Multi-step Wizard) */}
-      {currentView === 'wizard' && (
-        <div className="min-h-screen bg-[#f8f9fc] flex flex-col lg:flex-row">
-          <div className="w-full lg:w-72 bg-white border-r border-slate-200 p-8 flex flex-col justify-between shrink-0 shadow-xs">
-            <div>
-              <div className="flex items-center space-x-3 mb-10">
-                <img src={Logo} alt="Logo" className="w-9 h-9 object-cover rounded-xl border border-slate-200" />
-                <span className="font-extrabold text-slate-900 tracking-tight text-sm">Event Portal</span>
-              </div>
-
-              <div className="space-y-2 relative">
-                {steps.map((step) => {
-                  const isActive = activeStep === step.id;
-                  const isCompleted = activeStep > step.id;
-                  return (
-                    <div
-                      key={step.id}
-                      onClick={() => setActiveStep(step.id)}
-                      className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition font-bold text-xs ${
-                        isActive 
-                          ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 shadow-2xs' 
-                          : isCompleted 
-                          ? 'text-slate-700 hover:bg-slate-50' 
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] ${
-                        isActive ? 'bg-blue-600 text-white' : isCompleted ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {isCompleted ? '✓' : `0${step.id}`}
-                      </span>
-                      <span>{step.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-6 border-t border-slate-100 text-[11px] text-slate-400">
-              Logged in as: <span className="text-slate-700 font-semibold">{formData.contactNumber}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 p-8 lg:p-16 flex flex-col justify-between max-w-4xl">
-            <div className="bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-slate-200/80">
-              {activeStep === 1 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Create your user profile</h2>
-                    <p className="text-xs text-slate-500 font-medium">Verify your primary profile credentials.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">First name</label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Rahul"
-                        className={inputFieldStyle}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Last name</label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        placeholder="e.g. Sharma"
-                        className={inputFieldStyle}
-                      />
-                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Verified Contact Number / Email ID</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={formData.contactNumber}
-                      className={inputFieldStyle + " bg-slate-100 text-slate-600"}
+                    <label className={accountLabelStyle}>Organisation/Individual Address</label>
+                    <textarea
+                      name="orgAddress"
+                      rows="2"
+                      placeholder="Enter address"
+                      value={formData.orgAddress}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle + " resize-none"}
                     />
                   </div>
-                </div>
-              )}
 
-              {activeStep === 2 && (
-                <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">PAN details</h2>
-                    <p className="text-xs text-slate-500 font-medium">Provide your organization or individual PAN for tax deduction compliance.</p>
+                    <label className={accountLabelStyle}>
+                      If you are an Individual PAN holder, please specify whether your PAN is linked with Aadhaar?
+                    </label>
+                    <div className={accountRadioGroup}>
+                      {['Yes', 'No', 'NA'].map((option) => (
+                        <label key={option} className={accountRadioLabel}>
+                          <input
+                            type="radio"
+                            name="panLinkedAadhaar"
+                            value={option}
+                            checked={formData.panLinkedAadhaar === option}
+                            onChange={handleInputChange}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                          <span>{option}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">PAN Card Number</label>
+                    <label className={accountLabelStyle}>Organisation/Individual PAN card number</label>
                     <input
                       type="text"
                       name="panNumber"
+                      placeholder="e.g. ABCDE1234F"
                       value={formData.panNumber}
                       onChange={handleInputChange}
-                      placeholder="e.g. ABCDE1234F"
                       className={inputFieldStyle}
                     />
-                  </div>
-                </div>
-              )}
-
-              {activeStep === 3 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">GST details</h2>
-                    <p className="text-xs text-slate-500 font-medium">Enter your GSTIN if applicable for ticket sales tax invoicing.</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN Number</label>
-                    <input
-                      type="text"
-                      name="gstinNumber"
-                      value={formData.gstinNumber}
-                      onChange={handleInputChange}
-                      placeholder="e.g. 27AAAAA0000A1Z5"
-                      className={inputFieldStyle}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeStep === 4 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Bank details</h2>
-                    <p className="text-xs text-slate-500 font-medium">Enter account holder name, IFSC code to auto-fetch bank details, and confirm account number.</p>
+                    <p className="text-[11px] text-slate-400 mt-1">PAN will be used to retrieve GSTINs (if available).</p>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Account Holder Name (As per Bank Records)</label>
-                    <input
-                      type="text"
-                      name="accountHolderName"
-                      value={formData.accountHolderName}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Rahul Sharma"
-                      className={inputFieldStyle}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Bank IFSC Code</label>
-                      <div className="flex space-x-2">
-                        <input
-                          type="text"
-                          name="bankIfsc"
-                          value={formData.bankIfsc}
-                          onChange={handleInputChange}
-                          placeholder="e.g. HDFC0001234"
-                          className={inputFieldStyle}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleFetchIfscDetails}
-                          disabled={isFetchingIfsc}
-                          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
+                 <div>
+                    <label className={accountLabelStyle}>GST Declaration</label>
+                    <p className="text-xs text-slate-500 mb-2">As no GSTs found for the PAN number provided, please accept the GST declaration undertaking.</p>
+                    <label className={accountCheckboxWrapper}>
+                      <input
+                        type="checkbox"
+                        name="gstDeclaration"
+                        checked={formData.gstDeclaration}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            handleOpenGstModal();
+                          } else {
+                            setFormData({ ...formData, gstDeclaration: false });
+                          }
+                        }}
+                        className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                      />
+                      <span className="text-xs font-medium text-slate-700">
+                        I have read and accept the{' '}
+                        <span 
+                          onClick={handleOpenGstModal}
+                          className="text-blue-600 underline cursor-pointer font-bold"
                         >
-                          {isFetchingIfsc ? 'Fetching...' : 'Fetch Details'}
-                        </button>
+                          GST Declaration undertaking
+                        </span>.
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className={accountNoticeBox}>
+                    ** Please Note: If your business's annual revenue exceeds ₹20 lakhs, you are required to provide your GSTIN details.
+                  </div>
+
+          <div className="relative max-w-xs" ref={dropdownRef}>
+                <label className={accountLabelStyle}>State</label>
+                <input
+                  type="text"
+                  placeholder="Select or search state..."
+                  value={formData.state}
+                  onChange={(e) => {
+                    setFormData({ ...formData, state: e.target.value });
+                    setIsStateOpen(true);
+                  }}
+                  onClick={() => setIsStateOpen(true)}
+                  className={inputFieldStyle}
+                />
+
+                {isStateOpen && (
+                  <div className="absolute left-0 top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
+                    <div
+                      onClick={() => {
+                        setFormData({ ...formData, state: '' });
+                        setIsStateOpen(false);
+                      }}
+                      className="px-3 py-2 text-xs font-medium text-slate-400 hover:bg-slate-50 cursor-pointer border-b border-slate-100"
+                    >
+                      Select State
+                    </div>
+                    {(() => {
+                      const filteredStates = [
+                        "Andaman and Nicobar Islands",
+                        "Andhra Pradesh",
+                        "Arunachal Pradesh",
+                        "Assam",
+                        "Bihar",
+                        "Chandigarh",
+                        "Chhattisgarh",
+                        "Dadra and Nagar Haveli and Daman and Diu",
+                        "Delhi",
+                        "Goa",
+                        "Gujarat",
+                        "Haryana",
+                        "Himachal Pradesh",
+                        "Jammu and Kashmir",
+                        "Jharkhand",
+                        "Karnataka",
+                        "Kerala",
+                        "Ladakh",
+                        "Lakshadweep",
+                        "Madhya Pradesh",
+                        "Maharashtra",
+                        "Manipur",
+                        "Meghalaya",
+                        "Mizoram",
+                        "Nagaland",
+                        "Odisha",
+                        "Puducherry",
+                        "Punjab",
+                        "Rajasthan",
+                        "Sikkim",
+                        "Tamil Nadu",
+                        "Telangana",
+                        "Tripura",
+                        "Uttar Pradesh",
+                        "Uttarakhand",
+                        "West Bengal"
+                      ].filter((st) => st.toLowerCase().includes((formData.state || '').toLowerCase()));
+
+                      if (filteredStates.length === 0) {
+                        return (
+                          <div className="px-3 py-3 text-xs text-slate-400 text-center font-medium">
+                            No state found
+                          </div>
+                        );
+                      }
+
+                      return filteredStates.map((st) => (
+                        <div
+                          key={st}
+                          onClick={() => {
+                            setFormData({ ...formData, state: st });
+                            setIsStateOpen(false);
+                          }}
+                          className="px-3 py-2 text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition"
+                        >
+                          {st}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </div>
+                </div>
+              </div>
+
+              {/* 2. Contact Person Details */}
+              <div className="pt-4 border-t border-slate-100">
+                <h3 className={accountSectionHeading}>Contact Person Details</h3>
+                <div className={accountThreeColGrid + " pt-4"}>
+                  <div>
+                    <label className={accountLabelStyle}>Full Name</label>
+                    <input
+                      type="text"
+                      name="contactFullName"
+                      placeholder="Enter full name"
+                      value={formData.contactFullName}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className={accountLabelStyle}>Email address</label>
+                    <input
+                      type="email"
+                      name="contactEmail"
+                      placeholder="Enter email address"
+                      value={formData.contactEmail}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className={accountLabelStyle}>Mobile Number</label>
+                    <input
+                      type="text"
+                      name="contactMobile"
+                      placeholder="Enter mobile number"
+                      value={formData.contactMobile}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Bank Details */}
+              <div className="pt-4 border-t border-slate-100">
+                <h3 className={accountSectionHeading}>Bank details</h3>
+                <div className={accountThreeColGrid + " pt-4"}>
+                  <div>
+                    <label className={accountLabelStyle}>Account Number</label>
+                    <input
+                      type="text"
+                      name="accountNumber"
+                      placeholder="Enter account number"
+                      value={formData.accountNumber}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className={accountLabelStyle}>Bank IFSC</label>
+                    <input
+                      type="text"
+                      name="bankIfsc"
+                      placeholder="Enter IFSC code"
+                      value={formData.bankIfsc}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className={accountLabelStyle}>Bank Name</label>
+                    <input
+                      type="text"
+                      name="bankName"
+                      placeholder="Enter bank name"
+                      value={formData.bankName}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+       {activeStep === 2 && (
+  <div className={accountUploadStepWrapper}>
+    <h3 className={accountSectionHeading}>
+      Upload PAN card {formData.panNumber ? `(${formData.panNumber})` : ''}
+    </h3>
+
+    <div className={accountUploadGrid}>
+      {/* Left Side: Upload Dropzone */}
+      <div className={accountUploadContainer}>
+        <div className={accountUploadIconBox}>
+          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+        <h4 className="text-xs font-bold text-slate-800 mb-1">
+          {uploadedDoc ? uploadedDoc : "Drag & drop your PAN card here"}
+        </h4>
+        <p className={accountUploadOrText}>or</p>
+        
+        <label className={accountUploadBtn}>
+          <span>Choose file</span>
+          <input 
+            type="file" 
+            accept=".jpg,.jpeg,.png,.pdf" 
+            onChange={handleDocumentUpload} 
+            className="hidden" 
+          />
+        </label>
+        <p className={accountUploadSubtext}>JPG, PNG or PDF | Image size not more than 2 MB</p>
+      </div>
+
+      {/* Right Side: Example/Preview Box */}
+      <div className={accountPreviewBox}>
+        <div>
+          <h4 className="text-xs font-bold text-slate-800 mb-3">Please make sure that:</h4>
+          <ul className={accountPreviewList}>
+            <li className={accountPreviewListItem}>
+              <span className={accountPreviewBullet}></span>
+              <span>Upload a clear image in .jpg or .pdf format only.</span>
+            </li>
+            <li className={accountPreviewListItem}>
+              <span className={accountPreviewBullet}></span>
+              <span>Image size should not be more than 2 MB.</span>
+            </li>
+          </ul>
+        </div>
+
+    <div className={accountPreviewFooter}>
+                    {docPreview ? (
+                      <div className="w-full text-center">
+                        <p className="text-[11px] font-bold text-blue-600 mb-1">Uploaded Preview:</p>
+                        
+                        {fileType === 'application/pdf' ? (
+                          /* PDF Document Card Preview */
+                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center space-x-2 mx-auto max-w-[220px]">
+                            <span className="text-lg">📄</span>
+                            <span className="text-xs font-bold text-slate-700 truncate">{uploadedDoc}</span>
+                          </div>
+                        ) : (
+                          /* Image Preview for JPG/PNG */
+                          <img src={docPreview} alt="Preview" className="max-h-28 mx-auto rounded-lg border border-slate-200 object-contain shadow-xs" />
+                        )}
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Account Number</label>
-                      <input
-                        type="text"
-                        name="accountNumber"
-                        value={formData.accountNumber}
-                        onChange={handleInputChange}
-                        placeholder="Enter account number"
-                        className={inputFieldStyle}
-                      />
-                    </div>
+                    ) : (
+                      <div className="w-full text-center">
+                        <div className={accountSampleCardWrapper}>
+                          <div className={accountSampleCardTitle}>Example of PAN card</div>
+                          <div className={accountSampleCardBox}>
+                            [ Sample Card ]
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+      </div>
+    </div>
+  </div>
+)}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Confirm Account Number</label>
-                      <input
-                        type="password"
-                        name="confirmAccountNumber"
-                        value={formData.confirmAccountNumber}
-                        onChange={handleInputChange}
-                        placeholder="Re-enter account number"
-                        className={inputFieldStyle}
-                      />
-                      {formData.confirmAccountNumber && formData.accountNumber !== formData.confirmAccountNumber && (
-                        <p className="text-[11px] text-rose-600 mt-1 font-semibold">Account numbers do not match</p>
-                      )}
-                    </div>
-                  </div>
+          {activeStep === 3 && (
+            <div className="py-12 text-center space-y-4">
+              <h3 className="text-xl font-bold text-slate-800">Sign Agreement</h3>
+              <p className="text-xs text-slate-500">Review terms and digitally sign the agreement to complete your setup.</p>
+            </div>
+          )}
+        </div>
 
-                  {/* Auto-populated Bank Info Preview */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1">Bank Name</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formData.bankName}
-                        placeholder="Auto-filled"
-                        className={inputFieldStyle + " bg-slate-100 text-slate-600"}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1">Branch Name</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formData.branchName}
-                        placeholder="Auto-filled"
-                        className={inputFieldStyle + " bg-slate-100 text-slate-600"}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-500 mb-1">Bank Address</label>
-                      <input
-                        type="text"
-                        readOnly
-                        value={formData.bankAddress}
-                        placeholder="Auto-filled"
-                        className={inputFieldStyle + " bg-slate-100 text-slate-600"}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              {activeStep === 5 && (
-                <div className="space-y-6 text-center py-8">
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-1">Review & Agreement</h2>
-                  <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">By submitting, you agree to merchant service terms and ticket sales commissions.</p>
-                  <button className={primaryButton + " max-w-xs mx-auto bg-blue-600 hover:bg-blue-700"}>
-                    Accept & Complete Registration
-                  </button>
-                </div>
-              )}
+        
+      </main>
+
+     {/* Footer bar with fixed positioning at the bottom */}
+      <footer className="bg-white border-t border-slate-200 py-4 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full">
+        <div className={accountFooterInner}>
+          <button
+            type="button"
+            onClick={handleSaveDetails}
+            className={accountSecondaryBtn}
+          >
+            Save details
+          </button>
+
+          <button
+            type="button"
+            onClick={handleProceed}
+            className={accountPrimaryBtn}
+          >
+            <span>Proceed</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+      </footer>
+{/* GST Declaration Modal Popup */}
+      {isGstModalOpen && (
+        <div className={gstModalOverlay}>
+          <div className={gstModalCard}>
+            {/* Header */}
+            <div className={gstModalHeader}>
+              <h3 className={gstModalTitle}>
+                GST Declaration
+              </h3>
+              <div className="flex items-center space-x-2">
+                <img src={Logo} alt="Logo" className={gstModalLogo} />
+                <span className="text-xs font-extrabold text-slate-700 tracking-tight">let's do it</span>
+              </div>
             </div>
 
-            {/* Footer Navigation */}
-            <div className="flex justify-between items-center mt-8 pt-4 border-t border-slate-200">
-              <button
-                type="button"
-                disabled={activeStep === 1}
-                onClick={() => setActiveStep(activeStep - 1)}
-                className={`px-6 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer ${
-                  activeStep === 1 ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                }`}
-              >
-                Back
-              </button>
+            {/* Scrollable Text Content Box with Scroll Listener */}
+            <div className={gstModalBody} onScroll={handleModalScroll}>
+              <p>
+                I/We, Organizer, do confirm and acknowledge that I/Am/We are a supplier providing services through an e-commerce platform as per Section 24(1X) of the Central Goods and Services Tax under the prevalent GST regime ("GST Laws") and confirm that I/We are not registered under the GST Act, since our annual turnover is below the threshold limit of Rs. 20 Lakhs (supplier supply only services).
+              </p>
+              <p>
+                I/We confirm that any applicable taxes collected on the Tickets booked through Bigtree Entertainment Pvt. Ltd.'s platform i.e. www.bookmyshow.com and/or its mobile application and/or other sales channels is our liability and the same shall be duly discharged by us.
+              </p>
+              <p>
+                I/We acknowledge that information furnished above are true to the best of my/our knowledge and that we shall be bound by the acts of duly constituted attorney. In case any of the above information is found to be incorrect at a later date, my membership with your platform shall stand cancelled and any payment or unprocessed bill shall be withheld by you on the basis of the statements.
+              </p>
+            </div>
+
+            {/* Fixed Footer */}
+            <div className={gstModalFooter}>
+              <label className={`flex items-start gap-2.5 ${!hasScrolledToBottom ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <input
+                  type="checkbox"
+                  disabled={!hasScrolledToBottom}
+                  checked={modalCheckboxChecked}
+                  onChange={(e) => setModalCheckboxChecked(e.target.checked)}
+                  className="rounded text-blue-600 focus:ring-blue-500 mt-0.5 w-4 h-4 cursor-pointer shrink-0 disabled:cursor-not-allowed"
+                />
+                <span className="text-xs font-medium text-slate-700 leading-snug">
+                  {hasScrolledToBottom 
+                    ? 'I confirm that I have read and understood the "GST Declaration" and accept the undertaking.' 
+                    : 'Please scroll down to read the entire declaration to enable the checkbox.'}
+                </span>
+              </label>
 
               <button
                 type="button"
-                onClick={() => {
-                  if (activeStep === 4 && formData.accountNumber !== formData.confirmAccountNumber) {
-                    toast.error('Account numbers do not match. Please check.');
-                    return;
-                  }
-                  if (activeStep < 5) setActiveStep(activeStep + 1);
-                }}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm"
+                disabled={!modalCheckboxChecked}
+                onClick={handleConfirmGstModal}
+                className={gstModalProceedBtn}
               >
-                {activeStep === 5 ? 'Submit' : 'Proceed'}
+                Proceed
               </button>
             </div>
           </div>

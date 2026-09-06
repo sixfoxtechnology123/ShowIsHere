@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route,useLocation} from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import API from './utils/api';
 import Navbar from './components/Navbar';
 import SubNavbar from './components/SubNavbar';
@@ -9,7 +9,7 @@ import EventGrid from './components/EventGrid';
 import LocationModal from './components/LocationModal';
 import { mainContainer } from './styles/MasterCSSClass';
 import Footer from './components/Footer';
-import AboutPage from './components/AboutPage';
+import AboutPage from './components/AboutPage'; // Adjust import path if needed
 import SeatMap from './components/SeatMap';
 import ArtistMaster from './Master/ArtistMaster';
 import EventCreate from './components/EventCreate';
@@ -24,9 +24,9 @@ const AppContent = () => {
   // INITIALIZED TO TRUE SO IT OPENS AUTOMATICALLY ON FIRST PAGE LOAD
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(true);
 
-
-const routerLocation = useLocation();
-const isSeatMapPage = routerLocation.pathname === '/seatmap';
+  const routerLocation = useLocation();
+  const isSeatMapPage = routerLocation.pathname === '/seatmap';
+  const isEventCreatePage = routerLocation.pathname === '/event-create'; // Added check for event-create
 
   useEffect(() => {
     fetchEvents();
@@ -123,16 +123,17 @@ const isSeatMapPage = routerLocation.pathname === '/seatmap';
         }}
       />
 
-  {!isSeatMapPage && (
-  <>
-    <Navbar 
-      location={location} 
-      onDetectLocation={detectLocation} 
-      onOpenLocationModal={() => setIsLocationModalOpen(true)} 
-    />
-    <SubNavbar />
-  </>
-)}
+      {/* Hide main headers on SeatMap and EventCreate pages */}
+      {!isSeatMapPage && !isEventCreatePage && (
+        <>
+          <Navbar 
+            location={location} 
+            onDetectLocation={detectLocation} 
+            onOpenLocationModal={() => setIsLocationModalOpen(true)} 
+          />
+          <SubNavbar />
+        </>
+      )}
 
       {/* URL-based Routing View Rendering */}
       <Routes>
@@ -148,8 +149,6 @@ const isSeatMapPage = routerLocation.pathname === '/seatmap';
         <Route path="/artist-master" element={<ArtistMaster />} />
         <Route path="/event-create" element={<EventCreate />} />
       </Routes>
-
-      {/* <Footer /> */}
 
       <LocationModal 
         isOpen={isLocationModalOpen}

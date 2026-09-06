@@ -1338,8 +1338,19 @@ const handlePropertyChange = (field, value) => {
               </svg>
             </button>
           )}
-          <button 
-            onClick={() => window.print()} 
+       <button 
+            onClick={() => {
+              // 1. Clear all active selections and shape highlights
+              setSelectedSectionId(null);
+              setSelectedShapeId(null);
+              setSelectedRowKey(null);
+              setSelectedSeatKey(null);
+              
+              // 2. Delay the print dialog slightly to let React finish re-rendering the clean canvas
+              setTimeout(() => {
+                window.print();
+              }, 100);
+            }} 
             disabled={isEmpty} 
             title="Download / Export PDF" 
             className={`p-1.5 rounded text-xs flex items-center justify-center border border-transparent ${
@@ -1813,7 +1824,7 @@ const handlePropertyChange = (field, value) => {
       }}
     >
       <div 
-          className="canvasBoard bg-white shadow-xl relative overflow-visible rounded-lg"
+          className="canvasBoard bg-white  relative overflow-visible rounded-lg"
           style={{ 
             width: `${activePage.width}px`,
             height: `${activePage.height}px`,
@@ -1821,7 +1832,7 @@ const handlePropertyChange = (field, value) => {
             transformOrigin: 'center center'
           }}
         >
-          {showGrid && viewMode === 'creator' && <div className={canvasGridBg}></div>}
+          {showGrid && viewMode === 'creator' && <div className={`${canvasGridBg} print:hidden`} style={{ display: viewMode === 'preview' ? 'none' : 'block' }}></div>}
             
 
             {selectionBox && (
@@ -2052,19 +2063,19 @@ const handlePropertyChange = (field, value) => {
             }
 
               return (
-                <div 
-                  key={sec.id}
-                  onMouseDown={(e) => isCurrentZone && handleMouseDown(e, sec.id)}
-                  onClick={() => { 
-                    if (viewMode === 'preview') return;
-                    if (isCurrentZone) {
-                      setSelectedSectionId(sec.id); 
-                      setSelectedShapeId(null); 
-                    } else {
-                      setActiveZoneId(sec.zoneId || 'zone-1');
-                      setSelectedSectionId(sec.id);
-                    }
-                  }}
+               <div 
+                    key={sec.id}
+                    onMouseDown={(e) => isCurrentZone && handleMouseDown(e, sec.id)}
+                    onClick={() => { 
+                        if (viewMode === 'preview') return;
+                        if (isCurrentZone) {
+                            setSelectedSectionId(sec.id); 
+                            setSelectedShapeId(null); 
+                        } else {
+                            setActiveZoneId(sec.zoneId || 'zone-1');
+                            setSelectedSectionId(sec.id);
+                        }
+                    }}
                   style={{ 
                     top: `${sec.y}px`, 
                     left: `${sec.x}px`, 
@@ -2128,13 +2139,14 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                 <div 
                     key={rowLabel} 
                     onMouseDown={(e) => {
+                        if (viewMode === 'preview') return; // 👈 Blocks row selection in preview
                         if (isCurrentZone && (activeTool === 'selectRow' || activeTool === 'select')) {
                             handleRowMarkerMouseDown(e, sec.id, rowLabel);
                         }
                     }}
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (viewMode === 'preview') return;
+                        if (viewMode === 'preview') return; // 👈 Blocks row selection in preview
                         
                         // 👈 Only select a single row if the Select Row tool is active!
                         if (activeTool === 'selectRow' || activeTool === 'select') {
@@ -2212,11 +2224,12 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                     };
                    if (seatData.status === 'wheelchair') {
                   inlineStyle.backgroundColor = '#003F87';
+                  inlineStyle.border = 'none';
                   
                   } else if (customCatObj && seatData.status === 'available') {
                       // Apply color as an outline border instead of filling the background
                       inlineStyle.borderColor = customCatObj.color;
-                      inlineStyle.borderWidth = '2px';
+                      inlineStyle.borderWidth = '1px';
                       inlineStyle.backgroundColor = '#ffffff'; // Keeps the inside clean and white
                   }
 
@@ -2246,12 +2259,12 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                                 }
                           
                             }}
-                            style={inlineStyle}
-                            className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : seatData.status === 'wheelchair' ? 'cursor-pointer' : 'hover:scale-110 cursor-pointer'} select-none border ${categoryColorBg}`}
+                            style={{ ...inlineStyle, color: '#A8A8A8' }}
+                            className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default' : seatData.status === 'wheelchair' ? 'cursor-pointer' : 'hover:scale-110 cursor-pointer'} select-none border  ${categoryColorBg}`}
                         >
                           {seatData.status === 'wheelchair' ? (
                           <img 
-                            src={require('../assets/wheelchair.jpg')} 
+                            src={require('../assets/wheelchair.png')} 
                             alt="Wheelchair" 
                             className="w-full h-full object-cover rounded-[inherit] brightness-200 contrast-200" 
                           />
@@ -2936,15 +2949,10 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
       }
 
 Object.entries(sec.seats || {}).forEach(([seatKey, st]) => {
-        // 1. Only 'blocked' or 'sold' count towards the Reserved footer tally
-        if (st.status === 'blocked' || st.status === 'sold') {
+        // 1. Include 'blocked', 'sold', and 'wheelchair' in the Reserved footer tally
+        if (st.status === 'blocked' || st.status === 'sold' || st.status === 'wheelchair') {
           reservedCount++;
           reservedSeatLabels.push(seatKey);
-          return;
-        }
-
-        // 2. Wheelchair seats are excluded from category/VIP totals, but DO NOT count as Reserved
-        if (st.status === 'wheelchair') {
           return;
         }
 
@@ -2964,10 +2972,10 @@ Object.entries(sec.seats || {}).forEach(([seatKey, st]) => {
     if (activeCatEntries.length === 0 && reservedCount === 0) return null;
 
     return (
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-4">
         {reservedCount > 0 && (
-          <div className="flex items-center space-x-2">
-            <span className="w-4 h-4 rounded-full inline-block shadow-xs border border-slate-300 bg-slate-200 shrink-0" />
+          <div className="flex items-center space-x-1">
+            <span className="w-4 h-4 rounded inline-block shadow-xs border border-slate-300 bg-slate-200 shrink-0" />
            <span className="text-slate-800 font-semibold text-xs">
             Reserved <span className="text-slate-600 font-normal ml-1">({reservedCount} {reservedCount === 1 ? 'seat' : 'seats'})</span>
           </span>
@@ -2979,9 +2987,9 @@ Object.entries(sec.seats || {}).forEach(([seatKey, st]) => {
           const seatCount = categorySeatCounts[cat.name] || 0;
 
           return (
-            <div key={idx} className="flex items-center space-x-2">
+            <div key={idx} className="flex items-center space-x-1">
               <span 
-                className="w-4 h-4 rounded-full inline-block shadow-xs border border-slate-300 shrink-0" 
+                className="w-4 h-4 rounded inline-block shadow-xs border border-slate-200 shrink-0" 
                 style={isGrad ? { backgroundImage: cat.color } : { backgroundColor: cat.color }}
               />
               <span className="text-slate-800 font-semibold text-xs">
@@ -2997,7 +3005,7 @@ Object.entries(sec.seats || {}).forEach(([seatKey, st]) => {
   })()}
 </div>
       {viewMode === 'creator' && (
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 print:hidden">
           <button 
             onClick={handleSaveMap} 
             disabled={isEmpty}

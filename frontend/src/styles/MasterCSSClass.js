@@ -1,4 +1,4 @@
-export const mainContainer = "min-h-screen bg-[#f4f5f7] text-slate-900 font-sans antialiased";
+export const mainContainer = "min-h-screen bg-slate-50 flex flex-col relative pb-10"; // Added pb-24 so content doesn't hide behind the fixed footer
 
 export const navbar = "bg-white text-slate-800 px-6 py-3 flex items-center justify-between border-b border-slate-200/80 sticky top-0 z-50 shadow-xs";
 export const logoContainer = "flex items-center space-x-3 cursor-pointer";
@@ -120,7 +120,7 @@ export const pageTabActive = "px-3 py-1 rounded font-bold transition cursor-poin
 export const pageTabInactive = "px-3 py-1 rounded font-bold transition cursor-pointer border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center space-x-2";
 export const addPageButton = "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition cursor-pointer";
 
-export const inputFieldStyle = "w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 font-medium";
+export const inputFieldStyle = "w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1 text-sm text-slate-900 outline-none focus:border-blue-500 font-normal";
 
 // ==========================================
 // SIDEBAR ELEMENT & TEMPLATE STYLES
@@ -167,3 +167,127 @@ export const artistCirclePickerContainer = "relative w-20 h-20 rounded-full over
 export const artistCirclePreviewImage = "w-full h-full object-cover rounded-full";
 export const artistCirclePlaceholderText = "text-[10px] font-bold text-slate-400 group-hover:text-blue-600 text-center";
 export const artistDescImageGrid = "grid grid-cols-1 md:grid-cols-12 gap-3 items-center";
+
+// ==========================================
+// LANDING, AUTH & WIZARD STYLES (NEW)
+// ==========================================
+export const landingPageWrapper = "min-h-screen bg-[#071126] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden";
+export const landingGradientBg = "absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/30 via-[#071126] to-[#071126] pointer-events-none";
+export const landingContentWrapper = "max-w-3xl mx-auto text-center z-10 space-y-6";
+export const landingLogoWrapper = "flex justify-center mb-2";
+export const landingLogoImage = "w-16 h-16 object-cover rounded-2xl border-2 border-blue-500 shadow-xl";
+export const landingBadge = "inline-block px-4 py-1.5 rounded-full bg-blue-950/80 border border-blue-500/30 text-blue-300 text-xs font-bold tracking-wider shadow-inner";
+export const landingHeading = "text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight";
+export const landingHeadingHighlight = "text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300";
+export const landingSubText = "text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-medium";
+export const landingActionRow = "pt-4 flex justify-center items-center space-x-4";
+export const landingGetStartedBtn = "px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/30 transition transform hover:-translate-y-0.5 cursor-pointer text-sm";
+
+export const authPageWrapper = "min-h-screen bg-white flex flex-col lg:flex-row";
+export const authLeftContainer = "lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center bg-slate-50 border-r border-slate-200";
+export const authLeftHeader = "flex items-center space-x-3 mb-6";
+export const authLeftLogo = "w-10 h-10 object-cover rounded-xl border border-slate-200";
+export const authBrandTitle = "text-xl font-black tracking-tight text-slate-900";
+export const authLeftHeading = "text-3xl lg:text-4xl font-black mb-6 text-slate-900 leading-tight";
+export const authBenefitsList = "space-y-6";
+export const authBenefitItem = "flex items-start space-x-4";
+export const authBenefitIcon = "p-3 bg-blue-50 rounded-xl text-blue-600 font-bold text-lg";
+export const authBenefitTitle = "text-base font-bold text-slate-900";
+export const authBenefitDesc = "text-slate-600 text-xs";
+export const authRightContainer = "lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center items-center";
+export const authCardWrapper = "w-full max-w-md bg-white p-8 rounded-3xl border border-slate-200 shadow-sm";
+export const authCardTitle = "text-xl font-black text-slate-900 mb-2";
+export const authCardDesc = "text-xs text-slate-500 mb-6";
+export const authFormSpace = "space-y-4";
+export const authInputLabel = "block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2";
+export const authOtpContainer = "space-y-3 pt-2";
+
+export const wizardPageWrapper = "min-h-screen bg-[#f8f9fc] flex flex-col lg:flex-row";
+export const wizardSidebar = "w-full lg:w-72 bg-white border-r border-slate-200 p-8 flex flex-col justify-between shrink-0 shadow-xs";
+export const wizardSidebarHeader = "flex items-center space-x-3 mb-10";
+export const wizardSidebarLogo = "w-9 h-9 object-cover rounded-xl border border-slate-200";
+export const wizardSidebarBrand = "font-extrabold text-slate-900 tracking-tight text-sm";
+export const wizardStepsContainer = "space-y-2 relative";
+export const wizardLoggedInfo = "pt-6 border-t border-slate-100 text-[11px] text-slate-400";
+export const wizardLoggedEmail = "text-slate-700 font-semibold";
+export const wizardContentArea = "flex-1 p-8 lg:p-16 flex flex-col justify-between max-w-4xl";
+export const wizardCardWrapper = "bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-slate-200/80";
+export const wizardStepContentSpace = "space-y-6";
+export const wizardStepTitle = "text-2xl font-black text-slate-900 tracking-tight mb-1";
+export const wizardStepDesc = "text-xs text-slate-500 font-medium";
+export const wizardTwoColGrid = "grid grid-cols-1 sm:grid-cols-2 gap-6";
+export const wizardInputLabel = "block text-xs font-bold text-slate-700 mb-1";
+export const wizardIfscFlex = "flex space-x-2";
+export const wizardIfscFetchBtn = "px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap";
+export const wizardErrorText = "text-[11px] text-rose-600 mt-1 font-semibold";
+export const wizardBankPreviewGrid = "grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2";
+export const wizardPreviewLabel = "block text-[11px] font-bold text-slate-500 mb-1";
+export const wizardAgreementWrapper = "space-y-6 text-center py-8";
+export const wizardAgreementDesc = "text-xs text-slate-500 font-medium max-w-md mx-auto";
+export const wizardFooterBar = "flex justify-between items-center mt-8 pt-4 border-t border-slate-200";
+export const wizardProceedBtn = "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-sm";
+// ==========================================
+// ACCOUNT SETUP / EVENT CREATE STYLES (EXACT CLONE)
+// ==========================================
+export const accountHeaderInner = "w-full px-8 py-3 flex items-center justify-between";
+export const accountLogoContainer = "flex items-center space-x-3";
+export const accountLogoImg = "w-8 h-8 object-cover rounded-lg";
+export const accountBrandText = "font-extrabold text-blue-900 text-base tracking-tight";
+export const accountStepsBar = "hidden md:flex items-center space-x-12";
+
+export const accountStepItemActive = "flex items-center space-x-2 px-5 py-1 rounded-xl bg-[#f0f4ff] border border-blue-100/60 shadow-xs relative text-blue-700 font-bold text-xs cursor-pointer overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[1px]";
+export const accountStepItemInactive = "flex items-center space-x-3 px-5 py-2 rounded-xl text-xs font-semibold text-slate-400 cursor-pointer hover:text-slate-600 transition";
+
+export const accountStepBadgeActive = "w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-bold shadow-xs";
+export const accountStepBadgeInactive = "w-6 h-6 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[11px] font-bold";
+
+export const accountUserIconBox = "w-9 h-9 rounded-full border border-blue-900/20 flex items-center justify-center text-blue-900 cursor-pointer shadow-2xs bg-white";
+
+export const accountMainContainer = "max-w-3xl mx-auto px-6 py-4 flex-1 w-full pb-1";
+export const accountTitleSection = "text-center max-w-2xl mx-auto mb-6 space-y-2";
+export const accountMainTitle = "text-2xl sm:text-3xl font-black text-slate-900 tracking-tight";
+export const accountMainSubTitle = "text-xs sm:text-sm text-slate-500 font-medium leading-relaxed";
+export const accountFormCard = "bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-slate-200/80 w-full overflow-hidden";
+export const accountSectionHeading = "flex items-center space-x-3 py-1.5 px-4 sm:px-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 bg-[#f0f4ff] text-xs font-black text-blue-900 tracking-wide relative overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[4px]";
+export const accountThreeColGrid = "grid grid-cols-1 sm:grid-cols-3 gap-4";
+export const accountLabelStyle = "block text-xs font-bold text-slate-700 mb-1.5";
+export const accountRadioGroup = "flex items-center space-x-6 pt-1";
+export const accountRadioLabel = "flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer";
+export const accountCheckboxWrapper = "flex items-center space-x-2.5 cursor-pointer";
+export const accountNoticeBox = "bg-amber-50/80 border border-amber-200/80 text-amber-900 text-[11px] font-semibold px-4 py-2.5 rounded-xl";
+
+export const accountFooterInner = "max-w-5xl mx-auto px-6 flex items-center justify-center space-x-4 w-full";
+export const accountSecondaryBtn = "px-6 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl transition cursor-pointer shadow-2xs";
+export const accountPrimaryBtn = "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm flex items-center space-x-1.5";
+
+// Step 2 Document Upload Styles
+export const accountUploadStepWrapper = "space-y-4";
+export const accountUploadGrid = "grid grid-cols-1 md:grid-cols-2 gap-6 pt-2";
+export const accountUploadContainer = "border-2 border-dashed border-blue-200 rounded-2xl p-6 bg-slate-50/50 flex flex-col items-center justify-center text-center";
+export const accountUploadIconBox = "w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-3 text-xl";
+export const accountUploadBtn = "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm";
+export const accountUploadOrText = "text-[11px] text-slate-400 mb-4";
+export const accountUploadSubtext = "text-[10px] text-slate-400 mt-3";
+
+export const accountPreviewBox = "border border-slate-200 rounded-2xl p-5 bg-slate-50/30 flex flex-col justify-between";
+export const accountPreviewList = "space-y-2 text-[11px] text-slate-600";
+export const accountPreviewListItem = "flex items-center space-x-2";
+export const accountPreviewBullet = "w-1.5 h-1.5 rounded-full bg-blue-600";
+export const accountPreviewFooter = "mt-4 pt-4 border-t border-slate-200/60 flex flex-col items-center";
+
+export const accountSampleCardWrapper = "bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-3 inline-block shadow-2xs";
+export const accountSampleCardTitle = "text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1";
+export const accountSampleCardBox = "w-36 h-22 bg-white rounded border border-slate-300 mx-auto flex items-center justify-center text-[10px] text-slate-400 font-medium";
+
+// Square GST Modal Styles
+export const gstModalOverlay = "fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4";
+export const gstModalCard = "bg-white rounded-2xl shadow-2xl w-[480px] h-[480px] overflow-hidden flex flex-col justify-between p-6";
+export const gstModalHeader = "flex items-center justify-between pb-2 shrink-0 border-b border-slate-100";
+export const gstModalTitle = "text-base font-bold text-slate-800 flex items-center gap-2";
+export const gstModalLogo = "w-6 h-6 rounded-md object-cover";
+
+export const gstModalBody = "overflow-y-auto space-y-2 text-xs text-slate-600 font-medium leading-relaxed pr-2 border border-slate-200 bg-slate-50/40 p-4 rounded-xl flex-1 my-3";
+
+// Centered Proceed Button style for the GST Modal
+export const gstModalFooter = "space-y-3 shrink-0 pt-2 border-t border-slate-100 flex flex-col items-center";
+export const gstModalProceedBtn = "px-6 py-1.5 bg-blue-600 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed";
