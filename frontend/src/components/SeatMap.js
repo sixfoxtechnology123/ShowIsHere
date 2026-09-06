@@ -189,6 +189,19 @@ const [editingCatIndex, setEditingCatIndex] = useState(null);
   const activePage = pages.find(p => p.id === activePageId) || pages[0];
   const isEmpty = sections.length === 0 && shapes.length === 0;
 
+  const hasInteractedRef = useRef(false);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasInteractedRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
 useEffect(() => {
     if (!isAutoFit) return;
     const handleAutoFitZoom = () => {
@@ -209,6 +222,7 @@ useEffect(() => {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (viewMode === 'preview') return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
       const isCtrl = e.ctrlKey || e.metaKey;
 
@@ -257,7 +271,7 @@ useEffect(() => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedSectionId, selectedShapeId, sections, shapes, history, redoStack]);
+  }, [selectedSectionId, selectedShapeId, sections, shapes, history, redoStack,viewMode]);
 
   function toRoman(num) {
     let n = Number(num);
@@ -307,7 +321,7 @@ useEffect(() => {
     return String(actualIndex);
   }
 
-function generateSeats(rowCount, seatCount, rowNumType, rowStart, rowRev, seatNumType, seatStart, seatRev, defaultCategory = '', hiddenRows = []) {
+function generateSeats(rowCount, seatCount, rowNumType, rowStart, rowRev, seatNumType, seatStart, seatRev, defaultCategory = '', hiddenRows = [], existingSeats = {}) {
   const seatMap = {};
   for (let r = 0; r < rowCount; r++) {
     const rowLabel = getLabel(r, rowNumType, rowStart, rowRev, rowCount);
@@ -315,7 +329,13 @@ function generateSeats(rowCount, seatCount, rowNumType, rowStart, rowRev, seatNu
     for (let s = 0; s < seatCount; s++) {
       const seatLabel = getLabel(s, seatNumType, seatStart, seatRev, seatCount);
       const seatKey = `${rowLabel}-${seatLabel}`;
-      seatMap[seatKey] = { status: 'available', category: defaultCategory, offsetX: 0, offsetY: 0 };
+      
+      // Keep existing seat colors and statuses if they were already colored!
+      if (existingSeats && existingSeats[seatKey]) {
+        seatMap[seatKey] = { ...existingSeats[seatKey] };
+      } else {
+        seatMap[seatKey] = { status: 'available', category: defaultCategory, offsetX: 0, offsetY: 0 };
+      }
     }
   }
   return seatMap;
@@ -328,6 +348,7 @@ function generateSeats(rowCount, seatCount, rowNumType, rowStart, rowRev, seatNu
   const activeShape = shapes.find(sh => sh.id === selectedShapeId) || null;
 
   const pushHistory = (newSections, newShapes = shapes) => {
+    hasInteractedRef.current = true;
     setHistory(prev => [...prev, { sections, shapes }]);
     setRedoStack([]);
     setSections(newSections);
@@ -492,6 +513,15 @@ const handleDeleteSelected = () => {
     }
   };
 
+const handleCancelClick = () => {
+    if (hasInteractedRef.current) {
+      if (window.confirm("You have made changes or performed activity during this session. Are you sure you want to cancel?")) {
+        window.history.back();
+      }
+    } else {
+      window.history.back();
+    }
+  };
   const handleFullDeleteZone = (zoneIdToDelete) => {
     if (zones.length <= 1) {
       alert("You must keep at least one zone.");
@@ -837,7 +867,8 @@ const handleCanvasMouseMove = (e) => {
             sec.seatStartingAt ?? 1,
             sec.seatReversed || false,
             sec.category || '',
-            sec.hiddenRows || []
+            sec.hiddenRows || [],
+            sec.seats
           );
           return { ...sec, rows: newRows, seatsPerRow: newCols, seats: updatedSeats };
         }
@@ -1035,6 +1066,7 @@ if (draggingRowLetter && selectedSectionId) {
 
   const handleSeatClick = (secId, seatKey, e) => {
     e.stopPropagation();
+    hasInteractedRef.current = true;
     if (activeTool === 'selectSeat') {
       setSelectedSeatKey(seatKey);
       setSelectedSectionId(secId);
@@ -1095,6 +1127,7 @@ const handleAddShape = (type, defaultText, w, h) => {
 
 
 const handlePropertyChange = (field, value) => {
+  hasInteractedRef.current = true;
   // If an individual seat is selected, update ONLY that specific seat
   if (selectedSeatKey && activeSection && field === 'category') {
     const updatedSeats = { ...activeSection.seats };
@@ -1178,8 +1211,10 @@ const handlePropertyChange = (field, value) => {
   return (
     <div className={`${seatMapWrapper} h-screen overflow-hidden flex flex-col bg-slate-50`}>
       
-  {/* PRINT & DOWNLOAD MEDIA QUERY STYLING */}
-      <style>{`
+<style>{`
+        @page {
+          margin: 10mm;
+        }
         @media print {
           * {
             -webkit-print-color-adjust: exact !important;
@@ -1194,30 +1229,55 @@ const handlePropertyChange = (field, value) => {
             height: 100% !important;
             overflow: hidden !important;
           }
-        header, footer, .bg-slate-100, aside, .fixed, [class*="print:hidden"], [class*="canvasGridBg"] {
-          display: none !important;
-        }
-            
+          header, .bg-slate-100, aside, .fixed, [class*="print:hidden"], [class*="canvasGridBg"] {
+            display: none !important;
+          }
           .printable-canvas-area {
-            position: fixed !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            position: relative !important;
+            width: 100% !important;
+            height: auto !important;
             background: #ffffff !important;
-            z-index: 9999999 !important;
-            margin: 0 !important;
-            padding: 0 !important;
             display: flex !important;
+            flex-direction: column !important;
             align-items: center !important;
-            justify-content: center !important;
-            overflow: hidden !important;
+            justify-content: flex-start !important;
+            padding: 0 !important;
+            overflow: visible !important;
+          }
+          .printable-canvas-area > div {
+            height: auto !important;
           }
           .canvasBoard {
-            transform: scale(0.85) !important;
+            transform: scale(0.75) !important;
+            transform-origin: top center !important;
             position: relative !important;
             box-shadow: none !important;
             border: none !important;
+            margin: 0 auto !important;
+            /* Eliminates the hidden blank vertical gap below the canvas */
+            margin-bottom: calc(-1200px * (1 - 0.75) + 30px) !important;
+          }
+          footer {
+            display: flex !important;
+            position: relative !important;
+            left: unset !important;
+            transform: none !important;
+            width: 900px !important;
+            max-width: 100% !important;
+            height: auto !important;
+            background: #ffffff !important;
+            border-top: 1px solid #cbd5e1 !important;
+            margin-top: 10px !important;
+            padding: 8px 15px !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            page-break-inside: avoid !important;
+            z-index: 999999 !important;
+          }
+          footer > div {
+            position: relative !important;
+            left: unset !important;
+            transform: none !important;
           }
         }
       `}</style>
@@ -1261,6 +1321,7 @@ const handlePropertyChange = (field, value) => {
             <button
               onClick={() => {
                 if (isEmpty || window.confirm("Do you want to start a new plan? Your current plan will be discarded.")) {
+                  hasInteractedRef.current = false;
                   const newPId = `page-${Date.now()}`;
                   setPages([{ id: newPId, name: 'Plan 1', width: 900, height: 1200 }]);
                   setActivePageId(newPId);
@@ -1782,7 +1843,7 @@ const handlePropertyChange = (field, value) => {
                   height: `${activeTool === 'addHorizontalLine' ? 4 : (activeTool === 'addSquare' || activeTool === 'addCircle' ? Math.max(20, Math.abs(drawCurrent.x - drawStart.x)) : Math.max(20, Math.abs(drawCurrent.y - drawStart.y)))}px`,
                   backgroundColor: activeTool === 'stage' ? '#e2e8f0' : 'transparent', 
                   borderColor: '#000000',    
-                  borderWidth: '2px',        
+                  borderWidth: '1px',        
                   borderStyle: 'solid'
                 }}
               >
@@ -1853,6 +1914,7 @@ const handlePropertyChange = (field, value) => {
                     onMouseDown={(e) => handleShapeMouseDown(e, sh.id)}
                    onClick={(e) => { 
                     e.stopPropagation(); 
+                    if (viewMode === 'preview') return;
                     setSelectedShapeId(sh.id); 
                     setSelectedSectionId(null); 
                     setSelectedSeatKey(null); 
@@ -1989,6 +2051,7 @@ const handlePropertyChange = (field, value) => {
                   key={sec.id}
                   onMouseDown={(e) => isCurrentZone && handleMouseDown(e, sec.id)}
                   onClick={() => { 
+                    if (viewMode === 'preview') return;
                     if (isCurrentZone) {
                       setSelectedSectionId(sec.id); 
                       setSelectedShapeId(null); 
@@ -2066,6 +2129,7 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                     }}
                     onClick={(e) => {
                         e.stopPropagation();
+                        if (viewMode === 'preview') return;
                         setSelectedRowKey(rowLabel);
                         setSelectedSeatKey(null);
                         setSelectedSectionId(sec.id);
@@ -2149,7 +2213,7 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                                     handleSeatMouseDown(e, sec.id, seatKey);
                                 }
                             }}
-                            onClick={(e) => {
+                        onClick={(e) => {
                                 e.stopPropagation();
                                 if (viewMode === 'preview') return;
                                 if (!isCurrentZone) {
@@ -2161,7 +2225,10 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                                     setSelectedRowKey(rowLabel);
                                     setSelectedSectionId(sec.id);
                                     return;
-                                } 
+                                } else {
+                                    handleSeatClick(sec.id, seatKey, e);
+                                }
+                          
                             }}
                             style={inlineStyle}
                             className={`text-[9px] flex items-center justify-center font-medium transition-transform ${viewMode === 'preview' ? 'cursor-default pointer-events-none' : 'hover:scale-110 cursor-pointer'} select-none border ${categoryColorBg}`}
@@ -2601,8 +2668,9 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                       </div>
                     </div>
 
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between">
+              {/* Category Selector List */}
+                <div className="space-y-1 pt-1">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-slate-700 font-medium">Category</span>
                     <button 
                       onClick={() => {
@@ -2617,97 +2685,64 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
                     </button>
                   </div>
                   
-                  {/* Full-Width Custom Dropdown */}
-                  <div className="relative w-full">
+                  <div className="space-y-1 bg-white border border-slate-300 rounded p-1.5 max-h-48 overflow-y-auto">
                     <div 
-                      onClick={() => setIsOpenCategoryDropdown(!isOpenCategoryDropdown)}
-                      className="bg-white border border-slate-300 rounded px-2.5 py-1.5 font-medium text-slate-800 w-full flex items-center justify-between cursor-pointer text-xs shadow-xs"
+                      onClick={() => handlePropertyChange('category', '')}
+                      className={`flex items-center space-x-2 px-2 py-1 rounded cursor-pointer text-xs ${
+                        !activeSection.category ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-slate-100 text-slate-700'
+                      }`}
                     >
-                      <div className="flex items-center space-x-2 truncate">
-                        {activeSection.category ? (
-                          <>
-                            <span 
-                              className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-300 shadow-xs" 
-                              style={{ backgroundColor: customCategories.find(c => c.name === activeSection.category)?.color || '#ccc' }}
-                            />
-                            <span className="truncate">{activeSection.category}</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 shadow-xs" />
-                            <span className="text-slate-500 truncate">Default</span>
-                          </>
-                        )}
-                      </div>
-                      <span className="text-slate-400 text-[10px]">▼</span>
+                      <span className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 shadow-xs" />
+                      <span>Default</span>
                     </div>
 
-                    {isOpenCategoryDropdown && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 rounded shadow-lg z-50 max-h-48 overflow-y-auto w-full">
+                    {customCategories.map((cat, idx) => (
+                      <div 
+                        key={idx}
+                        className={`flex items-center justify-between px-2 py-1 rounded text-xs group ${
+                          activeSection.category === cat.name ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-slate-100 text-slate-800'
+                        }`}
+                      >
                         <div 
-                          onClick={() => {
-                            handlePropertyChange('category', '');
-                            setIsOpenCategoryDropdown(false);
-                          }}
-                          className="flex items-center space-x-2 px-2.5 py-1.5 hover:bg-slate-100 cursor-pointer text-slate-700 text-xs"
+                          onClick={() => handlePropertyChange('category', cat.name)}
+                          className="flex items-center space-x-2 flex-1 cursor-pointer truncate"
                         >
-                          <span className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white shrink-0 shadow-xs" />
-                          <span>Default</span>
+                          <span 
+                            className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-300 shadow-xs" 
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          <span className="truncate">{cat.name}</span>
                         </div>
 
-                        {customCategories.map((cat, idx) => (
-                          <div 
-                            key={idx}
-                            className="flex items-center justify-between px-2.5 py-1.5 hover:bg-slate-100 text-slate-800 text-xs group"
+                        <div className="flex items-center space-x-1 shrink-0">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCatIndex(idx);
+                              setNewCatNameInput(cat.name);
+                              setNewCatColorInput(cat.color);
+                              setShowNewCategoryModal(true);
+                            }}
+                            className="p-1 text-slate-400 hover:text-blue-600 rounded cursor-pointer"
+                            title="Edit Category"
                           >
-                            {/* Click item to select category */}
-                            <div 
-                              onClick={() => {
-                                handlePropertyChange('category', cat.name);
-                                setIsOpenCategoryDropdown(false);
-                              }}
-                              className="flex items-center space-x-2 flex-1 cursor-pointer truncate"
-                            >
-                              <span 
-                                className="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-300 shadow-xs" 
-                                style={{ backgroundColor: cat.color }}
-                              />
-                              <span className="font-medium truncate">{cat.name}</span>
-                            </div>
-
-                            {/* Edit & Delete Action Icons */}
-                            <div className="flex items-center space-x-1 shrink-0">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingCatIndex(idx);
-                                  setNewCatNameInput(cat.name);
-                                  setNewCatColorInput(cat.color);
-                                  setIsOpenCategoryDropdown(false);
-                                  setShowNewCategoryModal(true);
-                                }}
-                                className="p-1 text-slate-400 hover:text-blue-600 rounded cursor-pointer"
-                                title="Edit Category"
-                              >
-                                ✏️
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (window.confirm(`Are you sure you want to delete the "${cat.name}" category?`)) {
-                                    setCustomCategories(prev => prev.filter((_, i) => i !== idx));
-                                  }
-                                }}
-                                className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
-                                title="Delete Category"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                            ✏️
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Are you sure you want to delete the "${cat.name}" category?`)) {
+                                setCustomCategories(prev => prev.filter((_, i) => i !== idx));
+                              }
+                            }}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                            title="Delete Category"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
                   </div>
@@ -2840,7 +2875,7 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
       </div>
 
     {/* FIXED FOOTER SUMMARY BAR */}
-     <footer className={`${seatMapFooter} bg-white border-t border-slate-200 h-14 px-6 flex items-center justify-between shrink-0 print:hidden text-xs z-50`}>
+     <footer className={`${seatMapFooter} bg-white border-t border-slate-200 h-14 px-6 flex items-center justify-between shrink-0 text-xs z-50`}>
        <div className="flex items-center space-x-6 text-sm">
          <div className="flex flex-col items-center">
            <span className="font-extrabold text-slate-900 text-base">{totalSeats}</span>
@@ -2924,8 +2959,8 @@ className={`absolute rounded bg-transparent ${viewMode === 'preview' ? 'cursor-d
             Save Map
           </button>
 
-          <button 
-            onClick={() => window.history.back()} 
+        <button 
+            onClick={handleCancelClick} 
             className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold px-4 py-2 rounded-md shadow-xs transition cursor-pointer text-xs"
           >
             Cancel
