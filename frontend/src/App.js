@@ -12,7 +12,7 @@ import Footer from './components/Footer';
 import AboutPage from './components/AboutPage'; // Adjust import path if needed
 import SeatMap from './components/SeatMap';
 import ArtistMaster from './Master/ArtistMaster';
-import EventCreate from './components/EventCreate';
+import EventCreate from './components/EventOrgAccount';
 import { Toaster } from 'react-hot-toast';
 
 const AppContent = () => {

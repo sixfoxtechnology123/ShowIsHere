@@ -15,14 +15,14 @@ import {
 } from '../styles/MasterCSSClass';
 
 const SignAgrement = ({
-  signingDate = "28 day of August, 2026",
-  organizerName = "Debabrata Mandal",
-  organizerLocation = "Kolkata",
-  organizerPan = "BMQPM2573K",
-  organizerGst = "19BMQPM2573K1ZB",
-  signatoryEmail = "sbrta.roy@gmail.com",
-  signedDateTime = "26th August 2026, 09:17 pm",
-  signedIp = "2001:4490:4045:21cf:fcca:cf5f:b24e:fbd5",
+  signingDate = "",
+  organizerName = "",
+  organizerLocation = "",
+  organizerPan = "",
+  organizerGst = "",
+  signatoryEmail = "",
+  signedDateTime = "",
+  signedIp = "",
   signatureImage = null,
   onCreateSignature = () => {},
   onDeleteSignature = () => {}
@@ -38,17 +38,17 @@ const SignAgrement = ({
       </p>
 
       <p>
-        This agreement is made on this <strong>{signingDate}</strong> (Signing Date) between:
+        This agreement is made on this <strong>{signingDate || new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>  between:
       </p>
 
       <p>
         <strong>The Emunity Solutions Pvt. Ltd.</strong>, a company incorporated under the Indian Companies Act, 2013 having its registered office located at Kolkata (hereinafter referred to as 'ShowIsHere', which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
       </p>
 
-      <p className="text-center font-semibold text-slate-500">And</p>
+      <p>And</p>
 
       <p>
-        <strong>{organizerName}</strong>, a Company incorporated under the Companies Act 2013 or an individual having its registered office located at {organizerLocation} PAN: {organizerPan} GST: {organizerGst} (hereinafter referred to as 'Event Organizer' which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
+        <strong>{organizerName || 'Event Organizer'}</strong>, a Company incorporated under the Companies Act 2013 or an individual having its registered office located at {organizerLocation || 'N/A'}  PAN: {organizerPan || 'N/A'} {organizerGst ? `GST: ${organizerGst}` : ''} (hereinafter referred to as 'Event Organizer' which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
       </p>
 
       <p>
@@ -75,7 +75,7 @@ const SignAgrement = ({
         <p><strong>1.7 ‘Intellectual Property Rights’</strong> means all rights in and to copyrights, trademarks, trade names, logos, domain names, designs, patents, inventions, databases, software, know-how, trade secrets and all other intellectual property or proprietary rights, whether registered or unregistered, together with all applications, registrations, renewals, extensions and modifications thereof.</p>
         <p><strong>1.8 ‘Ticket’</strong> means a physical or electronic ticket, reservation, pass, QR code, booking confirmation or other entitlement made through the Platform that permits the holder to attend or access the applicable Event subject to the Event terms.</p>
         <p><strong>1.9 ‘Losses’</strong> shall mean and include all losses, damages, liabilities, claims, demands, penalties, costs, charges, expenses and disbursements of any nature whatsoever, whether actual or incurred, including reasonable legal fees and expenses arising out of or in connection with the investigation, defence, settlement, appeal or enforcement of any claim, action or proceeding.</p>
-        <p><strong>1.20 ‘Force Majeure Event’</strong> means an event beyond the reasonable control of the affected Party, including natural disasters, flood, fire, epidemic, pandemic, war, terrorism, riots, civil disturbance, governmental restrictions, lockdown, judicial orders, changes in law, technical infrastructure failure, telecommunications failure or other similar circumstances.</p>
+        <p><strong>1.10 ‘Force Majeure Event’</strong> means an event beyond the reasonable control of the affected Party, including natural disasters, flood, fire, epidemic, pandemic, war, terrorism, riots, civil disturbance, governmental restrictions, lockdown, judicial orders, changes in law, technical infrastructure failure, telecommunications failure or other similar circumstances.</p>
       </div>
 
       {/* 2. Appointment and Services */}
@@ -419,12 +419,12 @@ const SignAgrement = ({
               </tr>
               <tr>
                 <td className={`${annexureTableCell} text-center font-medium`}>9.2</td>
-                <td className={annexureTableCell}>First-aid arrangements</td>
+                <td className={`${annexureTableCell} font-medium`}>First-aid arrangements</td>
                 <td className={annexureTableCell}>Available</td>
               </tr>
               <tr>
                 <td className={`${annexureTableCell} text-center font-medium`}>9.3</td>
-                <td className={annexureTableCell}>Security personnel</td>
+                <td className={`${annexureTableCell} font-medium`}>Security personnel</td>
                 <td className={annexureTableCell}>Appropriate to Event risk and attendance</td>
               </tr>
               <tr>
@@ -475,13 +475,14 @@ const SignAgrement = ({
         </p>
 
         <div className="flex flex-col md:flex-row justify-between items-start gap-6 pt-2">
-          {/* Left Side Details */}
+         {/* Left Side Details */}
           <div className="space-y-1 font-medium text-slate-800 text-xs">
-            <p className="font-semibold text-slate-900">Executed on behalf of the Restaurant Partner by its Authorized Signatory:</p>
-            <p className="font-semibold text-slate-900 pt-1">Authorized Signatory:</p>
-            <p>Signatory email: {signatoryEmail}</p>
-            <p>Signed at: {signatureImage ? signedDateTime : ''}</p>
-            <p className="break-all">Signed with IP: {signatureImage ? signedIp : ''}</p>
+            <p className="font-bold text-slate-900">For {organizerName || 'Event Organizer'}</p>
+            <p className="font-bold text-slate-900 pt-1">Authorized Signatory:</p>
+            <br></br>
+            <p><span className="font-bold text-slate-900">Signatory email:</span> {signatoryEmail || 'N/A'}</p>
+            <p><span className="font-bold text-slate-900">Signed at:</span> {signatureImage ? (signedDateTime || new Date().toLocaleString()) : ''}</p>
+            <p className="break-all"><span className="font-bold text-slate-900">Signed with IP:</span> {signatureImage ? (signedIp || '192.168.1.1') : ''}</p>
           </div>
 
           {/* Right Side Signature Action / Preview Box */}
@@ -522,9 +523,9 @@ const SignAgrement = ({
 
         {/* Company Footer Info */}
         <div className="space-y-1 font-medium text-slate-800 text-xs">
-          <p className="font-semibold text-slate-900">WASTELAND ENTERTAINMENT PRIVATE LIMITED</p>
-          <p><strong className="font-semibold text-slate-900">Registered Address:</strong> Pioneer Square, Tower 1- Ground to 6th Floor and Tower 2- 1st and 2nd Floor, Near Golf Course Extension, Sector-62, Gurugram, Haryana - 122098</p>
-          <p><strong className="font-semibold text-slate-900">CIN:</strong> U74120MH2015PTC271160</p>
+          <p className="font-bold text-slate-900">Emunity Solutions Private Limited</p>
+          <p><strong className="font-bold text-slate-900">Registered Address:</strong> 16 Feet Road, Boardghar, Kolkata 700110</p>
+          <p><strong className="font-bold text-slate-900">CIN:</strong> U72900WB2021PTC243736</p>
         </div>
       </div>
     </div>

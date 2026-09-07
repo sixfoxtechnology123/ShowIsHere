@@ -9,9 +9,11 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Import Artist Routes
 const artistRoutes = require('./routes/artistRoutes');
+const eventOrgAccountRoutes = require('./routes/eventOrgAccountRoutes');
 
 // Register Artist Routes
 app.use('/api/artists', artistRoutes);
+app.use('/api/org', eventOrgAccountRoutes);
 
 const startServer = async () => {
   try {

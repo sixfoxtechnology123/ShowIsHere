@@ -258,10 +258,10 @@ export const accountNoticeBox = "bg-amber-50/80 border border-amber-200/80 text-
 
 export const accountFooterInner = "max-w-5xl mx-auto px-6 flex items-center justify-center space-x-4 w-full";
 export const accountSecondaryBtn = "px-6 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl transition cursor-pointer shadow-2xs";
-export const accountPrimaryBtn = "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm flex items-center space-x-1.5";
+export const accountPrimaryBtn = "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition cursor-pointer shadow-sm flex items-center space-x-1.5";
 
 // Step 2 Document Upload Styles
-export const accountUploadStepWrapper = "space-y-4";
+export const accountUploadStepWrapper = "space-y-2";
 export const accountUploadGrid = "grid grid-cols-1 md:grid-cols-2 gap-6 pt-2";
 export const accountUploadContainer = "border-2 border-dashed border-blue-200 rounded-2xl p-6 bg-slate-50/50 flex flex-col items-center justify-center text-center";
 export const accountUploadIconBox = "w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-3 text-xl";
@@ -273,7 +273,7 @@ export const accountPreviewBox = "border border-slate-200 rounded-2xl p-5 bg-sla
 export const accountPreviewList = "space-y-2 text-[11px] text-slate-600";
 export const accountPreviewListItem = "flex items-center space-x-2";
 export const accountPreviewBullet = "w-1.5 h-1.5 rounded-full bg-blue-600";
-export const accountPreviewFooter = "mt-4 pt-4 border-t border-slate-200/60 flex flex-col items-center";
+export const accountPreviewFooter = "mt-1 pt-1 border-t border-slate-200/60 flex flex-col items-center";
 
 export const accountSampleCardWrapper = "bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-3 inline-block shadow-2xs";
 export const accountSampleCardTitle = "text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-1";
@@ -301,10 +301,10 @@ export const gstDeclarationContainer = "space-y-4 text-xs text-slate-700 font-me
 export const sigModalOverlay = "fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4";
 export const sigModalCard = "bg-white rounded-2xl shadow-2xl w-[640px] overflow-hidden flex flex-col p-6 space-y-4";
 export const sigModalHeader = "flex flex-col space-y-1 pb-3 border-b border-slate-100";
-export const sigModalTitle = "text-base font-bold text-slate-800";
+export const sigModalTitle = "text-base font-bold text-slate-800 ";
 export const sigModalSubTitle = "text-xs text-slate-500";
 export const sigCanvasBox = "w-full h-48 border border-slate-300 rounded-xl bg-white cursor-crosshair touch-none shadow-inner";
-export const sigNoticeBox = "flex items-center gap-2 p-2.5 bg-blue-50/60 border border-blue-100 rounded-xl text-[11px] text-slate-600";
+export const sigNoticeBox = "flex items-center gap-2 p-1.5 bg-blue-50/60 border border-blue-100 rounded-xl text-[11px] text-slate-600";
 export const sigModalFooter = "flex items-center justify-between pt-3 border-t border-slate-100";
 export const sigCancelBtn = "px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer";
 export const sigClearBtn = "px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200";
@@ -312,7 +312,7 @@ export const sigSaveBtn = "px-5 py-2 text-xs font-bold text-white bg-blue-600 ho
 
 // Signature Preview Box on Step 3
 export const sigActionBox = "flex flex-col items-center justify-center border border-dashed border-slate-300 rounded-xl p-4 bg-slate-50/50 space-y-2";
-export const sigCreateBtn = "px-5 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition shadow-sm cursor-pointer";
+export const sigCreateBtn = "px-5 py-2 bg-blue-600 text-white font-bold text-xs rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer";
 export const sigPreviewWrapper = "flex flex-col items-center space-y-1";
 export const sigImgPreview = "h-16 object-contain border border-slate-300 bg-white rounded-lg px-3 py-1 shadow-xs";
 export const sigDeleteBtn = "text-[11px] font-bold text-red-600 hover:underline cursor-pointer";
@@ -333,5 +333,14 @@ export const annexureTableClass = "w-full text-xs border-collapse border border-
 export const annexureTableHeader = "bg-slate-100 text-slate-900 font-medium";
 export const annexureTableCell = "border border-slate-400 p-1.5";
 export const signatureBlockWrapper = "pt-6 border-t border-slate-200 space-y-5";
-export const signatureBoxContainer = "w-full h-24 border border-slate-300 rounded-xl bg-white flex items-center justify-center p-2 shadow-inner overflow-hidden";
+export const signatureBoxContainer = "w-full h-20 border border-slate-400 rounded-lg bg-white flex items-center justify-center p-2  overflow-hidden";
 export const signatureEmptyBox = "flex flex-col items-center justify-center rounded-xl p-4 bg-slate-50/50 space-y-2 w-[240px]";
+
+// Image Preview Modal Styles
+export const imgModalOverlay = "fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4";
+export const imgModalCard = "bg-white rounded-2xl p-4 max-w-2xl w-full relative shadow-2xl border border-slate-100";
+export const imgModalHeader = "flex items-center justify-between pb-3 mb-3 border-b border-slate-100";
+export const imgModalTitle = "text-xs font-bold text-slate-800";
+export const imgModalCloseBtn = "w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-bold transition cursor-pointer";
+export const imgModalBody = "text-center";
+export const imgModalImage = "max-h-[70vh] w-auto mx-auto rounded-xl object-contain shadow-sm";
