@@ -1,5 +1,90 @@
 const EventOrgAccount = require('../models/eventOrgAccountModel.js');
 const jwt = require('jsonwebtoken');
+const { GoogleGenAI } = require('@google/genai');
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+const verifyPanDocument = async (req, res) => {
+  try {
+    const { userPan, userName, panCardBase64, orgId, tenantKey } = req.body;
+
+    if (!panCardBase64) {
+      return res.status(400).json({ success: false, message: 'PAN card image data is missing.' });
+    }
+
+    if (!userPan || !userName) {
+      return res.status(400).json({ success: false, message: 'User PAN and Name are required.' });
+    }
+
+    const base64Data = panCardBase64.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+
+    const imagePart = {
+      inlineData: {
+        data: base64Data,
+        mimeType: 'image/jpeg',
+      },
+    };
+
+const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash', // Updated to the active model name
+      contents: [
+        imagePart,
+        "Extract the PAN number and full name from this PAN card. Return ONLY a valid JSON object with exact keys 'pan' and 'name'."
+      ],
+    });
+
+    const textResponse = response.text.trim();
+    const cleanedJson = textResponse.replace(/^```json\s*|\s*```$/g, '');
+    const extractedData = JSON.parse(cleanedJson);
+
+    const inputPan = userPan.trim().toUpperCase();
+    const scannedPan = extractedData.pan ? extractedData.pan.trim().toUpperCase() : '';
+
+    const inputName = userName.trim().toLowerCase();
+    const scannedName = extractedData.name ? extractedData.name.trim().toLowerCase() : '';
+
+    const isPanMatch = inputPan === scannedPan;
+    const isNameMatch = scannedName.includes(inputName) || inputName.includes(scannedName);
+    const isMatch = isPanMatch && isNameMatch;
+
+    let query = {};
+    if (orgId) query.orgId = orgId;
+    else if (tenantKey) query.tenantKey = tenantKey;
+    else query.panNumber = inputPan;
+
+    const org = await EventOrgAccount.findOne(query);
+
+    if (org) {
+      org.panVerified = isMatch;
+      if (isMatch) {
+        org.panCardDocument = panCardBase64;
+      }
+      await org.save();
+    }
+
+    if (isMatch) {
+      return res.status(200).json({
+        success: true,
+        message: 'PAN card verified successfully!',
+        panVerified: true
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'PAN card details do not match the form inputs.',
+        panVerified: false,
+        extracted: { pan: scannedPan, name: scannedName }
+      });
+    }
+
+  } catch (error) {
+    console.error('PAN Verification Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error verifying PAN card image',
+      error: error.message
+    });
+  }
+};
 
 const generateToken = (id, orgId) => {
   return jwt.sign({ id, orgId }, process.env.JWT_SECRET || 'fallback_secret_key', {
@@ -32,7 +117,7 @@ const registerOrgAccount = async (req, res) => {
       tenantKey,
       orgName,
       orgAddress,
-      panLinkedAadhaar,
+      // panLinkedAadhaar,
       panNumber,
       gstinNumber,
       gstDeclaration,
@@ -61,7 +146,7 @@ const registerOrgAccount = async (req, res) => {
     if (existingOrg) {
       if (orgName) existingOrg.orgName = orgName;
       if (orgAddress !== undefined) existingOrg.orgAddress = orgAddress;
-      if (panLinkedAadhaar) existingOrg.panLinkedAadhaar = panLinkedAadhaar;
+      // if (panLinkedAadhaar) existingOrg.panLinkedAadhaar = panLinkedAadhaar;
       if (panNumber) existingOrg.panNumber = panNumber.toUpperCase();
       if (gstinNumber) existingOrg.gstinNumber = gstinNumber.toUpperCase();
       if (gstDeclaration !== undefined) existingOrg.gstDeclaration = gstDeclaration === 'true' || gstDeclaration === true;
@@ -109,7 +194,7 @@ const registerOrgAccount = async (req, res) => {
       tenantKey: newTenantKey,
       orgName: orgName || 'Pending Name',
       orgAddress,
-      panLinkedAadhaar,
+      // panLinkedAadhaar,
       panNumber: panNumber ? panNumber.toUpperCase() : 'TEMP_PAN',
       gstinNumber: gstinNumber ? gstinNumber.toUpperCase() : null,
       gstDeclaration: gstDeclaration === 'true' || gstDeclaration === true,
@@ -302,8 +387,10 @@ const saveOrgStep = async (req, res) => {
   }
 };
 
+
 module.exports = {
   registerOrgAccount,
   getOrgAccount,
-  saveOrgStep
+  saveOrgStep,
+  verifyPanDocument,
 };

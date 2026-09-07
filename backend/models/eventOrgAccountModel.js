@@ -20,6 +20,10 @@ const eventOrgAccountSchema = new mongoose.Schema({
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   signatureImage: { type: String, default: null },
   signinAgreement: { type: Boolean, default: false },
+  panVerified: {
+  type: Boolean,
+  default: false
+},
   signingAt: { type: Date, default: null },
   signingIp: { type: String, default: null }
 }, { timestamps: true });

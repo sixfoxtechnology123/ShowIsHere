@@ -93,7 +93,8 @@ const EventOrgAccount = () => {
   const [signatureImage, setSignatureImage] = useState(null);
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
-
+  const [isVerifyingPan, setIsVerifyingPan] = useState(false);
+const [isPanVerified, setIsPanVerified] = useState(false);
   // History states for keyboard Undo/Redo tracking
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
@@ -287,31 +288,60 @@ const saveSignature = () => {
     }
   };
 
-const processUploadedFile = (file) => {
-    // Validate image type only
-    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-      toast.error('Only JPG, JPEG, and PNG image formats are allowed.', { id: 'file-type-error' });
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('File size should not exceed 2 MB.', { id: 'file-size-error' });
-      return;
-    }
-    setUploadedDoc(file.name);
-    setFileType(file.type);
+const processUploadedFile = async (file) => {
+  if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+    toast.error('Only JPG, JPEG, and PNG image formats are allowed.', { id: 'file-type-error' });
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error('File size should not exceed 2 MB.', { id: 'file-size-error' });
+    return;
+  }
+  
+  setUploadedDoc(file.name);
+  setFileType(file.type);
+  
+  const reader = new FileReader();
+  reader.onloadend = async () => {
+    const base64Result = reader.result;
+    setDocPreview(base64Result);
+    setPanCardBase64({
+      fileName: file.name,
+      fileType: file.type,
+      base64Data: base64Result
+    });
     
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setDocPreview(reader.result);
-      setPanCardBase64({
-        fileName: file.name,
-        fileType: file.type,
-        base64Data: reader.result
+    // Automatically trigger backend verification right after upload
+    try {
+      setIsVerifyingPan(true);
+      toast.loading('Verifying PAN card with AI...', { id: 'pan-verify-toast' });
+
+      const response = await API.post('/org/verify-pan', {
+        orgId: formData.orgId,
+        tenantKey: formData.tenantKey,
+        userPan: formData.panNumber,
+        userName: formData.orgName,
+        panCardBase64: base64Result
       });
-      toast.success('Document uploaded successfully!', { id: 'file-success' });
-    };
-    reader.readAsDataURL(file);
+
+      setIsVerifyingPan(false);
+      const resData = response.data || response;
+
+    if (resData && resData.success) {
+        setIsPanVerified(true);
+        toast.success('PAN card verified & matched successfully!', { id: 'pan-verify-toast' });
+      } else {
+        setIsPanVerified(false);
+        toast.error(resData.message || 'PAN card details did not match your form input.', { id: 'pan-verify-toast' });
+      }
+    } catch (error) {
+      setIsVerifyingPan(false);
+      const errorMsg = error.response?.data?.message || error.message;
+      toast.error(errorMsg || 'Verification failed. Please upload a clearer image.', { id: 'pan-verify-toast' });
+    }
   };
+  reader.readAsDataURL(file);
+};
 
   useEffect(() => {
     if (isGstModalOpen) {
@@ -350,10 +380,10 @@ const validateStep1 = () => {
       toast.error('Please enter the Organisation or Individual Address.', { id: 'form-error-toast' });
       return false;
     }
-    if (!formData.panLinkedAadhaar) {
-      toast.error('Please select whether your PAN is linked with Aadhaar.', { id: 'form-error-toast' });
-      return false;
-    }
+    // if (!formData.panLinkedAadhaar) {
+    //   toast.error('Please select whether your PAN is linked with Aadhaar.', { id: 'form-error-toast' });
+    //   return false;
+    // }
     if (!formData.panNumber.trim()) {
       toast.error('Please enter the PAN card number.', { id: 'form-error-toast' });
       return false;
@@ -489,10 +519,21 @@ const handleSaveDetails = async () => {
     await saveToDatabase();
   };
 
-  // Clicking "Proceed" / "Sign Agreement" saves to MongoDB and advances step
+// Clicking "Proceed" / "Sign Agreement" saves to MongoDB and advances step
   const handleProceed = async () => {
     if (activeStep === 1) {
       if (!validateStep1()) return;
+    }
+
+    if (activeStep === 2) {
+      if (!uploadedDoc) {
+        toast.error('Please upload your PAN card document.', { id: 'pan-error' });
+        return;
+      }
+      if (!isPanVerified) {
+        toast.error('Please wait for PAN verification to complete successfully before proceeding.', { id: 'pan-error' });
+        return;
+      }
     }
 
     const saved = await saveToDatabase();
@@ -612,13 +653,15 @@ const handleSaveDetails = async () => {
                   <div>
                     <label className={accountLabelStyle}>Organisation/Individual PAN card number</label>
                     <input
-                      type="text"
-                      name="panNumber"
-                      placeholder="e.g. ABCDE1234F"
-                      value={formData.panNumber}
-                      onChange={handleInputChange}
-                      className={inputFieldStyle}
-                    />
+                        type="text"
+                        name="panNumber"
+                        placeholder="e.g. ABCDE1234F"
+                        value={formData.panNumber}
+                        onChange={(e) => {
+                          setFormData({ ...formData, panNumber: e.target.value.toUpperCase() });
+                        }}
+                        className={inputFieldStyle}
+                      />
                     <p className="text-[11px] text-slate-400 mt-1">PAN will be used to retrieve GSTINs (if available).</p>
                   </div>
 
