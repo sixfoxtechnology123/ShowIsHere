@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import Logo from '../assets/Logo.jpeg';
+import GSTDeclaration from './../utils/GSTDeclaration';
+import SignAgrement from './../utils/SignAgrement';
 import {
   mainContainer,
   inputFieldStyle,
@@ -51,9 +53,25 @@ import {
   gstModalBody,
   gstModalFooter,
   gstModalProceedBtn,
-  gstModalCancelBtn,
-  gstModalBrandRight,
-  gstModalLogo
+ sigModalOverlay,
+  sigModalCard,
+  sigModalHeader,
+  sigModalTitle,
+  sigModalSubTitle,
+  sigCanvasBox,
+  sigNoticeBox,
+  sigModalFooter,
+  sigCancelBtn,
+  sigClearBtn,
+  sigSaveBtn,
+  sigActionBox,
+  sigCreateBtn,
+sigPreviewBoxContainer,
+  sigImageCard,
+  sigImgPreviewTag,
+  sigPreviewFooterRow,
+  sigLabelText,
+  sigDeleteButtonStyled
 } from '../styles/MasterCSSClass';
 
 const EventCreate = () => {
@@ -67,6 +85,133 @@ const [fileType, setFileType] = useState('');
 const [isGstModalOpen, setIsGstModalOpen] = useState(false);
 const [modalCheckboxChecked, setModalCheckboxChecked] = useState(false);
 const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+const [isSigModalOpen, setIsSigModalOpen] = useState(false);
+const [signatureImage, setSignatureImage] = useState(null);
+const canvasRef = useRef(null);
+const [isDrawing, setIsDrawing] = useState(false);
+
+// History states added for keyboard Undo/Redo tracking
+const [history, setHistory] = useState([]);
+const [historyStep, setHistoryStep] = useState(-1);
+
+const startDrawing = (e) => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX || e.touches[0].clientX) - rect.left;
+  const y = (e.clientY || e.touches[0].clientY) - rect.top;
+  
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  setIsDrawing(true);
+};
+
+const draw = (e) => {
+  if (!isDrawing) return;
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX || e.touches[0].clientX) - rect.left;
+  const y = (e.clientY || e.touches[0].clientY) - rect.top;
+  
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineTo(x, y);
+  ctx.stroke();
+};
+
+const saveToHistory = () => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const dataUrl = canvas.toDataURL('image/png');
+  const updatedHistory = history.slice(0, historyStep + 1);
+  setHistory([...updatedHistory, dataUrl]);
+  setHistoryStep(updatedHistory.length);
+};
+
+const stopDrawing = () => {
+  if (!isDrawing) return;
+  setIsDrawing(false);
+  saveToHistory();
+};
+
+const restoreCanvasState = (dataUrl) => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+  img.src = dataUrl;
+  img.onload = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+  };
+};
+
+const handleUndo = () => {
+  if (historyStep > 0) {
+    const newStep = historyStep - 1;
+    setHistoryStep(newStep);
+    restoreCanvasState(history[newStep]);
+  } else if (historyStep === 0) {
+    setHistoryStep(-1);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+};
+
+const handleRedo = () => {
+  if (historyStep < history.length - 1) {
+    const newStep = historyStep + 1;
+    setHistoryStep(newStep);
+    restoreCanvasState(history[newStep]);
+  }
+};
+
+// Keyboard shortcut listener for Ctrl+Z and Ctrl+Y when signature modal is open
+useEffect(() => {
+  if (!isSigModalOpen) return;
+
+  const handleKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        handleRedo();
+      } else {
+        handleUndo();
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      handleRedo();
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, [isSigModalOpen, history, historyStep]);
+
+const clearSignature = () => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  setHistory([]);
+  setHistoryStep(-1);
+};
+
+const saveSignature = () => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  const dataUrl = canvas.toDataURL('image/png');
+  setSignatureImage(dataUrl);
+  setIsSigModalOpen(false);
+  toast.success('Signature applied successfully!');
+};
 
 const handleOpenGstModal = () => {
     // Open modal only if the checkbox is not already checked
@@ -554,23 +699,30 @@ const handleDocumentUpload = (e) => {
                       </div>
                     )}
                   </div>
-      </div>
-    </div>
-  </div>
-)}
+              </div>
+            </div>
+          </div>
+        )}
 
-          {activeStep === 3 && (
-            <div className="py-12 text-center space-y-4">
-              <h3 className="text-xl font-bold text-slate-800">Sign Agreement</h3>
-              <p className="text-xs text-slate-500">Review terms and digitally sign the agreement to complete your setup.</p>
+       {activeStep === 3 && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-2xl p-4 shadow-xs border border-gray-100 max-h-[500px] overflow-y-auto">
+                <SignAgrement 
+                  organizerName={formData.orgName || "Debabrata Mandal"}
+                  organizerLocation={formData.state || "Kolkata"}
+                  organizerPan={formData.panNumber || "BMQPM2573K"}
+                  signatoryEmail={formData.contactEmail || "sbrta.roy@gmail.com"}
+                  signedDateTime={new Date().toLocaleString()}
+                  signedIp=""
+                  signatureImage={signatureImage}
+                  onCreateSignature={() => setIsSigModalOpen(true)}
+                  onDeleteSignature={() => setSignatureImage(null)}
+                />
+              </div>
             </div>
           )}
         </div>
-
-
-        
       </main>
-
      {/* Footer bar with fixed positioning at the bottom */}
       <footer className="bg-white border-t border-slate-200 py-4 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full">
         <div className={accountFooterInner}>
@@ -587,8 +739,8 @@ const handleDocumentUpload = (e) => {
             onClick={handleProceed}
             className={accountPrimaryBtn}
           >
-            <span>Proceed</span>
-            <span>&rarr;</span>
+            <span>{activeStep === 3 ? "Sign Agreement" : "Proceed"}</span>
+            
           </button>
         </div>
       </footer>
@@ -601,23 +753,15 @@ const handleDocumentUpload = (e) => {
               <h3 className={gstModalTitle}>
                 GST Declaration
               </h3>
-              <div className="flex items-center space-x-2">
-                <img src={Logo} alt="Logo" className={gstModalLogo} />
-                <span className="text-xs font-extrabold text-slate-700 tracking-tight">let's do it</span>
-              </div>
+              <div className={accountLogoContainer}>
+            <img src={Logo} alt="Logo" className={accountLogoImg} />
+            <span className={accountBrandText}>showishere</span>
+          </div>
             </div>
 
             {/* Scrollable Text Content Box with Scroll Listener */}
             <div className={gstModalBody} onScroll={handleModalScroll}>
-              <p>
-                I/We, Organizer, do confirm and acknowledge that I/Am/We are a supplier providing services through an e-commerce platform as per Section 24(1X) of the Central Goods and Services Tax under the prevalent GST regime ("GST Laws") and confirm that I/We are not registered under the GST Act, since our annual turnover is below the threshold limit of Rs. 20 Lakhs (supplier supply only services).
-              </p>
-              <p>
-                I/We confirm that any applicable taxes collected on the Tickets booked through Bigtree Entertainment Pvt. Ltd.'s platform i.e. www.bookmyshow.com and/or its mobile application and/or other sales channels is our liability and the same shall be duly discharged by us.
-              </p>
-              <p>
-                I/We acknowledge that information furnished above are true to the best of my/our knowledge and that we shall be bound by the acts of duly constituted attorney. In case any of the above information is found to be incorrect at a later date, my membership with your platform shall stand cancelled and any payment or unprocessed bill shall be withheld by you on the basis of the statements.
-              </p>
+              <GSTDeclaration />
             </div>
 
             {/* Fixed Footer */}
@@ -645,6 +789,66 @@ const handleDocumentUpload = (e) => {
               >
                 Proceed
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Create Signature Separate Modal Popup */}
+      {isSigModalOpen && (
+        <div className={sigModalOverlay}>
+          <div className={sigModalCard}>
+            <div className={sigModalHeader}>
+              <h3 className={sigModalTitle}>Create your signature</h3>
+              <p className={sigModalSubTitle}>Your digital signature is a one-time setup and can be reused for signing future agreements.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700">Please draw your signature in the space below</label>
+              <canvas
+                ref={canvasRef}
+                width={590}
+                height={192}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                className={sigCanvasBox}
+              />
+            </div>
+
+            <div className={sigNoticeBox}>
+              <span>ℹ️</span>
+              <span>All information provided will be used to create your digital signature on ShowIsHere and will be associated with your ShowIsHere account.</span>
+            </div>
+
+            <div className={sigModalFooter}>
+              <button
+                type="button"
+                onClick={() => setIsSigModalOpen(false)}
+                className={sigCancelBtn}
+              >
+                Cancel
+              </button>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={clearSignature}
+                  className={sigClearBtn}
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={saveSignature}
+                  className={sigSaveBtn}
+                >
+                  Save and Apply
+                </button>
+              </div>
             </div>
           </div>
         </div>
