@@ -130,7 +130,7 @@ const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     setIsDrawing(true);
   };
 
-  const draw = (e) => {
+const draw = (e) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -139,9 +139,11 @@ const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     const x = (e.clientX || e.touches[0].clientX) - rect.left;
     const y = (e.clientY || e.touches[0].clientY) - rect.top;
     
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#0f172a';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#000000';
+    
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -546,12 +548,14 @@ const handleSaveDetails = async () => {
       </header>
 
       <main className={accountMainContainer}>
-        <div className={accountTitleSection}>
-          <h1 className={accountMainTitle}>Account Setup</h1>
-          <p className={accountMainSubTitle}>
-            Please fill in the below details so that we can setup an account for your organisation in our system and give you access to the Do-It-Yourself portal for listing your event.
-          </p>
-        </div>
+        {activeStep !== 3 && (
+          <div className={accountTitleSection}>
+            <h1 className={accountMainTitle}>Account Setup</h1>
+            <p className={accountMainSubTitle}>
+              Please fill in the below details so that we can setup an account for your organisation in our system and give you access to the Do-It-Yourself portal for listing your event.
+            </p>
+          </div>
+        )}
 
         <div className={accountFormCard}>
           {activeStep === 1 && (
@@ -559,7 +563,7 @@ const handleSaveDetails = async () => {
               <div>
                 <h3 className={accountSectionHeading}>Organisation Details</h3>
                 
-                <div className="space-y-4 pt-2">
+                <div className="space-y-5  pt-2">
                   <div>
                     <label className={accountLabelStyle}>Organisation/Individual Name</label>
                     <input
@@ -583,7 +587,7 @@ const handleSaveDetails = async () => {
                       className={inputFieldStyle + " resize-none"}
                     />
                   </div>
-
+{/* 
                   <div>
                     <label className={accountLabelStyle}>
                       If you are an Individual PAN holder, please specify whether your PAN is linked with Aadhaar?
@@ -597,13 +601,13 @@ const handleSaveDetails = async () => {
                             value={option}
                             checked={formData.panLinkedAadhaar === option}
                             onChange={handleInputChange}
-                            className="text-blue-600 focus:ring-blue-500"
+                            className="text-blue-600  focus:ring-blue-500"
                           />
                           <span>{option}</span>
                         </label>
                       ))}
                     </div>
-                  </div>
+                  </div> */}
 
                   <div>
                     <label className={accountLabelStyle}>Organisation/Individual PAN card number</label>
@@ -651,20 +655,27 @@ const handleSaveDetails = async () => {
                     ** Please Note: If your business's annual revenue exceeds ₹20 lakhs, you are required to provide your GSTIN details.
                   </div>
 
-                  <div className="relative max-w-xs" ref={dropdownRef}>
+                 <div className="relative max-w-xs" ref={dropdownRef}>
                     <label className={accountLabelStyle}>State</label>
-                    <input
-                      type="text"
-                      placeholder="Select or search state..."
-                      value={formData.state}
-                      onChange={(e) => {
-                        setFormData({ ...formData, state: e.target.value });
-                        setIsStateOpen(true);
-                      }}
-                      onClick={() => setIsStateOpen(true)}
-                      className={inputFieldStyle}
-                    />
-
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        placeholder="Select or search state..."
+                        value={formData.state}
+                        onChange={(e) => {
+                          setFormData({ ...formData, state: e.target.value });
+                          setIsStateOpen(true);
+                        }}
+                        onClick={() => setIsStateOpen(true)}
+                        className={inputFieldStyle + " pr-12 cursor-pointer"}
+                      />
+                      <div className="absolute right-0 flex items-center h-full pr-3 pointer-events-none">
+                        <div className="h-5 border-l border-slate-200 mr-3"></div>
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
                     {isStateOpen && (
                       <div className="absolute left-0 top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-50">
                         <div
@@ -708,7 +719,7 @@ const handleSaveDetails = async () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100">
+              <div className="pt-6 border-t border-slate-100">
                 <h3 className={accountSectionHeading}>Contact Person Details</h3>
                 <div className={accountThreeColGrid + " pt-4"}>
                   <div>
@@ -753,7 +764,7 @@ const handleSaveDetails = async () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100">
+              <div className="pt-6 border-t border-slate-100">
                 <h3 className={accountSectionHeading}>Bank details</h3>
                 <div className={accountThreeColGrid + " pt-4"}>
                   <div>
@@ -887,8 +898,8 @@ const handleSaveDetails = async () => {
           )}
 
  {activeStep === 3 && (
-            <div className="space-y-4">
-              <div className="bg-white rounded-2xl p-4 shadow-xs border border-gray-100 max-h-[500px] overflow-y-auto">
+            <div >
+              <div className="bg-white py-1 px-14 max-h-full overflow-y-auto">
                 <SignAgrement 
                   signingDate={new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                   organizerName={formData.orgName}

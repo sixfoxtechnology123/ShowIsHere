@@ -1,4 +1,4 @@
-export const mainContainer = "min-h-screen bg-slate-50 flex flex-col relative pb-10"; // Added pb-24 so content doesn't hide behind the fixed footer
+export const mainContainer = "min-h-screen bg-slate-50 flex flex-col relative pb-8 "; // Added pb-24 so content doesn't hide behind the fixed footer
 
 export const navbar = "bg-white text-slate-800 px-6 py-3 flex items-center justify-between border-b border-slate-200/80 sticky top-0 z-50 shadow-xs";
 export const logoContainer = "flex items-center space-x-3 cursor-pointer";
@@ -233,7 +233,7 @@ export const accountHeaderInner = "w-full px-8 py-3 flex items-center justify-be
 export const accountLogoContainer = "flex items-center space-x-2";
 export const accountLogoImg = "w-8 h-8 object-cover rounded-lg";
 export const accountBrandText = "font-extrabold text-blue-900 text-base tracking-tight";
-export const accountStepsBar = "hidden md:flex items-center space-x-12";
+export const accountStepsBar = "hidden md:flex items-center space-x-20";
 
 export const accountStepItemActive = "flex items-center space-x-2 px-5 py-1 rounded-xl bg-[#f0f4ff] border border-blue-100/60 shadow-xs relative text-blue-700 font-bold text-xs cursor-pointer overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[1px]";
 export const accountStepItemInactive = "flex items-center space-x-3 px-5 py-2 rounded-xl text-xs font-semibold text-slate-400 cursor-pointer hover:text-slate-600 transition";
@@ -243,14 +243,14 @@ export const accountStepBadgeInactive = "w-6 h-6 rounded-full bg-slate-100 text-
 
 export const accountUserIconBox = "w-9 h-9 rounded-full border border-blue-900/20 flex items-center justify-center text-blue-900 cursor-pointer shadow-2xs bg-white";
 
-export const accountMainContainer = "max-w-3xl mx-auto px-6 py-4 flex-1 w-full pb-1";
-export const accountTitleSection = "text-center max-w-2xl mx-auto mb-6 space-y-2";
+export const accountMainContainer = "mx-auto px-64  flex-1 w-full bg-[#F2F5FA]";
+export const accountTitleSection = "text-center max-w-2xl mx-auto mb-6 ";
 export const accountMainTitle = "text-2xl sm:text-3xl font-bold text-slate-700 tracking-tight";
 export const accountMainSubTitle = "text-xs sm:text-sm text-slate-500 font-medium leading-relaxed";
-export const accountFormCard = "bg-white rounded-lg p-4 sm:p-6 shadow-sm border border-slate-200/80 w-full overflow-hidden";
+export const accountFormCard = "bg-white  p-4 sm:p-6 shadow-sm border border-slate-200/80 w-full overflow-hidden";
 export const accountSectionHeading = "flex items-center space-x-3 py-1.5 px-4 sm:px-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 bg-[#f0f4ff] text-xs font-black text-blue-900 tracking-wide relative overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[4px]";
 export const accountThreeColGrid = "grid grid-cols-1 sm:grid-cols-3 gap-4";
-export const accountLabelStyle = "block text-xs font-bold text-slate-700 mb-1.5";
+export const accountLabelStyle = "block text-xs font-bold text-slate-700 mb-2.5";
 export const accountRadioGroup = "flex items-center space-x-6 pt-1";
 export const accountRadioLabel = "flex items-center space-x-2 text-xs font-semibold text-slate-700 cursor-pointer";
 export const accountCheckboxWrapper = "flex items-center space-x-2.5 cursor-pointer";
@@ -303,10 +303,10 @@ export const sigModalCard = "bg-white rounded-2xl shadow-2xl w-[640px] overflow-
 export const sigModalHeader = "flex flex-col space-y-1 pb-3 border-b border-slate-100";
 export const sigModalTitle = "text-base font-bold text-slate-800 ";
 export const sigModalSubTitle = "text-xs text-slate-500";
-export const sigCanvasBox = "w-full h-48 border border-slate-300 rounded-xl bg-white cursor-crosshair touch-none shadow-inner";
+export const sigCanvasBox = "w-full h-48 border border-slate-300 rounded-xl bg-white touch-none shadow-inner";
 export const sigNoticeBox = "flex items-center gap-2 p-1.5 bg-blue-50/60 border border-blue-100 rounded-xl text-[11px] text-slate-600";
 export const sigModalFooter = "flex items-center justify-between pt-3 border-t border-slate-100";
-export const sigCancelBtn = "px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer";
+export const sigCancelBtn = "px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200";
 export const sigClearBtn = "px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer border border-slate-200";
 export const sigSaveBtn = "px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-sm cursor-pointer";
 
@@ -326,15 +326,15 @@ export const sigLabelText = "text-xs font-semibold text-slate-800";
 export const sigDeleteButtonStyled = "px-3 py-1 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg transition shadow-sm cursor-pointer";
 
 // Add these to your existing MasterCSSClass.js exports:
-export const agreementContainer = "space-y-4 text-sm font-sans text-slate-800 leading-relaxed font-normal";
-export const agreementHeader = "text-center font-medium text-sm tracking-wide text-slate-900 pb-2";
+export const agreementContainer = "space-y-4 pb-14 text-xs text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal";
+export const agreementHeader = "text-center font-medium text-sm tracking-wide text-slate-900 pb-1";
 export const agreementSectionTitle = "font-medium text-slate-800 pt-2";
 export const annexureTableClass = "w-full text-xs border-collapse border border-slate-400 text-[11px]";
-export const annexureTableHeader = "bg-slate-100 text-slate-900 font-medium";
+export const annexureTableHeader = "text-slate-900 font-medium";
 export const annexureTableCell = "border border-slate-400 p-1.5";
-export const signatureBlockWrapper = "pt-6 border-t border-slate-200 space-y-5";
+export const signatureBlockWrapper = "pt-6 space-y-5";
 export const signatureBoxContainer = "w-full h-20 border border-slate-400 rounded-lg bg-white flex items-center justify-center p-2  overflow-hidden";
-export const signatureEmptyBox = "flex flex-col items-center justify-center rounded-xl p-4 bg-slate-50/50 space-y-2 w-[240px]";
+export const signatureEmptyBox = "flex flex-col items-center justify-center rounded-xl p-4 space-y-2 w-[240px]";
 
 // Image Preview Modal Styles
 export const imgModalOverlay = "fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4";

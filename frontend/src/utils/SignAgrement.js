@@ -29,26 +29,27 @@ const SignAgrement = ({
 }) => {
   return (
     <div className={agreementContainer}>
+      <div className={agreementContainer}>
       <div className={agreementHeader}>
         EVENT TICKETING &amp; SERVICES AGREEMENT
       </div>
 
-      <p className="font-semibold text-slate-800">
+      <p className="font-medium text-slate-800">
         PLEASE READ THIS TICKETING SERVICES AGREEMENT CAREFULLY.
       </p>
 
       <p>
-        This agreement is made on this <strong>{signingDate || new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>  between:
+        This agreement is made on this {signingDate || new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}  between:
       </p>
 
       <p>
-        <strong>The Emunity Solutions Pvt. Ltd.</strong>, a company incorporated under the Indian Companies Act, 2013 having its registered office located at Kolkata (hereinafter referred to as 'ShowIsHere', which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
+        The Emunity Solutions Pvt. Ltd., a company incorporated under the Indian Companies Act, 2013 having its registered office located at Kolkata (hereinafter referred to as 'ShowIsHere', which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
       </p>
 
       <p>And</p>
 
       <p>
-        <strong>{organizerName || 'Event Organizer'}</strong>, a Company incorporated under the Companies Act 2013 or an individual having its registered office located at {organizerLocation || 'N/A'}  PAN: {organizerPan || 'N/A'} {organizerGst ? `GST: ${organizerGst}` : ''} (hereinafter referred to as 'Event Organizer' which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
+        {organizerName || 'Event Organizer'}, a Company incorporated under the Companies Act 2013 or an individual having its registered office located at {organizerLocation || 'N/A'}  PAN: {organizerPan || 'N/A'} {organizerGst ? `GST: ${organizerGst}` : ''} (hereinafter referred to as 'Event Organizer' which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
       </p>
 
       <p>
@@ -60,27 +61,27 @@ const SignAgrement = ({
       <p>b. ShowIsHere is engaged in the business of providing online ticket booking services through its digital platforms (showishere.com), enabling customers to remotely reserve / book tickets for various entertainment events without the necessity of accessing any physical ticketing outlet or point of sale.</p>
       <p>c. The Event Organizer has approached ShowIsHere for availing its ticketing services, pursuant to which the Parties have agreed to enter into this Agreement to set forth the terms and conditions governing the online/remote booking and sale of tickets for the Event and matters incidental thereto.</p>
 
-      <p className="font-semibold text-slate-800 pt-2">NOW THEREFORE, in consideration of the mutual covenants, promises and obligations contained herein, the Parties, intending to be legally bound, hereby agree as follows:</p>
+      <p className="font-medium text-slate-800 pt-2">NOW THEREFORE, in consideration of the mutual covenants, promises and obligations contained herein, the Parties, intending to be legally bound, hereby agree as follows:</p>
 
       {/* 1. Definitions */}
       <div className="space-y-3 pt-2">
-        <h3 className="font-semibold text-slate-800">1. Definitions</h3>
+        <h3 className="font-medium text-slate-800">1. Definitions</h3>
         <p>Unless the context otherwise requires, the following expressions shall have the meanings set out below:</p>
-        <p><strong>1.1 ‘Confidential Information’</strong> means and includes all information of a confidential or proprietary nature disclosed by either Party, whether directly or indirectly, to the other Party or its directors, employees, representatives, advisors or consultants, in connection with this Agreement, including, without limitation, business and commercial information, technical information, data, ideas, concepts, know-how, processes, designs, specifications, drawings, software, reports, studies, Intellectual Property Rights and other proprietary information, whether disclosed orally, in writing, electronically, digitally or in any other form.</p>
-        <p><strong>1.2 ‘Customers’</strong> means any individual or entity that purchases, reserves, receives or otherwise obtains a Ticket through the ShowIsHere Platform or through any authorized sales channel.</p>
-        <p><strong>1.3 ‘Event’</strong> means the event or events listed by the Event Organizer through the ShowIsHere Platform.</p>
-        <p><strong>1.4 ‘Event Date’</strong> means the date or dates scheduled by the Event Organizer for the holding of the Event and notified to ShowIsHere from time to time.</p>
-        <p><strong>1.5 ‘Event Content’</strong> means all text, photographs, videos, artwork, logos, trademarks, descriptions, artist information, venue information, schedules, prices and other materials supplied by or on behalf of the Event Organizer.</p>
-        <p><strong>1.6 ‘Venue’</strong> means the physical or virtual location(s) as informed by Event Organizer to ShowIsHere in writing from time to time.</p>
-        <p><strong>1.7 ‘Intellectual Property Rights’</strong> means all rights in and to copyrights, trademarks, trade names, logos, domain names, designs, patents, inventions, databases, software, know-how, trade secrets and all other intellectual property or proprietary rights, whether registered or unregistered, together with all applications, registrations, renewals, extensions and modifications thereof.</p>
-        <p><strong>1.8 ‘Ticket’</strong> means a physical or electronic ticket, reservation, pass, QR code, booking confirmation or other entitlement made through the Platform that permits the holder to attend or access the applicable Event subject to the Event terms.</p>
-        <p><strong>1.9 ‘Losses’</strong> shall mean and include all losses, damages, liabilities, claims, demands, penalties, costs, charges, expenses and disbursements of any nature whatsoever, whether actual or incurred, including reasonable legal fees and expenses arising out of or in connection with the investigation, defence, settlement, appeal or enforcement of any claim, action or proceeding.</p>
-        <p><strong>1.10 ‘Force Majeure Event’</strong> means an event beyond the reasonable control of the affected Party, including natural disasters, flood, fire, epidemic, pandemic, war, terrorism, riots, civil disturbance, governmental restrictions, lockdown, judicial orders, changes in law, technical infrastructure failure, telecommunications failure or other similar circumstances.</p>
+        <p>1.1 ‘Confidential Information’ means and includes all information of a confidential or proprietary nature disclosed by either Party, whether directly or indirectly, to the other Party or its directors, employees, representatives, advisors or consultants, in connection with this Agreement, including, without limitation, business and commercial information, technical information, data, ideas, concepts, know-how, processes, designs, specifications, drawings, software, reports, studies, Intellectual Property Rights and other proprietary information, whether disclosed orally, in writing, electronically, digitally or in any other form.</p>
+        <p>1.2 ‘Customers’ means any individual or entity that purchases, reserves, receives or otherwise obtains a Ticket through the ShowIsHere Platform or through any authorized sales channel.</p>
+        <p>1.3 ‘Event’ means the event or events listed by the Event Organizer through the ShowIsHere Platform.</p>
+        <p>1.4 ‘Event Date’ means the date or dates scheduled by the Event Organizer for the holding of the Event and notified to ShowIsHere from time to time.</p>
+        <p>1.5 ‘Event Content’ means all text, photographs, videos, artwork, logos, trademarks, descriptions, artist information, venue information, schedules, prices and other materials supplied by or on behalf of the Event Organizer.</p>
+        <p>1.6 ‘Venue’ means the physical or virtual location(s) as informed by Event Organizer to ShowIsHere in writing from time to time.</p>
+        <p>1.7 ‘Intellectual Property Rights’ means all rights in and to copyrights, trademarks, trade names, logos, domain names, designs, patents, inventions, databases, software, know-how, trade secrets and all other intellectual property or proprietary rights, whether registered or unregistered, together with all applications, registrations, renewals, extensions and modifications thereof.</p>
+        <p>1.8 ‘Ticket’ means a physical or electronic ticket, reservation, pass, QR code, booking confirmation or other entitlement made through the Platform that permits the holder to attend or access the applicable Event subject to the Event terms.</p>
+        <p>1.9 ‘Losses’ shall mean and include all losses, damages, liabilities, claims, demands, penalties, costs, charges, expenses and disbursements of any nature whatsoever, whether actual or incurred, including reasonable legal fees and expenses arising out of or in connection with the investigation, defence, settlement, appeal or enforcement of any claim, action or proceeding.</p>
+        <p>1.10 ‘Force Majeure Event’ means an event beyond the reasonable control of the affected Party, including natural disasters, flood, fire, epidemic, pandemic, war, terrorism, riots, civil disturbance, governmental restrictions, lockdown, judicial orders, changes in law, technical infrastructure failure, telecommunications failure or other similar circumstances.</p>
       </div>
 
       {/* 2. Appointment and Services */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">2. Appointment and Services</h3>
+        <h3 className="font-medium text-slate-800">2. Appointment and Services</h3>
         <p>2.1 The Event Organizer hereby appoints ShowIsHere, to provide the following Platform (‘Services’) in connection with the Event(s), subject to this Agreement and the applicable Commercial Terms.</p>
         <p>2.2 Subject to the terms and conditions of this Agreement, ShowIsHere may provide some or all of the following Ticketing Services:</p>
         <p className="pl-4">a. facilitate creation and listing of Events on the ShowIsHere Platform;</p>
@@ -105,14 +106,14 @@ const SignAgrement = ({
 
       {/* 3. Right to Review and Delist */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">3. Right to Review and Delist</h3>
+        <h3 className="font-medium text-slate-800">3. Right to Review and Delist</h3>
         <p>3.1 ShowIsHere may review Event Content before or after publication. Publication of an Event shall not constitute an endorsement, guarantee or certification of the Event.</p>
         <p>3.2 ShowIsHere may refuse to publish, suspend, modify visibility of or remove an Event or Event Content(s) where: (a) the information is inaccurate or misleading; (b) the Event or Content appears to violate Applicable Law; (c) required permissions or documentation are not provided; (d) there is a reasonable concern regarding public safety, fraud or customer harm; (e) the Event may infringe third-party Intellectual Property Rights; (f) the Event Organizer breaches this Agreement; or (g) ShowIsHere reasonably considers such action necessary to protect Customers, the Platform or its reputation.</p>
       </div>
 
       {/* 4. Responsibility of Event Organizer */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">4. Responsibility of Event Organizer</h3>
+        <h3 className="font-medium text-slate-800">4. Responsibility of Event Organizer</h3>
         <p>4.1 The Event Organizer shall be solely responsible for end to end activities of the Event.</p>
         <p>4.2 Without limitation, the Event Organizer shall:</p>
         <p className="pl-4">a. provide complete, accurate and up-to-date information regarding the Event;</p>
@@ -132,13 +133,13 @@ const SignAgrement = ({
 
       {/* 5. Responsibility of ShowIsHere */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">5. Responsibility of ShowIsHere</h3>
+        <h3 className="font-medium text-slate-800">5. Responsibility of ShowIsHere</h3>
         <p>5.1 ShowIsHere shall render the Services in a professional and competent manner.</p>
       </div>
 
       {/* 6. Consideration and Payment Terms */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">6. Consideration and Payment Terms</h3>
+        <h3 className="font-medium text-slate-800">6. Consideration and Payment Terms</h3>
         <p>6.1 Subject to the terms of this Agreement, ShowIsHere shall be entitled to charge the Event Organizer a commission fee of 7% (seven percent) plus applicable Taxes on the total Ticketing Revenue (the “Convenience Fee”).</p>
         <p>6.2 ShowIsHere may charge Customers a separate booking or other applicable service fee in addition to the Ticket price.</p>
         <p>6.3 Organizer-funded discounts shall be deducted from the Event Organizer's settlement.</p>
@@ -151,7 +152,7 @@ const SignAgrement = ({
 
       {/* 7. Cancellation of the Event */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">7. Cancellation of the Event</h3>
+        <h3 className="font-medium text-slate-800">7. Cancellation of the Event</h3>
         <p>7.1 Any change to the Event Date, Venue, or any material change to the Event schedule may, at ShowIsHere’s discretion, be treated as a cancellation and/or a new Event listing for ticketing purposes.</p>
         <p>7.2 The Event Organizer may cancel any particular Event without terminating this Agreement by providing ShowIsHere with an email notice of cancellation at least forty-eight (48) hours before.</p>
         <p>7.3 All Ticket bookings made through this Ticketing Platform shall be non-cancellable and non-refundable, except that Tickets shall be eligible for refund in the event of cancellation of the relevant Event.</p>
@@ -164,7 +165,7 @@ const SignAgrement = ({
 
       {/* 8. Limitation of Liability */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">8. Limitation of Liability of ShowIsHere</h3>
+        <h3 className="font-medium text-slate-800">8. Limitation of Liability of ShowIsHere</h3>
         <p>8.1 ShowIsHere shall not be liable to any third party for any direct, indirect, incidental, special, punitive or consequential loss or damage, including loss of profits, revenue, business or opportunities, except as expressly provided herein.</p>
         <p>8.2 ShowIsHere shall not be liable for any loss arising from errors, delays, interruptions, defects, non-delivery or failure of its Services.</p>
         <p>8.3 The Event Organizer shall be solely responsible for the accuracy of all Event-related information, including Ticket prices and charges, customer support, payments, invoicing, collections, delivery and after-sales services.</p>
@@ -172,7 +173,7 @@ const SignAgrement = ({
 
       {/* 9. Intellectual Property Right */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">9. Intellectual Property Right</h3>
+        <h3 className="font-medium text-slate-800">9. Intellectual Property Right</h3>
         <p>9.1 Each Party retains all rights, title and ownership in its respective copyrights, trademarks, software, service marks, trade secrets and other intellectual property.</p>
         <p>9.2 Either Party may use the other Party’s name or trademark only for advertisements, promotional materials or other Event-related collateral with prior written approval.</p>
         <p>9.3 Neither Party shall do anything that may infringe, damage or adversely affect the other Party’s Intellectual Property, rights, reputation or goodwill.</p>
@@ -180,7 +181,7 @@ const SignAgrement = ({
 
       {/* 10. Term, Breach and Termination */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">10. Term, Breach and Termination</h3>
+        <h3 className="font-medium text-slate-800">10. Term, Breach and Termination</h3>
         <p>10.1 This Agreement shall commence on the Effective Date and remain in force until terminated in accordance with its terms.</p>
         <p>10.2 Either Party may terminate this Agreement by giving thirty (30) days' prior written notice.</p>
         <p>10.3 ShowIsHere may terminate this Agreement without notice and without any liability at any time in case of any damage and/or threatened damage to its goodwill and/or business reputation by Event Organizer.</p>
@@ -190,7 +191,7 @@ const SignAgrement = ({
 
       {/* 11. Force Majeure */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">11. Force Majeure</h3>
+        <h3 className="font-medium text-slate-800">11. Force Majeure</h3>
         <p>11.1 Neither Party shall be liable for delay or failure to perform its obligations to the extent caused by an event beyond its reasonable control (natural disasters, fire, flood, war, terrorism, government restrictions, strikes).</p>
         <p>11.2 The affected Party shall notify the other Party as soon as reasonably practicable and use reasonable efforts to mitigate effects.</p>
         <p>11.3 If the Force Majeure Event continues for thirty (30) days, the affected Party may terminate this Agreement by written notice.</p>
@@ -198,14 +199,14 @@ const SignAgrement = ({
 
       {/* 12. Indemnification */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">12. Indemnification</h3>
+        <h3 className="font-medium text-slate-800">12. Indemnification</h3>
         <p>12.1 Each Party shall indemnify the other for losses arising from any breach of its representations, warranties, or covenants.</p>
         <p>12.2 This Clause shall survive termination of this Agreement.</p>
       </div>
 
       {/* 13. Confidentiality */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">13. Confidentiality</h3>
+        <h3 className="font-medium text-slate-800">13. Confidentiality</h3>
         <p>13.1 Each Party shall keep all proprietary, confidential information and IP confidential and restrict disclosures on a need-to-know basis.</p>
         <p>13.2 All customer data collected by or in the possession of ShowIsHere shall remain the property of ShowIsHere.</p>
         <p>13.3 This Clause shall survive and remain effective after termination.</p>
@@ -213,7 +214,7 @@ const SignAgrement = ({
 
       {/* 14. Taxes */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">14. Taxes</h3>
+        <h3 className="font-medium text-slate-800">14. Taxes</h3>
         <p>14.1 Each Party shall be responsible for tax(es) applicable to its own income and activities.</p>
         <p>14.2 GST and other indirect tax(es) shall be handled in accordance with applicable law.</p>
         <p>14.3 Where applicable, ShowIsHere shall deduct TDS from payments made to the Event Organizer and deposit it with the Government.</p>
@@ -221,7 +222,7 @@ const SignAgrement = ({
 
       {/* 15. Governing Law */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">15. Governing Law and Dispute Resolution</h3>
+        <h3 className="font-medium text-slate-800">15. Governing Law and Dispute Resolution</h3>
         <p>15.1 This Agreement shall be governed by and construed in accordance with the laws of India.</p>
         <p>15.2 Parties shall first attempt to resolve disputes through good-faith discussions.</p>
         <p>15.3 If unresolved within thirty (30) days, courts at Kolkata, West Bengal shall have exclusive jurisdiction.</p>
@@ -229,16 +230,17 @@ const SignAgrement = ({
 
       {/* 16. Amendment & 17. Severability */}
       <div className="space-y-2 pt-2">
-        <h3 className="font-semibold text-slate-800">16. Amendment &amp; 17. Severability</h3>
+        <h3 className="font-medium text-slate-800">16. Amendment &amp; 17. Severability</h3>
         <p>16. No amendment shall be effective unless made in writing and accepted by both Parties.</p>
         <p>17.1 If any provision is held invalid, the remaining provisions shall continue in full force and effect.</p>
       </div>
+    </div>
 
       {/* ANNEXURE A TABLE */}
-      <div className="pt-6 border-t border-slate-200 space-y-3">
+      <div>
         <div className="text-center space-y-1">
-          <h3 className="font-semibold text-slate-900 tracking-wide text-xs">ANNEXURE A</h3>
-          <h4 className="font-semibold text-slate-800 text-xs">PRE-EVENT OPERATIONAL &amp; COMPLIANCE CHECKLIST</h4>
+          <h3 className="font-medium text-slate-900 tracking-wide text-xs">ANNEXURE A</h3>
+          <h4 className="font-medium text-slate-800 text-xs">PRE-EVENT OPERATIONAL &amp; COMPLIANCE CHECKLIST</h4>
         </div>
 
         <div className="overflow-x-auto pt-2">
@@ -470,7 +472,7 @@ const SignAgrement = ({
 
       {/* Signature Block Area with Side-by-Side Layout */}
       <div className={signatureBlockWrapper}>
-        <p className="font-semibold text-slate-900 leading-normal text-xs">
+        <p className="font-medium text-slate-900 leading-normal text-xs">
           IN WITNESS WHEREOF, the duly authorized representatives of the Parties have executed this Agreement on the date, month and year first hereinabove written.
         </p>
 
@@ -493,7 +495,7 @@ const SignAgrement = ({
                   <img src={signatureImage} alt="Digital Signature" className={sigImgPreviewTag} />
                 </div>
                 <div className="flex items-center justify-between w-full px-1">
-                  <span className="text-xs font-semibold text-slate-800">Signature</span>
+                  <span className="text-xs font-medium text-slate-800">Signature</span>
                   <button 
                     type="button" 
                     onClick={onDeleteSignature} 
@@ -512,7 +514,7 @@ const SignAgrement = ({
                 >
                   Create your signature
                 </button>
-                <span className="text-xs font-semibold text-slate-600">Signature</span>
+                <span className="text-xs font-medium text-slate-600">Signature</span>
               </div>
             )}
           </div>
