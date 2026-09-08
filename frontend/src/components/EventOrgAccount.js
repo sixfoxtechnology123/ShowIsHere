@@ -72,7 +72,8 @@ import {
   imgModalTitle,
   imgModalCloseBtn,
   imgModalBody,
-  imgModalImage
+  imgModalImage,
+  accountFormCardtext
 } from '../styles/MasterCSSClass';
 
 const EventOrgAccount = () => {
@@ -311,9 +312,9 @@ const processUploadedFile = async (file) => {
         base64Data: base64Result
       });
       
-      // Automatically trigger backend verification right after upload (Top toast removed)
       try {
         setIsVerifyingPan(true);
+        setIsPanVerified(false); // Immediately reset verification state on new upload
 
         const response = await API.post('/org/verify-pan', {
           orgId: formData.orgId,
@@ -330,18 +331,18 @@ const processUploadedFile = async (file) => {
           setIsPanVerified(true);
           toast.success('PAN card verified & matched successfully!');
         } else {
-          setIsPanVerified(false);
+          setIsPanVerified(false); // Explicitly set to false on failure
           toast.error(resData.message || 'PAN card details did not match your form input.');
         }
       } catch (error) {
         setIsVerifyingPan(false);
+        setIsPanVerified(false); // Explicitly set to false on server/quota error
         const errorMsg = error.response?.data?.message || error.message;
-        toast.error(errorMsg || 'Verification failed. Please upload a clearer image.');
+        toast.error(errorMsg || 'Verification failed. Please try again.');
       }
     };
     reader.readAsDataURL(file);
   };
-
 useEffect(() => {
   if (activeStep === 3) {
     setShowPopup(true);
@@ -368,6 +369,31 @@ useEffect(() => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Helper to compress image before base64 conversion
+const compressImage = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 900;
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Compress to JPEG with 0.7 quality
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+    };
+  });
+};
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -525,7 +551,7 @@ const handleSaveDetails = async () => {
   };
 
 // Clicking "Proceed" / "Sign Agreement" saves to MongoDB and advances step
-  const handleProceed = async () => {
+const handleProceed = async () => {
     if (activeStep === 1) {
       if (!validateStep1()) return;
     }
@@ -535,10 +561,8 @@ const handleSaveDetails = async () => {
         toast.error('Please upload your PAN card document.', { id: 'pan-error' });
         return;
       }
-      if (!isPanVerified) {
-        toast.error('Please wait for PAN verification to complete successfully before proceeding.', { id: 'pan-error' });
-        return;
-      }
+      // Verification check bypassed or made optional as per your requirement:
+      // "there verified or not verifed is no matter if original pan card then they proceed"
     }
 
     const saved = await saveToDatabase();
@@ -915,70 +939,79 @@ const handleSaveDetails = async () => {
                     </ul>
                   </div>
 
-           <div className={accountPreviewFooter}>
-                {docPreview ? (
-                  <div className="w-full flex flex-col items-center">
-                    <p className="text-[11px] font-bold text-blue-600 mb-1 text-center">Uploaded Preview (Click to view):</p>
-                    
-                    {/* Wrapper matching the image width so elements below align with the image's left side */}
-                    <div className="w-fit">
-                      <img 
-                        src={docPreview} 
-                        alt="Preview" 
-                        onClick={() => setIsImageModalOpen(true)}
-                        className="w-full max-h-36 rounded-xl object-contain shadow-xs cursor-pointer hover:opacity-95 transition" 
-                      />
+          <div className={accountPreviewFooter}>
+          {docPreview ? (
+            <div className="w-full flex flex-col items-center">
+              <p className="text-[11px] font-bold text-blue-600 mb-1 text-center">Uploaded Preview (Click to view):</p>
+              
+              <div className="w-fit">
+                <img 
+                  src={docPreview} 
+                  alt="Preview" 
+                  onClick={() => setIsImageModalOpen(true)}
+                  className="w-full max-h-36 rounded-xl object-contain shadow-xs cursor-pointer hover:opacity-95 transition" 
+                />
 
-                      {/* Status Indicator aligned directly to the image's left side */}
-                      <div className="flex items-center justify-start pt-2.5">
-                        {isVerifyingPan ? (
-                          <div className="flex items-center space-x-2 text-slate-700 text-xs font-medium">
-                            <svg className="w-4 h-4 animate-spin text-slate-500" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Verifying PAN card...</span>
-                          </div>
-                        ) : isPanVerified ? (
-                          <div className="flex items-center space-x-1.5 text-emerald-600 text-xs font-medium">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-500 bg-white rounded-full">
-                              <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
-                            </svg>
-                            <span>Verified</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                  </div>
-                ) : (
-                  <div className="w-full text-center">
-                    <div className="w-full mb-2">
-                      <img src={panSampleImg} alt="PAN Sample" className="w-full max-h-32 mx-auto object-contain rounded-md shadow-xs" />
-                    </div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100/70 text-blue-700 rounded-full text-xs font-semibold">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 shrink-0">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                <div className="flex items-center justify-start pt-2.5">
+                  {isVerifyingPan ? (
+                    <div className="flex items-center space-x-2 text-slate-700 text-xs font-medium">
+                      <svg className="w-4 h-4 animate-spin text-slate-500" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Example of PAN card
+                      <span>Verifying PAN card...</span>
                     </div>
-                  </div>
-                )}
+                  ) : isPanVerified === true ? (
+                    <div className="flex items-center space-x-1.5 text-emerald-600 text-xs font-medium">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-500 bg-white rounded-full">
+                        <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+                      </svg>
+                      <span>Verified</span>
+                    </div>
+                  ) : isPanVerified === false ? (
+                    <div className="flex items-center space-x-1.5 text-red-600 text-xs font-medium">
+                      <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 24 24" className="shrink-0">
+                        <path fill="#EF4444" d="M 12 2 C 6.4889971 2 2 6.4889971 2 12 C 2 17.511003 6.4889971 22 12 22 C 17.511003 22 22 17.511003 22 12 C 22 6.4889971 17.511003 2 12 2 z M 12 4 C 16.430123 4 20 7.5698774 20 12 C 20 16.430123 16.430123 20 12 20 C 7.5698774 20 4 16.430123 4 12 C 4 7.5698774 7.5698774 4 12 4 z M 8.7070312 7.2929688 L 7.2929688 8.7070312 L 10.585938 12 L 7.2929688 15.292969 L 8.7070312 16.707031 L 12 13.414062 L 15.292969 16.707031 L 16.707031 15.292969 L 13.414062 12 L 16.707031 8.7070312 L 15.292969 7.2929688 L 12 10.585938 L 8.7070312 7.2929688 z"></path>
+                      </svg>
+                      <span>Not Verified</span>
+                    </div>
+                  ) : null}
+                </div>
               </div>
+
+            </div>
+          ) : (
+            <div className="w-full text-center">
+              <div className="w-full mb-2">
+                <img src={panSampleImg} alt="PAN Sample" className="w-full max-h-32 mx-auto object-contain rounded-md shadow-xs" />
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100/70 text-blue-700 rounded-full text-xs font-semibold">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 shrink-0">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                </svg>
+                Example of PAN card
+              </div>
+            </div>
+          )}
+        </div>
                 </div>
               </div>
             </div>
           )}
 
- {activeStep === 3 && (
+      {activeStep === 3 && (
             <div >
-              <div className="bg-white py-1 px-14 max-h-full overflow-y-auto">
+              <div >
                 <SignAgrement 
                   signingDate={new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                   organizerName={formData.orgName}
                   organizerLocation={`${formData.orgAddress}`}
                   organizerPan={formData.panNumber}
                   organizerGst={formData.gstinNumber}
+                  bankAccountName={formData.contactFullName || formData.orgName}
+                  bankName={formData.bankName}                   // Must match state
+                  bankAccountNumber={formData.accountNumber}       // Must match state
+                  bankIfsc={formData.bankIfsc}
                   signatoryEmail={formData.contactEmail}
                   signedDateTime={signedTimestamp}
                   signedIp={signedIpAddress}
@@ -995,33 +1028,46 @@ const handleSaveDetails = async () => {
           )}
         </div>
       </main>
-
 <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-16 flex items-center">
   <div className={accountFooterInner}>
-          <button
-            type="button"
-            onClick={handleSecondaryAction}
-            disabled={activeStep === 1 && isDataSaved}
-            className={`${accountSecondaryBtn} ${(activeStep === 1 && isDataSaved) ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400' : ''}`}
-          >
-            {activeStep > 1 ? 'Back' : (isDataSaved ? 'Saved' : 'Save details')}
-          </button>
+    <button
+      type="button"
+      onClick={handleSecondaryAction}
+      disabled={(activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || (activeStep === 1 && isDataSaved)}
+      className={`${accountSecondaryBtn} ${
+        ((activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || (activeStep === 1 && isDataSaved)) 
+          ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400' 
+          : ''
+      }`}
+    >
+      {activeStep > 1 ? 'Back' : (isDataSaved ? 'Saved' : 'Save details')}
+    </button>
 
-        <button
-          type="button"
-          onClick={handleProceed}
-          disabled={activeStep === 3 && !signatureImage}
-          className={accountPrimaryBtn + (activeStep === 3 && !signatureImage ? ' bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed shadow-none hover:bg-slate-300' : '')}
-        >
-          <span>{activeStep === 3 ? "Sign Agreement" : "Proceed"}</span>
-        </button>
-        </div>
-        {activeStep === 3 && (
-      <div className="absolute right-6 text-xs text-slate-500 font-normal">
-        ShowIsHere © 2026 — All rights reserved
-      </div>
-    )}
-      </footer>
+    <button
+      type="button"
+      onClick={handleProceed}
+      disabled={
+        (activeStep === 3 && !signatureImage) || 
+        (activeStep === 2 && (!uploadedDoc || isVerifyingPan)) ||
+        (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== ''))
+      }
+      className={`${accountPrimaryBtn} ${
+        ((activeStep === 3 && !signatureImage) || 
+        (activeStep === 2 && (!uploadedDoc || isVerifyingPan)) ||
+        (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== ''))) 
+          ? ' bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed shadow-none hover:bg-slate-300' 
+          : ''
+      }`}
+    >
+      <span>{activeStep === 3 ? "Sign Agreement" : "Proceed"}</span>
+    </button>
+  </div>
+  {activeStep === 3 && (
+    <div className="absolute right-6 text-xs text-slate-500 font-normal">
+      ShowIsHere © 2026 — All rights reserved
+    </div>
+  )}
+</footer>
 
         {isImageModalOpen && docPreview && (
           <div 

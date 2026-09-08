@@ -21,6 +21,11 @@ const SignAgrement = ({
   organizerLocation = "",
   organizerPan = "",
   organizerGst = "",
+  organizerType = "Individual",
+  bankAccountName = "",
+  bankName = "",
+  bankAccountNumber = "",
+  bankIfsc = "",
   signatoryEmail = "",
   signedDateTime = "",
   signedIp = "",
@@ -46,7 +51,7 @@ const SignAgrement = ({
         <p>And</p>
 
         <p>
-          <span className="font-semibold text-slate-900">{organizerName || 'Event Org'}</span>, a Company incorporated under the Companies Act 2013 or an individual having its registered office located at {organizerLocation || 'Address'} PAN: {organizerPan || 'ABCD123F'} GST: {organizerGst || '19B*********B'} (hereinafter referred to as <span className="font-semibold text-slate-900">&apos;Event Organizer&apos;</span> which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
+          <span className="font-semibold text-slate-900">{organizerName || 'Event Org'}</span>, a Company incorporated under the Companies Act 2013 or an individual having its registered office located at {organizerLocation || 'Address'} PAN: {organizerPan || 'ABCD123F'} GST: {organizerGst || 'N/A'} (hereinafter referred to as <span className="font-semibold text-slate-900">&apos;Event Organizer&apos;</span> which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
         </p>
 
         <p>
@@ -83,19 +88,19 @@ const SignAgrement = ({
           <h3 className="font-semibold text-slate-900">2. Appointment and Services</h3>
           <p>2.1 The Event Organizer hereby appoints ShowIsHere, to provide the following Platform (<span className="font-semibold text-slate-900">&lsquo;Services&rsquo;</span>) in connection with the Event(s), subject to this Agreement and the applicable Commercial Terms.</p>
           <p>2.2 Subject to the terms and conditions of this Agreement, ShowIsHere may provide some or all of the following Ticketing Services:</p>
-          <p className="pl-2">a. facilitate creation and listing of Events on the ShowIsHere Platform;</p>
-          <p className="pl-2">b. enable creation of Ticket categories, prices, quantities and sale periods;</p>
-          <p className="pl-2">c. facilitate online and remote sale or reservation of Tickets;</p>
-          <p className="pl-2">d. provide QR-code, mobile-ticket or other digital ticketing functionality;</p>
-          <p className="pl-2">e. maintain and manage Ticket inventory through the Creator Dashboard or other systems;</p>
-          <p className="pl-2">f. provide sales and inventory reports;</p>
-          <p className="pl-2">g. facilitate ticket validation, redemption or scanning, where such services are agreed;</p>
-          <p className="pl-2">h. provide access to the Creator Dashboard;</p>
-          <p className="pl-2">i. collect Ticket amounts on behalf of the Event Organizer, subject to this Agreement;</p>
-          <p className="pl-2">j. facilitate refunds where applicable;</p>
-          <p className="pl-2">k. provide customer-facing ticketing communications and transactional notifications;</p>
-          <p className="pl-2">l. provide promotional, marketing, advertising or discovery services only where separately agreed; and</p>
-          <p className="pl-2">m. provide box-office, on-ground staffing, equipment or other event-day support only where separately agreed in writing.</p>
+          <p className="pl-4">a. facilitate creation and listing of Events on the ShowIsHere Platform;</p>
+          <p className="pl-4">b. enable creation of Ticket categories, prices, quantities and sale periods;</p>
+          <p className="pl-4">c. facilitate online and remote sale or reservation of Tickets;</p>
+          <p className="pl-4">d. provide QR-code, mobile-ticket or other digital ticketing functionality;</p>
+          <p className="pl-4">e. maintain and manage Ticket inventory through the Creator Dashboard or other systems;</p>
+          <p className="pl-4">f. provide sales and inventory reports;</p>
+          <p className="pl-4">g. facilitate ticket validation, redemption or scanning, where such services are agreed;</p>
+          <p className="pl-4">h. provide access to the Creator Dashboard;</p>
+          <p className="pl-4">i. collect Ticket amounts on behalf of the Event Organizer, subject to this Agreement;</p>
+          <p className="pl-4">j. facilitate refunds where applicable;</p>
+          <p className="pl-4">k. provide customer-facing ticketing communications and transactional notifications;</p>
+          <p className="pl-4">l. provide promotional, marketing, advertising or discovery services only where separately agreed; and</p>
+          <p className="pl-4">m. provide box-office, on-ground staffing, equipment or other event-day support only where separately agreed in writing.</p>
           <p>2.3 ShowIsHere is not responsible for booking of Tickets through any medium or at any location or any physical point of sale other than the following platform.</p>
           <p>2.4 ShowIsHere may provide promotional or marketing support upon request and subject to separate agreement.</p>
           <p>2.5 ShowIsHere does not guarantee any minimum number of Ticket sales, revenue, audience attendance, Event popularity, visibility, marketing performance or commercial success.</p>
@@ -108,13 +113,13 @@ const SignAgrement = ({
           <h3 className="font-semibold text-slate-900">3. Right to Review and Delist</h3>
           <p>3.1 ShowIsHere may review Event Content before or after publication. Publication of an Event shall not constitute an endorsement, guarantee or certification of the Event.</p>
           <p>3.2 ShowIsHere may refuse to publish, suspend, modify visibility of or remove an Event or Event Content(s) where:</p>
-          <p className="pl-2">a. the information is inaccurate or misleading;</p>
-          <p className="pl-2">b. the Event or Content appears to violate Applicable Law;</p>
-          <p className="pl-2">c. required permissions or documentation are not provided;</p>
-          <p className="pl-2">d. there is a reasonable concern regarding public safety, fraud or customer harm;</p>
-          <p className="pl-2">e. the Event may infringe third-party Intellectual Property Rights;</p>
-          <p className="pl-2">f. the Event Organizer breaches this Agreement; or</p>
-          <p className="pl-2">g. ShowIsHere reasonably considers such action necessary to protect Customers, the Platform or its reputation.</p>
+          <p className="pl-4">a. the information is inaccurate or misleading;</p>
+          <p className="pl-4">b. the Event or Content appears to violate Applicable Law;</p>
+          <p className="pl-4">c. required permissions or documentation are not provided;</p>
+          <p className="pl-4">d. there is a reasonable concern regarding public safety, fraud or customer harm;</p>
+          <p className="pl-4">e. the Event may infringe third-party Intellectual Property Rights;</p>
+          <p className="pl-4">f. the Event Organizer breaches this Agreement; or</p>
+          <p className="pl-4">g. ShowIsHere reasonably considers such action necessary to protect Customers, the Platform or its reputation.</p>
           <p>Where reasonably practicable, ShowIsHere shall notify the Event Organizer of such action.</p>
         </div>
 
@@ -123,18 +128,18 @@ const SignAgrement = ({
           <h3 className="font-semibold text-slate-900">4. Responsibility of Event Organizer</h3>
           <p>4.1 The Event Organizer shall be solely responsible for end to end activities of the Event.</p>
           <p>4.2 Without limitation, the Event Organizer shall:</p>
-          <p className="pl-2">a. provide complete, accurate and up-to-date information regarding the Event;</p>
-          <p className="pl-2">b. notify ShowIsHere of all discounts, schemes and benefits that it intends to offer in relation to Tickets at online itself at Event Organizer convenience and in case of totally taking care by ShowIsHere for marketing and sale such cases;</p>
-          <p className="pl-2">c. obtain, at its sole cost and expense, all necessary approvals, permissions, licenses, no-objection certificates, clearances and statutory authorizations from the relevant governmental and regulatory authorities as may be required for the lawful conduct of the Event and availing of the Services, and any failure to obtain or maintain the same shall constitute a material breach of this Agreement;</p>
-          <p className="pl-2">d. take all reasonable and necessary steps to ensure the safety, security and welfare of Customers, staff, artists and other attendees;</p>
-          <p className="pl-2">e. immediately notify ShowIsHere of any postponement, cancellation, venue change, timing change, material change or other circumstance affecting Customers;</p>
-          <p className="pl-2">f. defend at its cost, any suit, claim or action brought against ShowIsHere in connection with the Services or the Event having regard to the expense and effort that the Event Manager would have reasonably invested as if the said suit, claim or action has been brought against it;</p>
-          <p className="pl-2">g. be solely responsible for any injury, death, property damage (whether owned or contracted), loss or claim arising from the organization or conduct of the Event, except to the extent caused solely by ShowIsHere&apos;s proven wilful misconduct;</p>
-          <p className="pl-2">h. ensure that the Venue is suitable for the Event and has adequate facilities, access, exits, security, emergency arrangements and other infrastructure reasonably required for the Event;</p>
-          <p className="pl-2">i. be responsible for handling and resolving all Customer complaints relating to the Event and shall remain responsible for all complaints arising from the quality of the Event, cancellation, postponement, entry, Venue conditions, performer-related issues or any other matters within the Organizer’s control, in accordance with the terms agreed herein or as may be communicated by ShowIsHere from time to time.</p>
-          <p className="pl-2">j. not involve in any illegal or unfair trade business;</p>
-          <p className="pl-2">k. not deny entry to a Customer holding a valid Ticket except for lawful and reasonable grounds, including fraud, duplication, invalidation, safety requirements or violation of published Event terms;</p>
-          <p className="pl-2">l. comply with all Applicable Laws relating to the Event, including laws and regulations concerning public safety, fire safety, local permissions, taxation, consumer protection, intellectual property and other applicable requirements.</p>
+          <p className="pl-4">a. provide complete, accurate and up-to-date information regarding the Event;</p>
+          <p className="pl-4">b. notify ShowIsHere of all discounts, schemes and benefits that it intends to offer in relation to Tickets at online itself at Event Organizer convenience and in case of totally taking care by ShowIsHere for marketing and sale such cases;</p>
+          <p className="pl-4">c. obtain, at its sole cost and expense, all necessary approvals, permissions, licenses, no-objection certificates, clearances and statutory authorizations from the relevant governmental and regulatory authorities as may be required for the lawful conduct of the Event and availing of the Services, and any failure to obtain or maintain the same shall constitute a material breach of this Agreement;</p>
+          <p className="pl-4">d. take all reasonable and necessary steps to ensure the safety, security and welfare of Customers, staff, artists and other attendees;</p>
+          <p className="pl-4">e. immediately notify ShowIsHere of any postponement, cancellation, venue change, timing change, material change or other circumstance affecting Customers;</p>
+          <p className="pl-4">f. defend at its cost, any suit, claim or action brought against ShowIsHere in connection with the Services or the Event having regard to the expense and effort that the Event Manager would have reasonably invested as if the said suit, claim or action has been brought against it;</p>
+          <p className="pl-4">g. be solely responsible for any injury, death, property damage (whether owned or contracted), loss or claim arising from the organization or conduct of the Event, except to the extent caused solely by ShowIsHere&apos;s proven wilful misconduct;</p>
+          <p className="pl-4">h. ensure that the Venue is suitable for the Event and has adequate facilities, access, exits, security, emergency arrangements and other infrastructure reasonably required for the Event;</p>
+          <p className="pl-4">i. be responsible for handling and resolving all Customer complaints relating to the Event and shall remain responsible for all complaints arising from the quality of the Event, cancellation, postponement, entry, Venue conditions, performer-related issues or any other matters within the Organizer’s control, in accordance with the terms agreed herein or as may be communicated by ShowIsHere from time to time.</p>
+          <p className="pl-4">j. not involve in any illegal or unfair trade business;</p>
+          <p className="pl-4">k. not deny entry to a Customer holding a valid Ticket except for lawful and reasonable grounds, including fraud, duplication, invalidation, safety requirements or violation of published Event terms;</p>
+          <p className="pl-4">l. comply with all Applicable Laws relating to the Event, including laws and regulations concerning public safety, fire safety, local permissions, taxation, consumer protection, intellectual property and other applicable requirements.</p>
           <p>4.3 Without prejudice to any rights of ShowIsHere, Event Manager shall promptly notify ShowIsHere if it is unable to fulfill its obligations mentioned above, whether or not on account of reasons attributable to it.</p>
         </div>
 
@@ -193,9 +198,9 @@ const SignAgrement = ({
           <p>10.2 Either Party may terminate this Agreement by giving thirty (30) days&apos; prior written notice, provided that termination shall not affect Events already sold or obligations accrued before termination unless otherwise agreed.</p>
           <p>10.3 ShowIsHere may terminate this Agreement without notice and without any liability at any time in case of any damage and/or threatened damage to its goodwill and/or business reputation by Event Organizer. Additionally, ShowIsHere has a right to de-list the Event at any time for any reason whatsoever without incurring any liability.</p>
           <p>10.4 Consequences of termination or expiry of the Agreement:</p>
-          <p className="pl-2">a. ShowIsHere shall be entitled to immediately de-list the Event and discontinue the display of advertisements relating to the Event displayed on its Platforms, if any.</p>
-          <p className="pl-2">b. Parties shall cease to use the Intellectual Property of the other Party.</p>
-          <p className="pl-2">c. Pay all the outstanding dues within ten (10) days’ from termination.</p>
+          <p className="pl-4">a. ShowIsHere shall be entitled to immediately de-list the Event and discontinue the display of advertisements relating to the Event displayed on its Platforms, if any.</p>
+          <p className="pl-4">b. Parties shall cease to use the Intellectual Property of the other Party.</p>
+          <p className="pl-4">c. Pay all the outstanding dues within ten (10) days’ from termination.</p>
           <p>10.5 Termination of this Agreement shall be without prejudice to any rights accrued by Parties prior to termination hereof.</p>
         </div>
 
@@ -218,8 +223,8 @@ const SignAgrement = ({
         <div className="space-y-2 pt-2">
           <h3 className="font-semibold text-slate-900">13. Confidentiality</h3>
           <p>13.1 Each Party shall keep all proprietary, confidential information and Intellectual Property received from the other Party (‘Confidential Information’) confidential and shall:</p>
-          <p className="pl-2">a. disclose such information only to its employees, officers, directors, agents and contractors on a need-to-know basis, subject to confidentiality obligations;</p>
-          <p className="pl-2">b. not disclose such information to any third party without the prior written consent of the disclosing Party, except where the information is publicly available or disclosure is required by law or a court/tribunal order.</p>
+          <p className="pl-4">a. disclose such information only to its employees, officers, directors, agents and contractors on a need-to-know basis, subject to confidentiality obligations;</p>
+          <p className="pl-4">b. not disclose such information to any third party without the prior written consent of the disclosing Party, except where the information is publicly available or disclosure is required by law or a court/tribunal order.</p>
           <p>13.2 All customer data collected by or in the possession of ShowIsHere shall remain the property of ShowIsHere, and the Event Organizer shall have no right, title or interest in such data.</p>
           <p>13.3 This Clause shall survive and remain effective after termination of this Agreement.</p>
         </div>
@@ -485,58 +490,58 @@ const SignAgrement = ({
 
       {/* SCHEDULES & SIGNATURE BLOCKS */}
       <div className={signatureBlockWrapper}>
-      <div className="space-y-4 pt-4  text-slate-800">
-  {/* Centered Schedule 1 Headers */}
-  <div className="text-center space-y-1">
-    <h3 className="font-semibold text-slate-900 ">SCHEDULE 1</h3>
-    <p className="font-semibold text-slate-900 text-xs underline">PARTICULARS OF THE EVENT ORGANIZER</p>
-  </div>
-  
-  {/* Left-aligned content */}
-  <div className="space-y-1 text-[13px] text-slate-800">
-    <p>a. Name of company/proprietor/individual: Tapas Paul</p>
-    <p>b. Type of company: Individual</p>
-    <p>c. Registered office address: Kolkata 700110</p>
-    <p>d. Name of the authorized signatory: Tapas paul</p>
-    <p>e. GST number: N/A</p>
-    <p>f. PAN Number: BSUPP2460A</p>
-    <p>g. Bank Account Details: Mr. TAPAS PAUL, State Bank of India, 32175633375, SBIN0014047,</p>
-  </div>
+        <div className="space-y-4 pt-4 text-slate-800">
+          {/* Centered Schedule 1 Headers */}
+          <div className="text-center space-y-1">
+            <h3 className="font-semibold text-slate-900">SCHEDULE 1</h3>
+            <p className="font-semibold text-slate-900 text-xs underline">PARTICULARS OF THE EVENT ORGANIZER</p>
+          </div>
+          
+          {/* Left-aligned content with dynamic variables */}
+          <div className="space-y-1 text-[13px] text-slate-800">
+            <p>a. Name of company/proprietor/individual: {organizerName || 'N/A'}</p>
+            <p>b. Type of company: {organizerType || 'Individual'}</p>
+            <p>c. Registered office address: {organizerLocation || 'N/A'}</p>
+            <p>d. Name of the authorized signatory: {organizerName || 'N/A'}</p>
+            <p>e. GST number: {organizerGst || 'N/A'}</p>
+            <p>f. PAN Number: {organizerPan || 'N/A'}</p>
+            <p>g. Bank Account Details: {bankAccountName || organizerName || 'N/A'}, {bankName || 'N/A'}, {bankAccountNumber || 'N/A'}, {bankIfsc || 'N/A'}</p>
+          </div>
 
-  {/* Centered Schedule 2 Headers */}
-  <div className="text-center space-y-1 pt-4">
-    <h4 className="font-semibold text-slate-900 ">SCHEDULE 2</h4>
-    <p className="font-semibold text-slate-900 text-sm underline">Commercial Arrangement</p>
-  </div>
+          {/* Centered Schedule 2 Headers */}
+          <div className="text-center space-y-1 pt-4">
+            <h4 className="font-semibold text-slate-900">SCHEDULE 2</h4>
+            <p className="font-semibold text-slate-900 text-sm underline">Commercial Arrangement</p>
+          </div>
 
-  {/* Left-aligned content */}
-  <div className="space-y-2 text-[13px] text-slate-800">
-    <p><strong className="font-semibold text-slate-900">1. Terms:</strong> Subject to the provisions of Clause 10, the term of this Agreement shall commence on the Effective Date and shall continue for a period of twelve (12) months or until all payment obligations of the Parties are fully discharged, whichever is later.</p>
-    <p><strong className="font-semibold text-slate-900">2. Cancellation Charge</strong> (As per Clause 7.4 of Agreement if applicable): 5%</p>
-    <p><strong className="font-semibold text-slate-900">3. Payment Terms:</strong> 7% Commission</p>
-    <p><strong className="font-semibold text-slate-900">4. Notices:</strong></p>
-    <p>Any notice, request, demand, or other communication under this Agreement shall be in writing and in English, and delivered by hand or email to the addresses specified below, or such other address as notified in writing by either Party.</p>
-    <p>In the case of notice to ShowIsHere, to:</p>
-    <p>
-      Attention: H. Pathak<br />
-      E mail: showishereofficial@gmail.com<br />
-      Address: Flat 13G, Tower 16, Alcove New Kolkata Sangam, 449/A/1 &amp; 2, G.T. Road, Mahesh, Hooghly, West Bengal – 712202
-    </p>
-    <p>In the case of notice to Event Organizer, to:</p>
-    <p>
-      Attention: Tapas Paul<br />
-      E mail: sbrta.roy@gmail.com<br />
-      Address: Kolkata 700110
-    </p>
-  </div>
-</div>
+          {/* Left-aligned content */}
+          <div className="space-y-2 text-[13px] text-slate-800">
+            <p><strong className="font-semibold text-slate-900">1. Terms:</strong> Subject to the provisions of Clause 10, the term of this Agreement shall commence on the Effective Date and shall continue for a period of twelve (12) months or until all payment obligations of the Parties are fully discharged, whichever is later.</p>
+            <p><strong className="font-semibold text-slate-900">2. Cancellation Charge</strong> (As per Clause 7.4 of Agreement if applicable): 5%</p>
+            <p><strong className="font-semibold text-slate-900">3. Payment Terms:</strong> 7% Commission</p>
+            <p><strong className="font-semibold text-slate-900">4. Notices:</strong></p>
+            <p>Any notice, request, demand, or other communication under this Agreement shall be in writing and in English, and delivered by hand or email to the addresses specified below, or such other address as notified in writing by either Party.</p>
+            <p>In the case of notice to ShowIsHere, to:</p>
+            <p>
+              Attention: H. Pathak<br />
+              E mail: showishereofficial@gmail.com<br />
+              Address: Flat 13G, Tower 16, Alcove New Kolkata Sangam, 449/A/1 &amp; 2, G.T. Road, Mahesh, Hooghly, West Bengal – 712202
+            </p>
+            <p>In the case of notice to Event Organizer, to:</p>
+            <p>
+              Attention: {organizerName || 'N/A'}<br />
+              E mail: {signatoryEmail || 'N/A'}<br />
+              Address: {organizerLocation || 'N/A'}
+            </p>
+          </div>
+        </div>
 
-        <p className=" text-slate-900 leading-normal text-[13px] py-8">
+        <p className="text-slate-900 leading-normal text-[13px] py-8">
           IN WITNESS WHEREOF, the duly authorized representatives of the Parties have executed this Agreement on the date, month and year first hereinabove written.
         </p>
 
         <div className="flex flex-col md:flex-row justify-between items-start gap-6 pt-2">
-         {/* Left Side Details */}
+          {/* Left Side Details */}
           <div className="space-y-1 text-slate-800 text-[13px]">
             <p className="font-semibold text-slate-900">For {organizerName || 'Event Org'}</p>
             <p className="font-semibold text-slate-900 pt-1">Authorized Signatory:</p>
@@ -582,11 +587,11 @@ const SignAgrement = ({
         <div className="border-t border-slate-300 my-6"></div>
 
         {/* Company Footer Info */}
-        <div className="space-y-1 pb-16 text-slate-800 text-[13px]">
-  <p className="font-semibold text-slate-900">Emunity Solutions Private Limited</p>
-  <p><span className="font-semibold text-slate-900">Registered Address:</span> <span className="font-normal">16 Feet Road, Boardghar, North 24 Parganas, West Bengal 700110</span></p>
-  <p><span className="font-semibold text-slate-900">CIN:</span> <span className="font-normal">U72900WB2021PTC243736</span></p>
-</div>
+        <div className="space-y-1  text-slate-800 text-[13px]">
+          <p className="font-semibold text-slate-900">Emunity Solutions Private Limited</p>
+          <p><span className="font-semibold text-slate-900">Registered Address:</span> <span className="font-normal">16 Feet Road, Boardghar, North 24 Parganas, West Bengal 700110</span></p>
+          <p><span className="font-semibold text-slate-900">CIN:</span> <span className="font-normal">U72900WB2021PTC243736</span></p>
+        </div>
       </div>
     </div>
   );

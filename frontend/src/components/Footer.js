@@ -43,7 +43,16 @@ const Footer = () => {
           <span className="cursor-pointer">24/7 CUSTOMER SUPPORT</span>
         </a>
         
-        <div className="hidden md:block border-r border-slate-700 h-4"></div>
+    
+{/* Middle Divider with Dashed Border and Half Circles */}
+      <div className="hidden md:flex items-center justify-center relative px-6 h-full">
+        <div className="h-10 border-l-2 border-dashed border-slate-300 relative flex items-center justify-center">
+          {/* Top Half Circle */}
+          <div className="absolute -top-[15px] -left-[7px] w-3.5 h-3 rounded-full bg-white"></div>
+          {/* Bottom Half Circle */}
+          <div className="absolute -bottom-[15px] -left-[7px] w-3.5 h-3 rounded-full bg-white"></div>
+        </div>
+      </div>
         
         <div className={footerTopItem}>
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -120,9 +129,20 @@ const Footer = () => {
             <h4 className={footerHeading}>REFERENCES</h4>
             <ul className={footerLinkList}>
               <li className={linkHoverClass}>The Way It Works</li>
-              <li className={linkHoverClass}>Terms of Use</li>
-              <li className={linkHoverClass}>Privacy</li>
-              <li className={linkHoverClass}>Refunds & Cancellations</li>
+              <li>
+              <Link to="/terms" onClick={scrollToTop} className={linkHoverClass} style={{ textDecoration: 'none', color: 'inherit' }}>
+                Terms of Use
+              </Link>
+            </li>
+               <li>
+              <Link to="/privacy-policy" onClick={scrollToTop} className={linkHoverClass} style={{ textDecoration: 'none', color: 'inherit' }}>
+               Privacy
+              </Link>
+            </li>
+              <li> 
+                <Link to="/refund-policy" onClick={scrollToTop} className={linkHoverClass} style={{ textDecoration: 'none', color: 'inherit' }}>
+                Refunds & Cancellations
+              </Link></li>
               <li className={linkHoverClass}>FAQs</li>
               <li className={linkHoverClass}>Raise a Concern</li>
             </ul>

@@ -13,6 +13,9 @@ import AboutPage from './components/AboutPage'; // Adjust import path if needed
 import SeatMap from './components/SeatMap';
 import ArtistMaster from './Master/ArtistMaster';
 import EventCreate from './components/EventOrgAccount';
+import TermsOfUse from './components/TermsOfUse'; 
+import RefundAndCancellation from './components/RefundAndCancellation';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import { Toaster } from 'react-hot-toast';
 
 const AppContent = () => {
@@ -26,7 +29,8 @@ const AppContent = () => {
 
   const routerLocation = useLocation();
   const isSeatMapPage = routerLocation.pathname === '/seatmap';
-  const isEventCreatePage = routerLocation.pathname === '/event-create'; // Added check for event-create
+  const isEventCreatePage = routerLocation.pathname === '/event-create'; 
+  const isHomePage = routerLocation.pathname === '/';
 
   useEffect(() => {
     fetchEvents();
@@ -148,8 +152,12 @@ const AppContent = () => {
         <Route path="/seatmap" element={<SeatMap />} />
         <Route path="/artist-master" element={<ArtistMaster />} />
         <Route path="/event-create" element={<EventCreate />} />
+        <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/refund-policy" element={<RefundAndCancellation />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
 
+{isHomePage && <Footer />}
       <LocationModal 
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}

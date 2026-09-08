@@ -244,11 +244,13 @@ export const accountStepBadgeInactive = "w-6 h-6 rounded-full bg-slate-100 text-
 
 export const accountUserIconBox = "w-9 h-9 rounded-full border border-blue-900/20 flex items-center justify-center text-blue-900 cursor-pointer shadow-2xs bg-white";
 
-export const accountMainContainer = "mx-auto px-64 pb-16 flex-1 w-full bg-[#F2F5FA]";
+export const accountMainContainer = "mx-auto px-64 pb-14  flex-1 w-full bg-[#F2F5FA]";
+export const footeraccountMainContainer = "mx-auto px-64   flex-1 w-full bg-[#F2F5FA]";
 export const accountTitleSection = "text-center max-w-2xl mx-auto mb-6 ";
 export const accountMainTitle = "text-2xl sm:text-3xl font-bold text-slate-700 tracking-tight";
 export const accountMainSubTitle = "text-xs sm:text-sm text-slate-500 font-medium leading-relaxed";
-export const accountFormCard = "bg-white  p-4 sm:p-6 shadow-sm border border-slate-200/80 w-full overflow-hidden";
+export const accountFormCard = "bg-white  p-6 sm:px-6 shadow-sm w-full overflow-hidden";
+export const accountFormCardtext = "bg-white  shadow-sm w-full overflow-hidden";
 export const accountSectionHeading = "flex items-center space-x-3 py-1.5 px-4 sm:px-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 bg-[#f0f4ff] text-xs font-black text-blue-900 tracking-wide relative overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[4px]";
 export const accountThreeColGrid = "grid grid-cols-1 sm:grid-cols-3 gap-4";
 export const accountLabelStyle = "block text-xs font-bold text-slate-700 mb-2.5";
@@ -327,14 +329,14 @@ export const sigLabelText = "text-xs font-semibold text-slate-800";
 export const sigDeleteButtonStyled = "px-3 py-1 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg transition shadow-sm cursor-pointer";
 
 // Add these to your existing MasterCSSClass.js exports:
-export const agreementContainer = "space-y-4 px-16 pt-16 pb-32 text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal text-justify";
-export const agreementContainer1 = "space-y-4 text-xs pb-4 text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal";
+export const agreementContainer = "space-y-4  px-32 pt-24 pb-64 text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal";
+export const agreementContainer1 = "space-y-4 text-xs pb-4 text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal text-justify";
 export const agreementHeader = "text-center font-medium text-sm tracking-wide text-slate-900 pb-6";
 export const agreementSectionTitle = "font-medium text-slate-800 pt-2";
 export const annexureTableClass = "w-full text-[13px] border-collapse border border-slate-400 text-[12px]";
 export const annexureTableHeader = "text-slate-900 font-medium";
 export const annexureTableCell = "border border-slate-400 p-1";
-export const signatureBlockWrapper = "pt-6 space-y-5";
+export const signatureBlockWrapper = "pt-6 space-y-5  text-justify";
 export const signatureBoxContainer = "w-full h-20 border border-slate-400 rounded-lg bg-white flex items-center justify-center p-2  overflow-hidden";
 export const signatureEmptyBox = "flex flex-col items-center justify-center rounded-xl p-4 space-y-2 w-[240px]";
 

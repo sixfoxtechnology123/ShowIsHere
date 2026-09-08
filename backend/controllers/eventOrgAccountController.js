@@ -9,8 +9,12 @@ const getClientIp = (req) => {
   }
   return req.ip || '';
 };
+
+let totalUploadRequests = 0;
 const verifyPanDocument = async (req, res) => {
   try {
+    totalUploadRequests++;
+    console.log(`[Document Upload] Request count: ${totalUploadRequests}`);
     const { userPan, userName, panCardBase64, orgId, tenantKey } = req.body;
 
     if (!panCardBase64) {
@@ -30,18 +34,56 @@ const verifyPanDocument = async (req, res) => {
       },
     };
 
-const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash', // Updated to the active model name
-      contents: [
-        imagePart,
-        "Extract the PAN number and full name from this PAN card. Return ONLY a valid JSON object with exact keys 'pan' and 'name'."
-      ],
-    });
+    // Helper function to retry API calls on 503 / high demand errors
+    const generateContentWithRetry = async (retries = 3, delay = 2000) => {
+      try {
+        return await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: [
+            imagePart,
+            `Analyze this identification document image strictly and return ONLY a valid JSON object with exact keys:
+            - "isPanCard": boolean (true if it is an official Indian PAN card, false if it is an Aadhaar card, Voter ID, Driver's License, or any other document).
+            - "isOriginal": boolean (true if it is a genuine original document image, false if it is a black-and-white Xerox copy, grayscale scan, or a photo of a printout).
+            - "pan": string (extracted PAN number if present, otherwise empty string).
+            - "name": string (extracted full name if present, otherwise empty string).
+            - "reason": string (brief explanation if isPanCard or isOriginal is false, otherwise empty string).`
+          ],
+        });
+      } catch (err) {
+        if ((err.status === 503 || err.status === 429) && retries > 0) {
+          console.warn(`[AI High Demand] Retrying request in ${delay}ms... (${retries} attempts left)`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return generateContentWithRetry(retries - 1, delay * 2); // Double the wait time each retry
+        }
+        throw err;
+      }
+    };
+
+    const response = await generateContentWithRetry();
 
     const textResponse = response.text.trim();
     const cleanedJson = textResponse.replace(/^```json\s*|\s*```$/g, '');
     const extractedData = JSON.parse(cleanedJson);
 
+    // 1. Enforce Document Type Check
+    if (extractedData.isPanCard === false) {
+      return res.status(400).json({
+        success: false,
+        message: extractedData.reason || 'Invalid document type. Please upload an official PAN card.',
+        panVerified: false
+      });
+    }
+
+    // 2. Enforce Document Originality Check
+    if (extractedData.isOriginal === false) {
+      return res.status(400).json({
+        success: false,
+        message: extractedData.reason || 'Photocopies and black-and-white Xerox copies are not accepted. Please upload an original color image.',
+        panVerified: false
+      });
+    }
+
+    // 3. Accurate Match Verification Check
     const inputPan = userPan.trim().toUpperCase();
     const scannedPan = extractedData.pan ? extractedData.pan.trim().toUpperCase() : '';
 
@@ -76,7 +118,7 @@ const response = await ai.models.generateContent({
     } else {
       return res.status(400).json({
         success: false,
-        message: 'PAN card details do not match the form inputs.',
+        message: 'Original PAN card uploaded, but details do not match form input.',
         panVerified: false,
         extracted: { pan: scannedPan, name: scannedName }
       });
@@ -84,6 +126,15 @@ const response = await ai.models.generateContent({
 
   } catch (error) {
     console.error('PAN Verification Error:', error);
+    
+    if (error.status === 429 || error.status === 503 || (error.message && (error.message.includes('Resource exhausted') || error.message.includes('high demand')))) {
+      return res.status(503).json({
+        success: false,
+        message: 'AI verification service is temporarily experiencing high demand. Please try uploading again in a few moments.',
+        panVerified: false
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: 'Error verifying PAN card image',
@@ -335,7 +386,7 @@ const saveOrgStep = async (req, res) => {
         org.signingAt = new Date();
         org.signingIp = getClientIp(req);
       }
-      console.log('Captured Signing IP:', req.ip, req.headers['x-forwarded-for']);
+      //console.log('Captured Signing IP:', req.ip, req.headers['x-forwarded-for']);
       await org.save();
     } else {
       const newOrgId = await generateNextOrgId();
