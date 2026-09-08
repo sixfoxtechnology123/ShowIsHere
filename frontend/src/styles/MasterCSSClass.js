@@ -1,4 +1,4 @@
-export const mainContainer = "min-h-screen bg-slate-50 flex flex-col relative pb-8 "; // Added pb-24 so content doesn't hide behind the fixed footer
+export const mainContainer = "min-h-screen bg-slate-50 flex flex-col relative"; // Added pb-24 so content doesn't hide behind the fixed footer
 
 export const navbar = "bg-white text-slate-800 px-6 py-3 flex items-center justify-between border-b border-slate-200/80 sticky top-0 z-50 shadow-xs";
 export const logoContainer = "flex items-center space-x-3 cursor-pointer";
@@ -229,7 +229,8 @@ export const wizardProceedBtn = "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-
 // ==========================================
 // ACCOUNT SETUP / EVENT CREATE STYLES (EXACT CLONE)
 // ==========================================
-export const accountHeaderInner = "w-full px-8 py-3 flex items-center justify-between";
+export const accountHeaderInner = "w-full px-6 py-3 flex items-center justify-between";
+export const accountFooterInner = "max-w-5xl mx-auto px-6 py-3 flex items-center justify-center space-x-4 w-full";
 export const accountLogoContainer = "flex items-center space-x-2";
 export const accountLogoImg = "w-8 h-8 object-cover rounded-lg";
 export const accountBrandText = "font-extrabold text-blue-900 text-base tracking-tight";
@@ -243,7 +244,7 @@ export const accountStepBadgeInactive = "w-6 h-6 rounded-full bg-slate-100 text-
 
 export const accountUserIconBox = "w-9 h-9 rounded-full border border-blue-900/20 flex items-center justify-center text-blue-900 cursor-pointer shadow-2xs bg-white";
 
-export const accountMainContainer = "mx-auto px-64  flex-1 w-full bg-[#F2F5FA]";
+export const accountMainContainer = "mx-auto px-64 pb-16 flex-1 w-full bg-[#F2F5FA]";
 export const accountTitleSection = "text-center max-w-2xl mx-auto mb-6 ";
 export const accountMainTitle = "text-2xl sm:text-3xl font-bold text-slate-700 tracking-tight";
 export const accountMainSubTitle = "text-xs sm:text-sm text-slate-500 font-medium leading-relaxed";
@@ -256,7 +257,7 @@ export const accountRadioLabel = "flex items-center space-x-2 text-xs font-semib
 export const accountCheckboxWrapper = "flex items-center space-x-2.5 cursor-pointer";
 export const accountNoticeBox = "bg-amber-50/80 border border-amber-200/80 text-amber-900 text-[11px] font-semibold px-4 py-2.5 rounded-xl";
 
-export const accountFooterInner = "max-w-5xl mx-auto px-6 flex items-center justify-center space-x-4 w-full";
+
 export const accountSecondaryBtn = "px-6 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl transition cursor-pointer shadow-2xs";
 export const accountPrimaryBtn = "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition cursor-pointer shadow-sm flex items-center space-x-1.5";
 
@@ -326,12 +327,13 @@ export const sigLabelText = "text-xs font-semibold text-slate-800";
 export const sigDeleteButtonStyled = "px-3 py-1 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg transition shadow-sm cursor-pointer";
 
 // Add these to your existing MasterCSSClass.js exports:
-export const agreementContainer = "space-y-4 pb-14 text-xs text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal";
-export const agreementHeader = "text-center font-medium text-sm tracking-wide text-slate-900 pb-1";
+export const agreementContainer = "space-y-4 px-16 pt-16 pb-32 text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal text-justify";
+export const agreementContainer1 = "space-y-4 text-xs pb-4 text-xs sm:text-sm font-sans text-slate-800 leading-relaxed font-normal";
+export const agreementHeader = "text-center font-medium text-sm tracking-wide text-slate-900 pb-6";
 export const agreementSectionTitle = "font-medium text-slate-800 pt-2";
-export const annexureTableClass = "w-full text-xs border-collapse border border-slate-400 text-[11px]";
+export const annexureTableClass = "w-full text-[13px] border-collapse border border-slate-400 text-[12px]";
 export const annexureTableHeader = "text-slate-900 font-medium";
-export const annexureTableCell = "border border-slate-400 p-1.5";
+export const annexureTableCell = "border border-slate-400 p-1";
 export const signatureBlockWrapper = "pt-6 space-y-5";
 export const signatureBoxContainer = "w-full h-20 border border-slate-400 rounded-lg bg-white flex items-center justify-center p-2  overflow-hidden";
 export const signatureEmptyBox = "flex flex-col items-center justify-center rounded-xl p-4 space-y-2 w-[240px]";

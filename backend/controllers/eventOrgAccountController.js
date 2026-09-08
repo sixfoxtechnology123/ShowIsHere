@@ -2,7 +2,13 @@ const EventOrgAccount = require('../models/eventOrgAccountModel.js');
 const jwt = require('jsonwebtoken');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || '';
+};
 const verifyPanDocument = async (req, res) => {
   try {
     const { userPan, userName, panCardBase64, orgId, tenantKey } = req.body;
@@ -163,7 +169,7 @@ const registerOrgAccount = async (req, res) => {
       if (signinAgreement === true || signinAgreement === 'true') {
         existingOrg.signinAgreement = true;
         existingOrg.signingAt = new Date();
-        existingOrg.signingIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+        existingOrg.signingIp = getClientIp(req);
       }
 
       await existingOrg.save();
@@ -210,7 +216,7 @@ const registerOrgAccount = async (req, res) => {
       signatureImage: signatureImage || null,
       signinAgreement: isSigningFinal,
       signingAt: isSigningFinal ? new Date() : null,
-      signingIp: isSigningFinal ? (req.ip || req.headers['x-forwarded-for'] || '127.0.0.1') : null
+      signingIp: isSigningFinal ? getClientIp(req) : null
     });
 
     const token = generateToken(newOrg._id, newOrg.orgId);
@@ -280,7 +286,7 @@ const getOrgAccount = async (req, res) => {
 };
 
 const saveOrgStep = async (req, res) => {
-  try {
+  try { 
     const { orgId, tenantKey, panNumber, contactEmail, contactMobile, accountNumber, signinAgreement, ...stepData } = req.body;
 
     let query = { signinAgreement: false };
@@ -327,9 +333,9 @@ const saveOrgStep = async (req, res) => {
       if (signinAgreement === true || signinAgreement === 'true') {
         org.signinAgreement = true;
         org.signingAt = new Date();
-        org.signingIp = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+        org.signingIp = getClientIp(req);
       }
-      
+      console.log('Captured Signing IP:', req.ip, req.headers['x-forwarded-for']);
       await org.save();
     } else {
       const newOrgId = await generateNextOrgId();
@@ -345,7 +351,7 @@ const saveOrgStep = async (req, res) => {
         accountNumber,
         signinAgreement: isSigningFinal,
         signingAt: isSigningFinal ? new Date() : null,
-        signingIp: isSigningFinal ? (req.ip || req.headers['x-forwarded-for'] || '127.0.0.1') : null,
+        signingIp: isSigningFinal ? getClientIp(req) : null,
         ...stepData
       });
     }
