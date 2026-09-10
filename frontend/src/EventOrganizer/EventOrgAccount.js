@@ -411,10 +411,10 @@ const validateStep1 = () => {
       toast.error('Please enter the Organisation or Individual Address.', { id: 'form-error-toast' });
       return false;
     }
-    // if (!formData.panLinkedAadhaar) {
-    //   toast.error('Please select whether your PAN is linked with Aadhaar.', { id: 'form-error-toast' });
-    //   return false;
-    // }
+    if (!formData.panLinkedAadhaar) {
+      toast.error('Please select whether your PAN is linked with Aadhaar.', { id: 'form-error-toast' });
+      return false;
+    }
     if (!formData.panNumber.trim()) {
       toast.error('Please enter the PAN card number.', { id: 'form-error-toast' });
       return false;
@@ -657,7 +657,7 @@ const handleProceed = async () => {
                       className={inputFieldStyle + " resize-none"}
                     />
                   </div>
-{/* 
+
                   <div>
                     <label className={accountLabelStyle}>
                       If you are an Individual PAN holder, please specify whether your PAN is linked with Aadhaar?
@@ -677,7 +677,7 @@ const handleProceed = async () => {
                         </label>
                       ))}
                     </div>
-                  </div> */}
+                  </div>
 
                   <div>
                     <label className={accountLabelStyle}>Organisation/Individual PAN card number</label>

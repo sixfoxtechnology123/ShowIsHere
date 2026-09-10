@@ -174,7 +174,7 @@ const registerOrgAccount = async (req, res) => {
       tenantKey,
       orgName,
       orgAddress,
-      // panLinkedAadhaar,
+      panLinkedAadhaar,
       panNumber,
       gstinNumber,
       gstDeclaration,
@@ -203,7 +203,7 @@ const registerOrgAccount = async (req, res) => {
     if (existingOrg) {
       if (orgName) existingOrg.orgName = orgName;
       if (orgAddress !== undefined) existingOrg.orgAddress = orgAddress;
-      // if (panLinkedAadhaar) existingOrg.panLinkedAadhaar = panLinkedAadhaar;
+      if (panLinkedAadhaar) existingOrg.panLinkedAadhaar = panLinkedAadhaar;
       if (panNumber) existingOrg.panNumber = panNumber.toUpperCase();
       if (gstinNumber) existingOrg.gstinNumber = gstinNumber.toUpperCase();
       if (gstDeclaration !== undefined) existingOrg.gstDeclaration = gstDeclaration === 'true' || gstDeclaration === true;
@@ -251,7 +251,7 @@ const registerOrgAccount = async (req, res) => {
       tenantKey: newTenantKey,
       orgName: orgName || 'Pending Name',
       orgAddress,
-      // panLinkedAadhaar,
+     panLinkedAadhaar,
       panNumber: panNumber ? panNumber.toUpperCase() : 'TEMP_PAN',
       gstinNumber: gstinNumber ? gstinNumber.toUpperCase() : null,
       gstDeclaration: gstDeclaration === 'true' || gstDeclaration === true,
@@ -338,7 +338,7 @@ const getOrgAccount = async (req, res) => {
 
 const saveOrgStep = async (req, res) => {
   try { 
-    const { orgId, tenantKey, panNumber, contactEmail, contactMobile, accountNumber, signinAgreement, ...stepData } = req.body;
+    const { orgId, tenantKey, panNumber, panLinkedAadhaar, contactEmail, contactMobile, accountNumber, signinAgreement, ...stepData } = req.body;
 
     let query = { signinAgreement: false };
     if (orgId) query.orgId = orgId;

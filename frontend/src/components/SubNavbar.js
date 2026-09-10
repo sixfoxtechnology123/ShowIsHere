@@ -21,7 +21,7 @@ const SubNavbar = () => {
     { name: 'Create Events', path: '/event-create' },
     { name: 'Seat Map', path: '/seatmap' },
     { name: 'Artists', path: '/artist-master' },
-    { name: 'Collaborate', path: '#' },
+    { name: 'Collaborate', path: '/dashboard' },
     { name: 'Coupon', path: '#' },
     { name: 'Find My Tickets', path: '#' }
   ];

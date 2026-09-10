@@ -38,6 +38,9 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAllCities, setShowAllCities] = useState(false);
   const [detecting, setDetecting] = useState(false);
+  const [locationPopup, setLocationPopup] = useState(null);
+
+
 
   useEffect(() => {
     if (isOpen) {
@@ -114,11 +117,7 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
   return (
     <div className={modalOverlay}>
       <div className={modalContainer}>
-        <div className={modalHeaderRow}>
-          <div className="w-5"></div>
-          <h2 className={modalHeaderTitle}>Select Your City to Continue</h2>
-          <button onClick={onClose} className={modalCloseButton}>✕</button>
-        </div>
+      
 
       <div className={searchBarWrapper}>
           <div className={searchBarInner}>
@@ -137,12 +136,12 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
               className={detectIconBtn}
               disabled={detecting}
             >
-              <svg className={`w-4 h-4 text-rose-500 ${detecting ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 text-[#415FCF] ${detecting ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="9"></circle>
                 <circle cx="12" cy="12" r="3"></circle>
                 <path strokeLinecap="round" d="M12 3v2m0 14v2M3 12h2m14 0h2"></path>
               </svg>
-              <span className="text-xs font-semibold text-rose-500 ml-1.5 whitespace-nowrap">Detect Location</span>
+              <span className="text-xs font-semibold text-[#415FCF] ml-1.5 whitespace-nowrap">Detect Location</span>
             </button>
           </div>
         </div>
@@ -161,11 +160,11 @@ const LocationModal = ({ isOpen, onClose, onSelectCity }) => {
                     className={cityCardCompact}
                   >
                     {/* Background and border removed completely here */}
-                    <div className="w-20 h-20 flex items-center justify-center mb-1 bg-transparent p-1">
+                    <div className="w-[72px] h-[72px] flex items-center justify-center mb-1 bg-transparent p-1">
                       {cityImg ? (
                         <img src={cityImg} alt={cityNameStr} className="w-full h-full object-contain" />
                       ) : (
-                        <span className="text-xl font-serif font-bold text-slate-800">{cityNameStr.charAt(0)}</span>
+                        <span className="text-xl font-serif  text-slate-800">{cityNameStr.charAt(0)}</span>
                       )}
                     </div>
                     <span className={cityNameCompact}>{cityNameStr}</span>
