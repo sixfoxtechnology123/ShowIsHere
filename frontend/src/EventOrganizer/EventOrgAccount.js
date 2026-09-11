@@ -102,8 +102,11 @@ const [isPanVerified, setIsPanVerified] = useState(false);
 const [isDataSaved, setIsDataSaved] = useState(false);
 const [isSaving, setIsSaving] = useState(false);
 const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
   // Form Data State initialized completely blank with default empty values
   const [formData, setFormData] = useState({
+    orgId: '',       // <--- ADD THIS
+    tenantKey: '',
     orgName: '',
     orgAddress: '',
     panLinkedAadhaar: '',
@@ -200,9 +203,10 @@ const draw = (e) => {
     }
   };
 
-  const handleSecondaryAction = () => {
+const handleSecondaryAction = () => {
     if (activeStep > 1) {
       setActiveStep(activeStep - 1);
+      setIsDataSaved(false); // <--- LOCKS BOTH BUTTONS WHEN COMING BACK TO STEP 1
     } else {
       handleSaveDetails();
     }
@@ -395,12 +399,13 @@ const compressImage = (file) => {
   });
 };
 
-  const handleInputChange = (e) => {
+const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : value
     });
+    setIsDataSaved(false);
   };
 const validateStep1 = () => {
     if (!formData.orgName.trim()) {
@@ -547,10 +552,11 @@ const handleSaveDetails = async () => {
     if (activeStep === 1) {
       if (!validateStep1()) return;
     }
-    await saveToDatabase();
+    const success = await saveToDatabase();
+    if (success) {
+      setIsDataSaved(true);
+    }
   };
-
-// Clicking "Proceed" / "Sign Agreement" saves to MongoDB and advances step
 const handleProceed = async () => {
     if (activeStep === 1) {
       if (!validateStep1()) return;
@@ -561,8 +567,6 @@ const handleProceed = async () => {
         toast.error('Please upload your PAN card document.', { id: 'pan-error' });
         return;
       }
-      // Verification check bypassed or made optional as per your requirement:
-      // "there verified or not verifed is no matter if original pan card then they proceed"
     }
 
     const saved = await saveToDatabase();
@@ -570,6 +574,7 @@ const handleProceed = async () => {
 
     if (activeStep < 3) {
       setActiveStep(activeStep + 1);
+      setIsDataSaved(false); // <--- LOCKS PROCEED UNTIL NEXT SAVE/EDIT CYCLE
       toast.dismiss();
       toast.success('Successfully Saved !', { id: 'proceed-success' });
     } else {
@@ -684,6 +689,7 @@ const handleProceed = async () => {
                     <input
                         type="text"
                         name="panNumber"
+                        maxLength={10}
                         placeholder="e.g. ABCDE1234F"
                         value={formData.panNumber}
                         onChange={(e) => {
@@ -840,16 +846,47 @@ const handleProceed = async () => {
                 <h3 className={accountSectionHeading}>Bank details</h3>
                 <div className={accountThreeColGrid + " pt-4"}>
                   <div>
-                    <label className={accountLabelStyle}>Account Number</label>
+                    <label className={accountLabelStyle}>Account Holder Name</label>
                     <input
                       type="text"
-                      name="accountNumber"
-                      placeholder="Enter account number"
-                      value={formData.accountNumber}
+                      name="accountHolderName"
+                      placeholder="Enter account holder name"
+                      value={formData.accountHolderName || ''}
                       onChange={handleInputChange}
                       className={inputFieldStyle}
                     />
                   </div>
+
+                  {/* 3. Account Type Dropdown (NEW) */}
+                  <div>
+                    <label className={accountLabelStyle}>Type of Account</label>
+                    <select
+                      name="accountType"
+                      value={formData.accountType || ''}
+                      onChange={handleInputChange}
+                      className={inputFieldStyle}
+                    >
+                      <option value="">Select account type</option>
+                      <option value="Savings">Savings</option>
+                      <option value="Current">Current</option>
+                    </select>
+                  </div>
+                 <div>
+                    <label className={accountLabelStyle}>Account Number</label>
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        name="accountNumber"
+                        placeholder="Enter account number"
+                        value={formData.accountNumber}
+                        onChange={(e) => {
+                          const numericValue = e.target.value.replace(/\D/g, '');
+                          setFormData({ ...formData, accountNumber: numericValue });
+                        }}
+                        className={inputFieldStyle}
+                    />
+                </div>
+                
                   <div>
                     <label className={accountLabelStyle}>Bank IFSC</label>
                     <input
@@ -985,7 +1022,7 @@ const handleProceed = async () => {
               <div className="w-full mb-2">
                 <img src={panSampleImg} alt="PAN Sample" className="w-full max-h-32 mx-auto object-contain rounded-md shadow-xs" />
               </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100/70 text-blue-700 rounded-full text-xs font-semibold">
+              <div className="inline-flex items-center gvalueap-1.5 px-3 py-1 bg-blue-100/70 text-blue-700 rounded-full text-xs font-semibold">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 shrink-0">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                 </svg>
@@ -1008,6 +1045,7 @@ const handleProceed = async () => {
                   organizerLocation={`${formData.orgAddress}`}
                   organizerPan={formData.panNumber}
                   organizerGst={formData.gstinNumber}
+                  isPanLinkedWithAadhaar={formData.panLinkedAadhaar || "NA"} 
                   bankAccountName={formData.contactFullName || formData.orgName}
                   bankName={formData.bankName}                   // Must match state
                   bankAccountNumber={formData.accountNumber}       // Must match state
@@ -1033,9 +1071,13 @@ const handleProceed = async () => {
     <button
       type="button"
       onClick={handleSecondaryAction}
-      disabled={(activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || (activeStep === 1 && isDataSaved)}
+      disabled={
+        (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || 
+        (activeStep === 1 && isDataSaved)
+      }
       className={`${accountSecondaryBtn} ${
-        ((activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || (activeStep === 1 && isDataSaved)) 
+        ((activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || 
+         (activeStep === 1 && isDataSaved)) 
           ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400' 
           : ''
       }`}
@@ -1043,19 +1085,19 @@ const handleProceed = async () => {
       {activeStep > 1 ? 'Back' : (isDataSaved ? 'Saved' : 'Save details')}
     </button>
 
-    <button
+<button
       type="button"
       onClick={handleProceed}
       disabled={
-        (activeStep === 3 && !signatureImage) || 
-        (activeStep === 2 && (!uploadedDoc || isVerifyingPan)) ||
-        (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== ''))
+        (activeStep === 1 && (!isDataSaved || !Object.values(formData).some(val => val && val.toString().trim() !== ''))) ||
+        (activeStep === 2 && !uploadedDoc) ||
+        (activeStep === 3 && !signatureImage)
       }
       className={`${accountPrimaryBtn} ${
-        ((activeStep === 3 && !signatureImage) || 
-        (activeStep === 2 && (!uploadedDoc || isVerifyingPan)) ||
-        (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== ''))) 
-          ? ' bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed shadow-none hover:bg-slate-300' 
+        ((activeStep === 1 && (!isDataSaved || !Object.values(formData).some(val => val && val.toString().trim() !== ''))) ||
+         (activeStep === 2 && !uploadedDoc) ||
+         (activeStep === 3 && !signatureImage)) 
+          ? 'bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed shadow-none hover:bg-slate-300' 
           : ''
       }`}
     >

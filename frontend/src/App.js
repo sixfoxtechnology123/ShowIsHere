@@ -80,7 +80,7 @@ const AppContent = () => {
     setLocationPopup(selectedCity);
     setTimeout(() => {
       setLocationPopup(null);
-    }, 3500); 
+    }, 3000); 
     navigate('/');
   };
 

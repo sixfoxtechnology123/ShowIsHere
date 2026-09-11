@@ -22,6 +22,7 @@ const SignAgrement = ({
   organizerPan = "",
   organizerGst = "",
   organizerType = "Individual",
+  isPanLinkedWithAadhaar = "NA",
   bankAccountName = "",
   bankName = "",
   bankAccountNumber = "",
@@ -50,9 +51,9 @@ const SignAgrement = ({
 
         <p>And</p>
 
-        <p>
-          <span className="font-semibold text-slate-900">{organizerName || 'Event Org'}</span>, a Company incorporated under the Companies Act 2013 or an individual having its registered office located at {organizerLocation || 'Address'} PAN: {organizerPan || 'ABCD123F'} GST: {organizerGst || 'N/A'} (hereinafter referred to as <span className="font-semibold text-slate-900">&apos;Event Organizer&apos;</span> which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
-        </p>
+    <p>
+          <span className="font-semibold text-slate-900">{organizerName || 'Event Org'}</span>, {isPanLinkedWithAadhaar?.toUpperCase() === 'YES' ? 'an individual' : 'a Company incorporated under the Companies Act 2013'} having its registered office located at {organizerLocation || 'Address'} PAN: {organizerPan || 'ABCD123F'} GST: {organizerGst || 'N/A'} (hereinafter referred to as <span className="font-semibold text-slate-900">&apos;Event Organizer&apos;</span> which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
+      </p>
 
         <p>
           ShowIsHere and Event Organizer shall hereinafter be individually referred to as a <span className="font-semibold text-slate-900">&apos;Party&apos;</span> and collectively as the <span className="font-semibold text-slate-900">&apos;Parties&apos;</span>.
@@ -249,6 +250,8 @@ const SignAgrement = ({
         <div className="space-y-2 pt-2">
           <h3 className="font-semibold text-slate-900">16. Amendment  </h3>
           <p>16. No amendment to this Agreement shall be effective unless made in writing and accepted by both Parties, except for updates to generally applicable ShowIsHere Platform policies where such updates are permitted by the applicable terms and communicated through the Platform or other reasonable means.</p>
+          </div>
+           <div className="space-y-2 pt-2">
           <h3 className="font-semibold text-slate-900">17. Severability</h3><p>17.1 If any provision or part thereof of this Agreement is held invalid, illegal or unenforceable, the remaining provisions shall continue in full force and effect.</p>
           <p>17.2 The Parties shall endeavour to replace the invalid provision with a valid provision that most closely reflects the original commercial intention. No delay or omission by ShowIsHere in enforcing or performing any of the terms or conditions of this Agreement shall be construed as or constitute a waiver of obligations of Event Organizer under this Agreement.</p>
         </div>
@@ -257,8 +260,8 @@ const SignAgrement = ({
       {/* ANNEXURE A TABLE */}
       <div>
         <div className="text-center space-y-1">
-          <h3 className="font-semibold text-slate-900 tracking-wide text-xs">ANNEXURE A</h3>
-          <h4 className="font-semibold text-slate-800 text-xs">PRE-EVENT OPERATIONAL &amp; COMPLIANCE CHECKLIST</h4>
+          <h3 className="font-semibold text-slate-900 tracking-wide text-xs pb-2">ANNEXURE A</h3>
+          <h4 className="font-semibold text-slate-800 text-xsp pb-2 underline">PRE-EVENT OPERATIONAL &amp; COMPLIANCE CHECKLIST</h4>
         </div>
 
         <div className="overflow-x-auto pt-2">
@@ -497,21 +500,21 @@ const SignAgrement = ({
             <p className="font-semibold text-slate-900 text-xs underline">PARTICULARS OF THE EVENT ORGANIZER</p>
           </div>
           
-          {/* Left-aligned content with dynamic variables */}
+         {/* Left-aligned content with dynamic variables */}
           <div className="space-y-1 text-[13px] text-slate-800">
             <p>a. Name of company/proprietor/individual: {organizerName || 'N/A'}</p>
-            <p>b. Type of company: {organizerType || 'Individual'}</p>
+            <p>b. Type of company: {isPanLinkedWithAadhaar?.toUpperCase() === 'YES' ? 'Individual' : 'Company'}</p>
             <p>c. Registered office address: {organizerLocation || 'N/A'}</p>
             <p>d. Name of the authorized signatory: {organizerName || 'N/A'}</p>
             <p>e. GST number: {organizerGst || 'N/A'}</p>
             <p>f. PAN Number: {organizerPan || 'N/A'}</p>
-            <p>g. Bank Account Details: {bankAccountName || organizerName || 'N/A'}, {bankName || 'N/A'}, {bankAccountNumber || 'N/A'}, {bankIfsc || 'N/A'}</p>
+            <p>g. Bank Account Details:  {bankName || 'N/A'}, {bankAccountNumber || 'N/A'}, {bankIfsc || 'N/A'}</p>
           </div>
 
           {/* Centered Schedule 2 Headers */}
           <div className="text-center space-y-1 pt-4">
             <h4 className="font-semibold text-slate-900">SCHEDULE 2</h4>
-            <p className="font-semibold text-slate-900 text-sm underline">Commercial Arrangement</p>
+            <p className="font-semibold text-slate-900 text-sm underline ">COMMERCIAL ARRANGEMENT</p>
           </div>
 
           {/* Left-aligned content */}

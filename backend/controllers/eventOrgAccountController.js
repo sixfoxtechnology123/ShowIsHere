@@ -338,45 +338,69 @@ const getOrgAccount = async (req, res) => {
 
 const saveOrgStep = async (req, res) => {
   try { 
-    const { orgId, tenantKey, panNumber, panLinkedAadhaar, contactEmail, contactMobile, accountNumber, signinAgreement, ...stepData } = req.body;
+    const { orgId, tenantKey, panNumber, panLinkedAadhaar, contactEmail, contactMobile, accountHolderName, accountType, accountNumber, signinAgreement, ...stepData } = req.body;
 
-    let query = { signinAgreement: false };
-    if (orgId) query.orgId = orgId;
-    else if (tenantKey) query.tenantKey = tenantKey;
-    else if (panNumber) query.panNumber = panNumber.toUpperCase();
-
+    // 🛡️ BULLETPROOF AUTO-RECOVERY LOOKUP:
+    // Even if the frontend forgets the orgId, find the existing draft automatically 
+    // by checking orgId, tenantKey, email, mobile, or PAN!
     let org = null;
-    if (orgId || tenantKey || panNumber) {
-      org = await EventOrgAccount.findOne(query);
+    if (orgId) {
+      org = await EventOrgAccount.findOne({ orgId });
+    }
+    if (!org && tenantKey) {
+      org = await EventOrgAccount.findOne({ tenantKey });
+    }
+    if (!org && contactEmail) {
+      org = await EventOrgAccount.findOne({ contactEmail });
+    }
+    if (!org && contactMobile) {
+      org = await EventOrgAccount.findOne({ contactMobile });
+    }
+    if (!org && panNumber) {
+      org = await EventOrgAccount.findOne({ panNumber: panNumber.toUpperCase() });
     }
 
-    // Comprehensive checks for existing records (PAN, Email, Mobile, Account Number)
-    if (!org) {
-      const conditions = [];
-      if (panNumber) conditions.push({ panNumber: panNumber.toUpperCase() });
-      if (contactEmail) conditions.push({ contactEmail });
-      if (contactMobile) conditions.push({ contactMobile });
-      if (accountNumber) conditions.push({ accountNumber });
+    // 2. Conflict check across OTHER accounts (excluding our own found record's ID)
+    const conditions = [];
+    if (panNumber) conditions.push({ panNumber: panNumber.toUpperCase() });
+    if (contactEmail) conditions.push({ contactEmail });
+    if (contactMobile) conditions.push({ contactMobile });
+    if (accountNumber) conditions.push({ accountNumber });
 
-      if (conditions.length > 0) {
-        const existingConflict = await EventOrgAccount.findOne({ $or: conditions });
-        if (existingConflict) {
-          let conflictMsg = 'Record already exists!';
-          if (panNumber && existingConflict.panNumber === panNumber.toUpperCase()) conflictMsg = 'PAN number already exists!';
-          else if (contactEmail && existingConflict.contactEmail === contactEmail) conflictMsg = 'Email address already exists!';
-          else if (contactMobile && existingConflict.contactMobile === contactMobile) conflictMsg = 'Mobile number already exists!';
-          else if (accountNumber && existingConflict.accountNumber === accountNumber) conflictMsg = 'Bank account number already exists!';
+    if (conditions.length > 0) {
+      const conflictQuery = { $or: conditions };
+      if (org) {
+        conflictQuery._id = { $ne: org._id }; // <--- Ignores our own record so we never block ourselves!
+      }
 
-          return res.status(400).json({
-            success: false,
-            message: conflictMsg
-          });
-        }
+      const existingConflict = await EventOrgAccount.findOne(conflictQuery);
+      if (existingConflict) {
+        let conflictMsg = 'Record already exists!';
+        if (panNumber && existingConflict.panNumber === panNumber.toUpperCase()) conflictMsg = 'PAN number already exists in another account!';
+        else if (contactEmail && existingConflict.contactEmail === contactEmail) conflictMsg = 'Email address already exists in another account!';
+        else if (contactMobile && existingConflict.contactMobile === contactMobile) conflictMsg = 'Mobile number already exists in another account!';
+        else if (accountNumber && existingConflict.accountNumber === accountNumber) conflictMsg = 'Bank account number already exists in another account!';
+
+        return res.status(400).json({
+          success: false,
+          message: conflictMsg
+        });
       }
     }
 
+    // 3. Update or Create
     if (org) {
-      Object.assign(org, stepData, { contactEmail, contactMobile, accountNumber });
+      if (org.signinAgreement === true) {
+        return res.status(400).json({
+          success: false,
+          message: 'Account is already signed and locked. Changes are no longer allowed.'
+        });
+      }
+
+      Object.assign(org, stepData, { contactEmail, contactMobile, accountNumber, accountHolderName, accountType });
+      if (panLinkedAadhaar !== undefined) org.panLinkedAadhaar = panLinkedAadhaar;
+      if (accountHolderName !== undefined) org.accountHolderName = accountHolderName;
+      if (accountType !== undefined) org.accountType = accountType;
       if (panNumber) org.panNumber = panNumber.toUpperCase();
       if (org.bankIfsc) org.bankIfsc = org.bankIfsc.toUpperCase();
       if (org.gstinNumber) org.gstinNumber = org.gstinNumber.toUpperCase();
@@ -386,7 +410,7 @@ const saveOrgStep = async (req, res) => {
         org.signingAt = new Date();
         org.signingIp = getClientIp(req);
       }
-      //console.log('Captured Signing IP:', req.ip, req.headers['x-forwarded-for']);
+      
       await org.save();
     } else {
       const newOrgId = await generateNextOrgId();
@@ -396,10 +420,13 @@ const saveOrgStep = async (req, res) => {
       org = await EventOrgAccount.create({
         orgId: newOrgId,
         tenantKey: newTenantKey,
+        panLinkedAadhaar,
         panNumber: panNumber ? panNumber.toUpperCase() : 'TEMP_PAN',
         contactEmail,
         contactMobile,
         accountNumber,
+        accountHolderName, 
+        accountType,
         signinAgreement: isSigningFinal,
         signingAt: isSigningFinal ? new Date() : null,
         signingIp: isSigningFinal ? getClientIp(req) : null,
@@ -429,10 +456,9 @@ const saveOrgStep = async (req, res) => {
         contactMobile: 'Mobile number',
         accountNumber: 'Bank account number'
       };
-      const fieldName = formattedFieldNames[field] || field;
       return res.status(400).json({
         success: false,
-        message: `${fieldName} already exists!`
+        message: `${formattedFieldNames[field] || field} already exists in another account!`
       });
     }
 
