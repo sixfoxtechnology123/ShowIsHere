@@ -16,7 +16,10 @@ import EventCreate from './EventOrganizer/EventOrgAccount';
 import TermsOfUse from './components/TermsOfUse'; 
 import RefundAndCancellation from './components/RefundAndCancellation';
 import PrivacyPolicy from './components/PrivacyPolicy';
-import Dashboard from './EventOrganizer/Dashboard';
+import Dashboard from './EventOrganizer/EventOrgDashboard';
+import MyEvents from './EventOrganizer/MyEvents';
+import Paycheque from './EventOrganizer/Paycheque';
+import Report from './EventOrganizer/Report';
 import { Toaster } from 'react-hot-toast';
 
 const AppContent = () => {
@@ -37,6 +40,9 @@ const AppContent = () => {
   const isEventCreatePage = routerLocation.pathname === '/event-create'; 
   const isDashboardPage = routerLocation.pathname === '/dashboard';
   const isHomePage = routerLocation.pathname === '/';
+  const isMyEventsPage = routerLocation.pathname === '/my-events';
+  const isPaychequePage = routerLocation.pathname === '/paycheque';
+  const isReportPage = routerLocation.pathname === '/report';
 
   useEffect(() => {
     fetchEvents();
@@ -154,7 +160,7 @@ const AppContent = () => {
       />
 
       {/* Hide main headers on SeatMap, EventCreate, and Dashboard pages */}
-      {!isSeatMapPage && !isEventCreatePage && !isDashboardPage && (
+      {!isSeatMapPage && !isEventCreatePage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && (
         <>
           <Navbar 
             location={location} 
@@ -182,6 +188,9 @@ const AppContent = () => {
         <Route path="/refund-policy" element={<RefundAndCancellation />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/my-events" element={<MyEvents />} />
+        <Route path="/paycheque" element={<Paycheque />} />
+        <Route path="/report" element={<Report />} />
       </Routes>
 
       {/* Global Footer shown only on the home page */}

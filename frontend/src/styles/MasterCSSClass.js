@@ -351,14 +351,13 @@ export const imgModalImage = "max-h-[70vh] w-auto mx-auto rounded-xl object-cont
 
 
 
-
+/// ==========================================
+// DASHBOARD STYLES (CORRECTED LAYOUT LOCK)
 // ==========================================
-// DASHBOARD STYLES (EXACT MATCH)
-// ==========================================
-export const dashLayoutWrapper = "min-h-screen bg-[#F4F6F9] font-sans text-slate-800 flex flex-col w-full overflow-x-hidden relative";
+export const dashLayoutWrapper = "h-screen bg-white font-sans text-slate-800 flex flex-col w-full overflow-hidden relative";
 
-// Full width top navbar spanning the entire top edge
-export const dashTopNavbar = "h-16 bg-white px-6 lg:px-8 border-b border-slate-200 flex items-center justify-between sticky top-0 z-50 shadow-xs w-full shrink-0";
+// Full width top navbar spanning the entire top edge (Fixed Height: h-14)
+export const dashTopNavbar = "h-14 bg-white px-6 lg:px-8 border-b border-slate-200 flex items-center justify-between sticky top-0 z-50 shadow-xs w-full shrink-0";
 export const dashTopNavTitleBox = "flex flex-col";
 export const dashTopMainHeading = "text-xl font-extrabold text-slate-900 tracking-tight";
 export const dashTopSubDateText = "text-xs font-medium text-slate-400";
@@ -369,25 +368,28 @@ export const dashUserProfileBox = "flex items-center space-x-3 pl-4 border-l bor
 export const dashUserAvatarImg = "w-10 h-10 rounded-full object-cover border border-slate-200";
 export const dashUserNameText = "text-sm font-bold text-slate-800 hidden sm:inline";
 
-// Container for everything below the top navbar
-export const dashBodyFlexContainer = "flex flex-1 min-h-0 relative";
-
 // Brand Logo & Title Styles for Top Navbar
 export const dashBrandLogo = "w-9 h-9 object-cover rounded-xl shrink-0";
 export const dashBrandTitle = "text-xl font-bold tracking-tight text-blue-900";
 
-export const dashMainContentArea = "flex-1 flex flex-col min-w-0";
-export const dashScrollableBody = "flex-1 p-6 lg:p-8 overflow-y-auto space-y-8";
+// Footer Area (Fixed Height: h-14, matching header, right-aligned content)
+export const dashFooterArea = "shrink-0 z-30 bg-white border-t border-slate-200 h-14 px-8 flex items-center justify-end text-xs text-slate-400 font-medium";
+
+// Container for everything between the fixed header and footer
+export const dashBodyFlexContainer = "flex flex-1 min-h-0 relative overflow-hidden";
+
+export const dashMainContentArea = "flex-1 flex flex-col min-w-0 h-full overflow-y-auto";
+export const dashScrollableBody = "p-4 lg:p-4 space-y-4";
 export const dashTopGridRow = "grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch";
 
-export const dashAddEventCard = "lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between";
+export const dashAddEventCard = "lg:col-span-4 rounded-xl p-6  shadow-xs flex flex-col justify-between";
 export const dashAddEventHeader = "space-y-1";
-export const dashAddEventTitle = "text-lg font-black text-slate-900";
+export const dashAddEventTitle = "text-lg font-semibold text-slate-900";
 export const dashAddEventSub = "text-xs text-slate-400 font-medium leading-relaxed";
-export const dashCreateEventBtn = "inline-flex items-center justify-center space-x-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition cursor-pointer mt-4";
+export const dashCreateEventBtn = "inline-flex items-center justify-center space-x-2 px-5 py-2.5  text-blue-600 font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition cursor-pointer mt-4";
 
 export const dashActiveEventCardBox = "lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4";
-export const dashMiniEventCard = "bg-white rounded-3xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 transition";
+export const dashMiniEventCard = "bg-white rounded-xl p-5 border border-slate-300 shadow-xs flex flex-col justify-between relative overflow-hidden group hover:border-blue-300 transition";
 export const dashMiniEventHeaderRow = "flex items-center space-x-3 mb-3";
 export const dashMiniEventThumb = "w-10 h-10 rounded-xl object-cover shrink-0 border border-slate-100";
 export const dashMiniEventInfo = "min-w-0";
@@ -403,7 +405,7 @@ export const dashProgressBarFillOrange = "h-full bg-amber-400 rounded-full";
 export const dashProgressBarFillBlue = "h-full bg-blue-500 rounded-full";
 
 export const dashStatsRowGrid = "grid grid-cols-1 sm:grid-cols-3 gap-6";
-export const dashStatCard = "bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between";
+export const dashStatCard = "bg-white rounded-2xl p-6 border-2 border-slate-300 shadow-xs flex flex-col justify-between";
 export const dashStatCardHeaderRow = "flex items-center justify-between mb-4";
 export const dashStatCardTitleBox = "flex items-center space-x-2 text-xs font-bold text-slate-500 tracking-wider";
 export const dashStatCardIconCircle = "w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs";
@@ -414,7 +416,7 @@ export const dashStatTrendBadgeGreen = "flex items-center space-x-1 text-[11px] 
 export const dashStatTrendBadgeRed = "flex items-center space-x-1 text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md";
 
 export const dashAnalyticsGridRow = "grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch";
-export const dashDonutCard = "lg:col-span-5 bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between";
+export const dashDonutCard = "lg:col-span-5 bg-white rounded-xl p-6 border-2 border-slate-300 shadow-xs flex flex-col justify-between";
 export const dashSectionCardHeader = "flex items-center justify-between mb-4";
 export const dashCardSectionTitle = "text-sm font-extrabold text-slate-900";
 export const dashDonutVisualContainer = "relative w-48 h-48 mx-auto my-4 flex items-center justify-center";
@@ -428,7 +430,7 @@ export const dashLegendDotGreen = "w-2.5 h-2.5 rounded-full bg-emerald-500 shrin
 export const dashLegendDotPurple = "w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0";
 export const dashLegendDotYellow = "w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0";
 
-export const dashBarChartCard = "lg:col-span-7 bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between";
+export const dashBarChartCard = "lg:col-span-7 bg-white rounded-xl p-6 border-2 border-slate-300 shadow-xs flex flex-col justify-between";
 export const dashBarChartBody = "flex items-end justify-between h-56 pt-6 pb-2 px-2 border-b border-slate-100";
 export const dashBarGroupWrapper = "flex flex-col items-center space-y-2 flex-1";
 export const dashBarColumnsContainer = "flex items-end space-x-1 h-44";
@@ -438,7 +440,7 @@ export const dashBarColAccent = "w-2.5 bg-purple-600 rounded-t-sm";
 export const dashBarAxisLabel = "text-[11px] font-bold text-slate-400";
 export const dashBarChartLegendRow = "flex flex-wrap items-center justify-center gap-6 pt-4 text-xs font-semibold text-slate-600";
 
-export const dashBuyersListCard = "bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-6";
+export const dashBuyersListCard = "bg-white rounded-xl p-6 border-2 border-slate-300 shadow-xs space-y-6";
 export const dashBuyersHeaderRow = "flex flex-col sm:flex-row sm:items-center justify-between gap-4";
 export const dashBuyersFilterGroup = "flex flex-wrap items-center gap-3";
 export const dashSearchInputWrapper = "relative flex items-center";
@@ -459,30 +461,141 @@ export const dashPaginationBox = "flex items-center space-x-1.5";
 export const dashPaginationNumActive = "w-7 h-7 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs";
 export const dashPaginationNumInactive = "w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-600 font-bold flex items-center justify-center text-xs cursor-pointer";
 
-export const dashRightCalendarColumn = "w-80 bg-white border-l border-slate-200 hidden xl:flex flex-col shrink-0 sticky top-20 h-[calc(100vh-5rem)] z-30 overflow-y-auto";
-export const dashWalletCardBox = "p-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-3xl m-6 shadow-lg shadow-blue-600/20";
-export const dashWalletTitleText = "text-xs font-bold text-blue-200 tracking-wider uppercase mb-1";
-export const dashWalletBalanceAmount = "text-2xl font-black tracking-tight";
-export const dashCalendarSectionBox = "px-6 py-2 flex-1 space-y-4 pb-8";
+// Right Sidebar (Fixed Width w-80, h-full, scrollable calendar body)
+export const dashRightCalendarColumn = "w-72 bg-white border-l border-slate-200 hidden xl:flex flex-col shrink-0 h-full z-20 overflow-hidden";
+export const dashWalletCardBox = "p-5 bg-blue-600 text-white rounded-lg shadow-lg shadow-blue-600/20";
+export const dashWalletTitleText = "text-xs font-semibold text-blue-200 tracking-wider uppercase mb-1";
+export const dashWalletBalanceAmount = "text-2xl font-bold tracking-tight";
+export const dashCalendarSectionBox = "px-6 py-2 flex-1 space-y-4 pb-8 overflow-y-auto";
 export const dashCalendarHeaderRow = "flex items-center justify-between mb-2";
 export const dashCalendarHeaderTitle = "text-xs font-bold text-slate-400 uppercase tracking-widest";
-export const dashCalendarDateSubText = "text-sm font-extrabold text-slate-900";
-export const dashScheduleEventItemCard = "p-3 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition space-y-1";
+export const dashCalendarDateSubText = "text-sm font-semibold text-slate-900";
+export const dashScheduleEventItemCard = "p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-slate-50 transition space-y-1";
 export const dashScheduleEventTime = "text-[10px] font-bold text-blue-600";
 export const dashScheduleEventName = "text-xs font-extrabold text-slate-900";
 export const dashScheduleEventLocation = "text-[11px] text-slate-500 font-medium truncate";
 
-// Dual-Column Sidebar Styles
-export const dashSidebarContainer = "w-auto bg-white border-r border-slate-200 flex shrink-0 sticky h-[calc(100vh-3rem)] z-30 transition-all overflow-hidden";
-export const dashSidebarBlueStrip = "w-16 bg-blue-600 flex flex-col items-center justify-between py-6 shrink-0 z-10 text-white";
+// Dual-Column Left Sidebar Styles (Fixed Width w-80 matching right sidebar perfectly)
+export const dashSidebarContainer = "w-64 bg-white border-r border-slate-200 flex shrink-0 h-full z-20 transition-all overflow-hidden";
+export const dashSidebarBlueStrip = "w-14 bg-blue-600 flex flex-col items-center justify-between py-6 shrink-0 z-10 text-white";
 export const dashSidebarBlueIconsTop = "flex flex-col items-center space-y-6";
 export const dashSidebarBlueIconsBottom = "flex flex-col items-center space-y-4";
 export const dashBlueIconButton = "p-2 rounded-xl hover:bg-blue-700 transition cursor-pointer text-white/80 hover:text-white";
 export const dashBlueIconButtonActive = "p-2 rounded-xl bg-blue-700 text-white shadow-sm";
 
-export const dashSidebarSubPanel = "hidden lg:flex flex-col justify-between w-56 bg-white p-6 h-full";
-export const dashNavList = "space-y-1.5";
-export const dashNavItemActive = "flex items-center space-x-3 px-3 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-sm transition";
+export const dashSidebarSubPanel = "hidden lg:flex flex-col justify-between flex-1 bg-white p-2 h-full overflow-y-auto";
+export const dashNavList = "space-y-1";
+export const dashNavItemActive = "flex items-center space-x-3 px-3 py-2 rounded-xl bg-blue-50 text-blue-600 font-medium text-sm transition";
 export const dashNavItemInactive = "flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium text-sm transition cursor-pointer";
+export const dashSidebarHeaderBox = "p-3 border-b border-slate-100";
+export const dashSidebarHeaderTitle = "font-semibold text-slate-900 text-lg";
+export const dashSidebarDateRow = "flex items-center space-x-1.5 text-xs text-slate-400 mt-1";
+export const dashSidebarTimeSubText = "text-xs text-slate-400 mt-0.5 ml-5";
 export const dashSidebarBottom = "border-t border-slate-100 pt-4";
 export const dashLogoutBtn = "flex items-center space-x-3 text-slate-500 hover:text-rose-600 font-medium text-sm transition cursor-pointer w-full px-3 py-2";
+
+
+
+// Paycheque Page Specific Styles
+export const paychequeWrapper = "px-10 lg:px-16 py-6 space-y-6";
+export const paychequeMetricGrid = "grid grid-cols-1 lg:grid-cols-3 gap-6";
+export const paychequeBalanceCard = "bg-blue-50/40 rounded-xl border border-blue-100 p-6 flex flex-col justify-between shadow-xs";
+export const paychequeCardHeader = "flex items-center space-x-1.5 mb-1";
+export const paychequeCardLabel = "text-xs font-bold text-slate-500";
+export const paychequeHelpIcon = "text-slate-400 cursor-pointer text-xs";
+export const paychequeAmountText = "text-3xl font-black text-slate-900 tracking-tight mt-1";
+export const paychequeCardFooterBlue = "mt-4 pt-3 border-t border-blue-100/60";
+export const paychequeViewTxLink = "text-xs underline font-bold text-blue-600 hover:text-blue-700 cursor-pointer";
+
+export const paychequeStandardCard = "bg-white rounded-xl border border-slate-200 p-6 flex flex-col justify-between shadow-xs";
+export const paychequeCardFooterWhite = "mt-4 pt-3 border-t border-slate-100";
+export const paychequeRequestBtn = "px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-none transition";
+export const paychequeRecentPayoutHeader = "flex items-center space-x-1.5 mb-3";
+export const paychequePayoutRow = "flex items-center justify-between text-slate-600 font-medium";
+export const paychequePayoutDate = "text-slate-400";
+export const paychequePayoutVal = "font-bold text-slate-900";
+
+export const paychequeTransactionSection = "bg-white rounded-none border border-slate-200 p-6 space-y-6 shadow-xs";
+export const paychequeSectionHeaderRow = "flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-4";
+export const paychequeSectionTitle = "text-sm font-extrabold text-slate-900";
+export const paychequeTabsGroup = "flex space-x-6 text-xs font-bold pt-2";
+export const paychequeTabActive = "pb-3 relative transition cursor-pointer text-blue-600 border-b-2 border-blue-600 -mb-4";
+export const paychequeTabInactive = "pb-3 relative transition cursor-pointer text-slate-400 hover:text-slate-600";
+export const paychequeUpdateText = "text-xs text-slate-400 font-medium flex items-center space-x-2";
+export const paychequeUpdateBtn = "p-1 hover:text-slate-600 cursor-pointer";
+
+export const paychequeFilterBar = "flex flex-wrap items-center gap-3";
+export const paychequeSearchWrapper = "relative flex-1 sm:max-w-xs";
+export const paychequeSearchInput = "w-full bg-white border border-slate-200 rounded-none px-8 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500";
+export const paychequeSearchIcon = "absolute left-3 top-2.5 text-slate-400";
+export const paychequeDropdownBtn = "bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 flex items-center space-x-4 rounded-none cursor-pointer";
+export const paychequeDropdownMenu = "absolute left-0 mt-1 w-40 bg-white border border-slate-200 shadow-lg z-20 rounded-none py-1";
+export const paychequeDropdownMenuRight = "absolute right-0 mt-1 w-52 bg-white border border-slate-200 shadow-lg z-20 rounded-none py-1 max-h-56 overflow-y-auto";
+export const paychequeDropdownItem = "w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 font-medium";
+
+export const paychequeTableWrapper = "overflow-x-auto";
+export const paychequeTable = "w-full text-left border-collapse text-xs whitespace-nowrap";
+export const paychequeTableHead = "border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]";
+export const paychequeTh = "pb-3 px-3 first:pl-0";
+export const paychequeThRight = "pb-3 px-3 text-right last:pr-0";
+export const paychequeTr = "hover:bg-slate-50/80 transition text-slate-700 font-medium";
+export const paychequeTdDate = "py-4 px-3 first:pl-0 text-slate-600";
+export const paychequeTdCategory = "py-4 px-3 text-slate-900 font-bold";
+export const paychequeTdId = "py-4 px-3 text-slate-600";
+export const paychequeTdAmount = "py-4 px-3 text-right last:pr-0 font-bold text-slate-900";
+export const paychequeSuccessBadge = "inline-flex items-center space-x-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-none text-[11px] font-bold";
+export const paychequeProgressBadge = "inline-flex items-center space-x-1 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-none text-[11px] font-bold";
+export const paychequeEmptyTd = "py-8 text-center text-slate-400 text-xs";
+
+export const paychequeTableFooter = "flex flex-col sm:flex-row items-center justify-between   text-xs text-slate-400 font-medium gap-2";
+export const paychequePaginationGroup = "flex items-center space-x-1";
+export const paychequePageBtn = "w-7 h-7 rounded-none border border-slate-200 text-slate-400 flex items-center justify-center text-xs";
+export const paychequePageBtnActive = "w-7 h-7 rounded-none bg-blue-600 text-white font-bold flex items-center justify-center text-xs";
+
+export const paychequeBottomActionsRow = "flex flex-wrap items-center gap-3 pt-2";
+export const paychequeBottomDropdownMenu = "absolute left-0 mt-1 w-52 bg-white border border-slate-200 shadow-lg z-40 rounded-none py-1 max-h-56 overflow-y-auto";
+
+
+
+
+// Report Page Specific Styles
+export const reportWrapper = "px-10 lg:px-16 py-6 space-y-6";
+export const reportTabsHeader = "flex space-x-8 border-b border-slate-200 pb-2 mb-4";
+export const reportTabActive = "text-sm font-extrabold text-blue-600 pb-3 relative border-b-2 border-blue-600 -mb-2.5 cursor-pointer";
+export const reportTabInactive = "text-sm font-bold text-slate-400 hover:text-slate-600 pb-3 cursor-pointer";
+export const reportFilterRow = "flex flex-wrap items-center justify-between gap-4 bg-slate-100 py-2 px-8 rounded-xs   shadow-xs mb-2";
+export const reportFilterGroup = "flex flex-wrap items-center gap-3";
+export const reportDropdownButton = "bg-white border-2 border-purple-300 px-4 py-2 text-xs font-bold text-purple-900 flex items-center justify-between space-x-6 rounded-md shadow-xs cursor-pointer";
+
+
+export const reportMetricsGrid = "grid grid-cols-1  sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6";
+export const reportMetricCard = "bg-white rounded-md border  border-slate-200 p-6 flex flex-col items-center justify-center text-center shadow-xs";
+export const reportMetricValue = "text-2xl font-black text-slate-900 tracking-tight mt-1";
+export const reportMetricLabel = "text-xs font-bold text-slate-400 uppercase tracking-wider";
+
+export const reportSectionCard = "bg-white border border-slate-200 p-6 shadow-xs space-y-4 mb-6";
+export const reportSectionTitle = "text-sm font-extrabold text-slate-900";
+export const reportTable = "w-full text-left border-collapse text-xs whitespace-nowrap";
+export const reportTableHead = "border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]";
+export const reportTh = "pb-3 px-3 first:pl-0";
+export const reportThRight = "pb-3 px-3 text-right last:pr-0";
+export const reportTr = "border-b border-slate-100 hover:bg-slate-50/80 transition text-slate-700 font-medium";
+export const reportTrBold = "border-b border-slate-200 bg-slate-50/50 font-bold text-slate-900";
+export const reportTdItem = "py-3 px-3 first:pl-0";
+export const reportTdVal = "py-3 px-3 text-right last:pr-0";
+
+export const reportChartsGrid = "grid grid-cols-1 lg:grid-cols-2 gap-6";
+
+export const reportDonutCenterBox = "absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none";
+export const reportLegendList = "space-y-2 pt-2 border-t border-slate-100 text-xs";
+
+
+// Replace/Update these in MasterCSSClass.js
+export const reportRefreshBtn = "p-2 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold cursor-pointer";
+export const reportChartCard = "bg-white border border-slate-200 p-6 shadow-xs flex flex-col justify-between";
+export const reportChartContentLayout = "flex flex-col sm:flex-row items-center justify-around my-4 gap-4";
+export const reportDonutContainer = "relative w-36 h-36 shrink-0 flex items-center justify-center";
+export const reportLegendListHorizontal = "space-y-2 text-xs flex-col justify-center";
+export const reportLegendRow = "flex items-center justify-between text-slate-600 font-medium space-x-4";
+export const reportLegendInfo = "flex items-center space-x-2";
+export const reportLegendDot = "w-2.5 h-2.5 rounded-full shrink-0";
