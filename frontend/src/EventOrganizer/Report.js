@@ -123,7 +123,7 @@ const Report = () => {
                   </button>
 
                   {isEventDropdownOpen && (
-                    <div className="absolute left-0 mt-1 w-96 bg-white border border-slate-200 shadow-lg z-30 py-1">
+                    <div className="absolute left-0 mt-1 w-96 bg-white border-2 border-slate-200 shadow-lg z-30 py-1">
                       {eventList.map((evt, idx) => (
                         <button 
                           key={idx}
@@ -149,7 +149,7 @@ const Report = () => {
                   </button>
 
                   {isTimeDropdownOpen && (
-                    <div className="absolute left-0 mt-1 w-40 bg-white border border-slate-200 shadow-lg z-30 py-1">
+                    <div className="absolute left-0 mt-1 w-40 bg-white border-2 border-slate-200 shadow-lg z-30 py-1">
                       {timeRanges.map((tr, idx) => (
                         <button 
                           key={idx}

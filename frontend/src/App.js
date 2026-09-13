@@ -22,6 +22,9 @@ import Paycheque from './EventOrganizer/Paycheque';
 import Report from './EventOrganizer/Report';
 import CreateEvent from './EventOrganizer/CreateEvent';
 import EventCategoryMaster from './Master/EventCategoryMaster';
+import Profile from './EventOrganizer/Profile';
+import KYCDetails from './EventOrganizer/KYCDetails';
+import Setting from './EventOrganizer/Setting';
 
 
 
@@ -49,6 +52,12 @@ const AppContent = () => {
   const isMyEventsPage = routerLocation.pathname === '/my-events';
   const isPaychequePage = routerLocation.pathname === '/paycheque';
   const isReportPage = routerLocation.pathname === '/report';
+  const isprofile = routerLocation.pathname === '/profile';
+  const iskyc = routerLocation.pathname === '/profile/kyc';
+  const isprofilesettings = routerLocation.pathname === '/profile/settings';
+
+  
+  
 
   useEffect(() => {
     fetchEvents();
@@ -93,17 +102,17 @@ const AppContent = () => {
   return (
     <div className={mainContainer}>
       {/* FLOATING EXPLORING CITY POPUP BANNER */}
-      {locationPopup && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-bounce-short">
-          <div className="bg-neutral-700 text-white px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 text-sm font-medium border border-neutral-700">
-            {/* Location Pin Icon */}
-            <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-            </svg>
-            <span>You’re exploring {locationPopup} now.</span>
-          </div>
-        </div>
-      )}
+    {locationPopup && (
+  <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] animate-bounce-short pointer-events-none">
+    <div className="bg-neutral-700 text-white px-4 py-2.5 rounded-lg shadow-2xl flex items-center gap-2.5 text-sm font-medium border border-neutral-600">
+      {/* Location Pin Icon */}
+      <svg className="w-4 h-4 text-white fill-current shrink-0" viewBox="0 0 24 24">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+      </svg>
+      <span>You’re exploring {locationPopup} now.</span>
+    </div>
+  </div>
+)}
 
       {/* CUSTOM TOASTER COMPONENT */}
       <Toaster
@@ -166,7 +175,7 @@ const AppContent = () => {
       />
 
       {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
-      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && (
+      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && (
         <>
           <Navbar 
             location={location} 
@@ -199,6 +208,11 @@ const AppContent = () => {
         <Route path="/paycheque" element={<Paycheque />} />
         <Route path="/report" element={<Report />} />
         <Route path="/event-category-master" element={<EventCategoryMaster />} />
+
+
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/kyc" element={<KYCDetails />} />
+        <Route path="/profile/settings" element={<Setting />} />
       </Routes>
 
       {/* Global Footer shown only on the home page */}

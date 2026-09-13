@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EventOrgHeader from './EventOrgHeader';
 import EventOrgFooter from './EventOrgFooter';
 import EventOrgLefSidebar from './EventOrgLefSidebar';
@@ -76,8 +77,34 @@ import {
 } from '../styles/MasterCSSClass';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState('2020-07-05');
   const dateInputRef = useRef(null);
+
+  // Scroll states for main body and calendar timeline
+  const [isMainScrolling, setIsMainScrolling] = useState(false);
+  const [isCalendarScrolling, setIsCalendarScrolling] = useState(false);
+  
+  const mainScrollTimeoutRef = useRef(null);
+  const calendarScrollTimeoutRef = useRef(null);
+
+  const handleMainScroll = () => {
+    setIsMainScrolling(true);
+    if (mainScrollTimeoutRef.current) clearTimeout(mainScrollTimeoutRef.current);
+    mainScrollTimeoutRef.current = setTimeout(() => {
+      setIsMainScrolling(false);
+    }, 400);
+  };
+
+  const handleCalendarScroll = () => {
+    setIsCalendarScrolling(true);
+    if (calendarScrollTimeoutRef.current) clearTimeout(calendarScrollTimeoutRef.current);
+    calendarScrollTimeoutRef.current = setTimeout(() => {
+      setIsCalendarScrolling(false);
+    }, 400);
+  };
+
+  // Timeline hours from 6 AM to 5 AM next day
   const timelineHours = [
     { time: '6 AM', event: null },
     { time: '7 AM', event: null },
@@ -122,7 +149,14 @@ const Dashboard = () => {
     { time: '7 PM', event: null },
     { time: '8 PM', event: null },
     { time: '9 PM', event: null },
-    { time: '10 PM', event: null }
+    { time: '10 PM', event: null },
+    { time: '11 PM', event: null },
+    { time: '12 AM', event: null },
+    { time: '1 AM', event: null },
+    { time: '2 AM', event: null },
+    { time: '3 AM', event: null },
+    { time: '4 AM', event: null },
+    { time: '5 AM', event: null }
   ];
 
   return (
@@ -138,7 +172,13 @@ const Dashboard = () => {
 
         {/* 3. MIDDLE SCROLLABLE CONTENT AREA */}
         <main className={dashMainContentArea}>
-          <div className={dashScrollableBody}>
+          <div 
+            onScroll={handleMainScroll}
+            style={{ scrollbarColor: isMainScrolling ? '#cbd5e1 transparent' : 'transparent transparent' }}
+            className={`${dashScrollableBody} overflow-y-scroll [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb]:duration-200 ${
+              isMainScrolling ? '[&::-webkit-scrollbar-thumb]:bg-slate-300' : '[&::-webkit-scrollbar-thumb]:bg-transparent'
+            }`}
+          >
             
             {/* Row 1: Add Event Card & Active Event Thumbnails */}
             <div className={dashTopGridRow}>
@@ -147,7 +187,11 @@ const Dashboard = () => {
                   <h3 className={dashAddEventTitle}>Add Event</h3>
                   <p className={dashAddEventSub}>Create a Eevent on Hubio.<br />Give event attendees a better Event Experience.</p>
                 </div>
-                <button type="button" className="inline-flex items-center space-x-3 text-blue-600 hover:text-blue-700 font-bold text-xs transition cursor-pointer mt-4">
+                <button 
+                  type="button" 
+                  onClick={() => navigate('/create-event')}
+                  className="inline-flex items-center space-x-3 text-blue-600 hover:text-blue-700 font-bold text-xs transition cursor-pointer mt-4"
+                >
                   <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/30">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                   </span>
@@ -156,8 +200,8 @@ const Dashboard = () => {
               </div>
 
               <div className={dashActiveEventCardBox}>
-                {/* Card 1: Green Theme */}
-                <div className="bg-emerald-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs">
+                {/* Card 1: Green Theme (3:4 Aspect Ratio) */}
+                <div className="bg-emerald-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4]">
                   <div className="flex flex-col space-y-4 mb-3">
                     <div className="flex -space-x-2 overflow-hidden">
                       <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
@@ -179,8 +223,8 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Card 2: Orange/Peach Theme */}
-                <div className="bg-amber-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs">
+                {/* Card 2: Orange/Peach Theme (3:4 Aspect Ratio) */}
+                <div className="bg-amber-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4]">
                   <div className="flex flex-col space-y-4 mb-3">
                     <div className="flex -space-x-2 overflow-hidden">
                       <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
@@ -202,8 +246,8 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Card 3: Blue Theme */}
-                <div className="bg-sky-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs">
+                {/* Card 3: Blue Theme (3:4 Aspect Ratio) */}
+                <div className="bg-sky-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4]">
                   <div className="flex flex-col space-y-4 mb-3">
                     <div className="flex -space-x-2 overflow-hidden">
                       <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
@@ -437,7 +481,7 @@ const Dashboard = () => {
           </div>
         </main>
 
-        {/* SCROLLABLE TIMELINE FROM 6 AM ONWARDS */}
+        {/* RIGHT SIDEBAR CALENDAR */}
         <aside className={dashRightCalendarColumn}>
           
           {/* FIXED WALLET & CALENDAR HEADER SECTION */}
@@ -484,9 +528,15 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* SCROLLABLE TIMELINE BODY */}
-          <div className={dashCalendarSectionBox}>
-            <div className="space-y-4 pt-2">
+          {/* SCROLLABLE TIMELINE BODY (Scrollbar hidden normally, appears ONLY while scrolling without layout shifts) */}
+          <div 
+            onScroll={handleCalendarScroll}
+            style={{ scrollbarColor: isCalendarScrolling ? '#cbd5e1 transparent' : 'transparent transparent' }}
+            className={`${dashCalendarSectionBox} overflow-y-scroll [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb]:duration-200 ${
+              isCalendarScrolling ? '[&::-webkit-scrollbar-thumb]:bg-slate-300' : '[&::-webkit-scrollbar-thumb]:bg-transparent'
+            }`}
+          >
+            <div className="space-y-4 pt-2 pr-2">
               {timelineHours.map((slot, index) => (
                 <div key={index} className="flex items-start text-xs">
                   <span className="w-12 text-slate-400 font-medium pt-1 shrink-0 leading-tight">{slot.time}</span>
@@ -508,7 +558,7 @@ const Dashboard = () => {
                           </>
                         )}
 
-                        {/* 12 PM Multi-Event Simple Box Format matching your image */}
+                        {/* 12 PM Multi-Event Simple Box Format */}
                         {slot.time === '12 PM' && (
                           <div className="space-y-2.5">
                             <div>

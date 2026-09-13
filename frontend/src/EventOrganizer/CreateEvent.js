@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import { indianCities } from '../utils/indianCities';
+
 import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
 
@@ -52,6 +54,13 @@ const CreateEvent = () => {
   const [isThumbnailModalOpen, setIsThumbnailModalOpen] = useState(false);
   const [masterArtists, setMasterArtists] = useState([]);
   const [selectedArtistModal, setSelectedArtistModal] = useState(null);
+
+  const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
+const [newArtistName, setNewArtistName] = useState('');
+const [newArtistType, setNewArtistType] = useState('Artist');
+const [newArtistDesc, setNewArtistDesc] = useState('');
+const [newArtistPhoto, setNewArtistPhoto] = useState('');
+const [isSavingArtist, setIsSavingArtist] = useState(false);
 
   // Comprehensive Form Data State
   const [formData, setFormData] = useState({
@@ -419,7 +428,7 @@ const handleDragOver = (e) => {
                         });
                         setIsDataSaved(false);
                       }}
-                      className={`h-28 flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`h-28 flex flex-col items-center justify-center p-4 rounded-md border-2 cursor-pointer transition-all ${
                         isSelected
                           ? 'border-blue-600 bg-blue-50/40 text-blue-700 shadow-xs'
                           : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
@@ -574,12 +583,12 @@ const handleDragOver = (e) => {
                   <div 
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'banner')}
-                    className="border-2 border-slate-300 rounded-2xl h-72 flex flex-col items-center justify-center text-center bg-slate-50/50 hover:bg-slate-50 transition relative overflow-hidden"
+                    className="border-2 border-slate-200 rounded-2xl h-72 flex flex-col items-center justify-center text-center bg-slate-50/50 hover:bg-slate-50 transition relative overflow-hidden"
                   >
                     {bannerPreview ? (
                       <div className="w-full h-full flex flex-col items-center justify-center relative group">
-                        <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover rounded-xl shadow-xs" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                        <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover rounded-md shadow-xs" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
                           <label className="px-4 py-2 bg-white text-slate-800 text-xs font-semibold rounded-lg shadow cursor-pointer hover:bg-slate-100 transition">
                             Change Banner Image
                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'banner')} className="hidden" />
@@ -614,12 +623,12 @@ const handleDragOver = (e) => {
                   <div 
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'thumbnail')}
-                    className="border-2 border-slate-300 rounded-2xl h-72 flex flex-col items-center justify-center text-center bg-slate-50/50 hover:bg-slate-50 transition relative overflow-hidden"
+                    className="border-2 border-slate-200 rounded-2xl h-72 flex flex-col items-center justify-center text-center bg-slate-50/50 hover:bg-slate-50 transition relative overflow-hidden"
                   >
                     {thumbnailPreview ? (
                       <div className="w-full h-full flex flex-col items-center justify-center relative group">
-                        <img src={thumbnailPreview} alt="Thumbnail" className="w-full h-full object-cover rounded-xl shadow-xs" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                        <img src={thumbnailPreview} alt="Thumbnail" className="w-full h-full object-cover rounded-md shadow-xs" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
                           <label className="px-3 py-2 bg-white text-slate-800 text-xs font-semibold rounded-lg shadow cursor-pointer hover:bg-slate-100 transition">
                             Change Thumbnail
                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'thumbnail')} className="hidden" />
@@ -652,7 +661,6 @@ const handleDragOver = (e) => {
         )}
 
       
-        {/* STEP 2: ARTIST & CONTENT */}
 {activeStep === 2 && (
   <div className="space-y-6">
     <div className="relative">
@@ -669,9 +677,7 @@ const handleDragOver = (e) => {
         />
         <button
           type="button"
-          onClick={() => {
-            toast.info('Use the search bar above to find and add artists from your master list.');
-          }}
+          onClick={() => setIsArtistModalOpen(true)}
           className={accountPrimaryBtn}
         >
           Add Artist
@@ -680,7 +686,7 @@ const handleDragOver = (e) => {
 
       {/* Clean Dropdown: Name & Role only, no outer container box lines */}
       {formData.artistSearchQuery.trim() !== '' && filteredMasterArtists.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto z-50">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-xl max-h-60 overflow-y-auto z-50">
           {filteredMasterArtists.map((artist) => (
             <div
               key={artist._id}
@@ -809,7 +815,7 @@ const handleDragOver = (e) => {
             {selectedArtistModal.photo ? (
               <img src={selectedArtistModal.photo} alt={selectedArtistModal.name} className="w-28 h-28 rounded-full object-cover mb-3 border-2 border-slate-200 shadow-md" />
             ) : (
-              <div className="w-28 h-28 rounded-full bg-slate-200 mb-3 border-2 border-slate-300 flex items-center justify-center text-slate-500 text-xs">
+              <div className="w-28 h-28 rounded-full bg-slate-200 mb-3 border-2 border-slate-200 flex items-center justify-center text-slate-500 text-xs">
                 No Photo
               </div>
             )}
@@ -818,113 +824,731 @@ const handleDragOver = (e) => {
           </div>
           <div className="pt-3 border-t border-slate-100">
             <h4 className="text-xs font-bold text-slate-700 mb-1">Description</h4>
-            <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-md border border-slate-200">
               {selectedArtistModal.description || 'No description available for this artist.'}
             </p>
           </div>
         </div>
       </div>
     )}
-  </div>
-)}
 
-          {/* STEP 3: DATE & VENUE */}
-          {activeStep === 3 && (
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <h3 className={accountSectionHeading}>Event Schedule</h3>
-                
-                <div className="grid grid-cols-1 gap-3">
-                  <div onClick={() => setFormData({ ...formData, eventScheduleType: 'single' })} className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-center justify-between ${formData.eventScheduleType === 'single' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'}`}>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-800">Single event</h4>
-                      <p className="text-[11px] text-slate-500">For events that happen only once</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.eventScheduleType === 'single' ? 'border-blue-600' : 'border-slate-300'}`}>
-                      {formData.eventScheduleType === 'single' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>}
-                    </div>
-                  </div>
-
-                  <div onClick={() => setFormData({ ...formData, eventScheduleType: 'recurring' })} className={`p-4 rounded-xl border-2 cursor-pointer transition flex items-center justify-between ${formData.eventScheduleType === 'recurring' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'}`}>
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-800">Recurring event</h4>
-                      <p className="text-[11px] text-slate-500">For events that have repeating shows</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.eventScheduleType === 'recurring' ? 'border-blue-600' : 'border-slate-300'}`}>
-                      {formData.eventScheduleType === 'recurring' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>}
-                    </div>
-                  </div>
+      {/* ARTIST MASTER POPUP MODAL FOR DIRECT CREATION */}
+      {isArtistModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          {/* Reduced padding to p-3.5 and spacing to space-y-2 to decrease modal height */}
+          <div className="bg-white rounded-2xl max-w-lg w-full p-3.5 relative shadow-2xl space-y-2">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-bold text-slate-800">Add New Artist</h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsArtistModalOpen(false)}
+                    className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 flex items-center justify-center font-bold text-sm"
+                  >
+                    ×
+                  </button>
                 </div>
 
-                {formData.eventScheduleType === 'single' ? (
-                  <div className="pt-2 space-y-3">
-                    <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <input type="date" name="startDate" value={formData.startDate} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                      <input type="time" name="startTime" value={formData.startTime} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                      <input type="time" name="endTime" value={formData.endTime} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="pt-2 space-y-4">
-                    <div className="inline-flex p-1 bg-slate-100 rounded-xl border-2 border-slate-200">
-                      <button type="button" onClick={() => setFormData({ ...formData, recurringType: 'daily' })} className={`px-6 py-1.5 rounded-lg text-xs font-semibold ${formData.recurringType === 'daily' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>Daily</button>
-                      <button type="button" onClick={() => setFormData({ ...formData, recurringType: 'weekly' })} className={`px-6 py-1.5 rounded-lg text-xs font-semibold ${formData.recurringType === 'weekly' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>Weekly</button>
-                    </div>
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newArtistName.trim()) {
+                      toast.error('Please enter artist name');
+                      return;
+                    }
+                    setIsSavingArtist(true);
+                    try {
+                      const payload = {
+                        artistName: newArtistName,
+                        artistType: newArtistType,
+                        description: newArtistDesc,
+                        photoBase64: newArtistPhoto
+                      };
 
-                    {formData.recurringType === 'daily' ? (
-                      <div className="space-y-3">
-                        <input type="date" className={`${inputFieldStyle} border-2 max-w-xs`} />
-                        <div className="grid grid-cols-2 gap-3">
-                          <input type="time" className={`${inputFieldStyle} border-2`} placeholder="Start time" />
-                          <input type="time" className={`${inputFieldStyle} border-2`} placeholder="End time" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <input type="date" className={`${inputFieldStyle} border-2 max-w-xs`} />
-                        <div className="flex gap-2">
-                          <span className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-semibold">Mon 27 Aug</span>
-                          <span className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-semibold">Tue 28 Aug</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <input type="time" className={`${inputFieldStyle} border-2`} />
-                          <input type="time" className={`${inputFieldStyle} border-2`} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      const res = await API.post('/artists', payload);
+                      const savedArtist = res.data || res;
 
-              <div className="pt-6 border-t border-slate-100 space-y-4">
-                <h3 className={accountSectionHeading}>Venue Details</h3>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  <div className="lg:col-span-6 border-2 border-slate-200 rounded-2xl h-80 bg-slate-100 flex items-center justify-center text-center relative overflow-hidden">
-                    <p className="text-xs font-bold text-slate-700">📍 Interactive Map Area</p>
+                      toast.success('Artist saved and added successfully!');
+
+                      const formattedNewArtist = {
+                        id: savedArtist._id || Date.now(),
+                        name: savedArtist.artistName || newArtistName,
+                        role: savedArtist.artistType || newArtistType,
+                        description: savedArtist.description || newArtistDesc,
+                        photo: savedArtist.photoUrl || newArtistPhoto
+                      };
+
+                      setFormData(prev => ({
+                        ...prev,
+                        artistsList: [...prev.artistsList, formattedNewArtist]
+                      }));
+
+                      setMasterArtists(prev => [savedArtist, ...prev]);
+
+                      setNewArtistName('');
+                      setNewArtistType('Artist');
+                      setNewArtistDesc('');
+                      setNewArtistPhoto('');
+                      setIsArtistModalOpen(false);
+                    } catch (err) {
+                      toast.error('Failed to save artist');
+                    } finally {
+                      setIsSavingArtist(false);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className={accountLabelStyle}>Artist Name <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={newArtistName}
+                      onChange={(e) => setNewArtistName(e.target.value)}
+                      placeholder="e.g. Arijit Singh"
+                      className={`${inputFieldStyle} border-2`}
+                      required
+                    />
                   </div>
-                  <div className="lg:col-span-6 space-y-4">
-                    <div>
-                      <label className={accountLabelStyle}>Venue Name <span className="text-red-500">*</span></label>
-                      <input type="text" name="venueName" placeholder="Enter venue name" value={formData.venueName} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                    </div>
-                    <div>
-                      <label className={accountLabelStyle}>Address <span className="text-red-500">*</span></label>
-                      <input type="text" name="venueAddress" placeholder="Enter address" value={formData.venueAddress} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <select name="venueCity" value={formData.venueCity} onChange={handleInputChange} className={`${inputFieldStyle} border-2`}>
-                        <option value="">Select city</option>
-                        <option value="Kolkata">Kolkata</option>
-                        <option value="Mumbai">Mumbai</option>
-                      </select>
-                      <input type="text" name="venuePinCode" placeholder="PIN code" value={formData.venuePinCode} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
+
+                  <div>
+                    <label className={accountLabelStyle}>Type / Category</label>
+                    <select
+                      value={newArtistType}
+                      onChange={(e) => setNewArtistType(e.target.value)}
+                      className={`${inputFieldStyle} border-2`}
+                    >
+                      <option value="Artist">Artist</option>
+                      <option value="Singer">Singer</option>
+                      <option value="Actor">Actor</option>
+                      <option value="Band">Band</option>
+                      <option value="DJ">DJ</option>
+                      <option value="Comedian">Comedian</option>
+                      <option value="Performer">Performer</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={accountLabelStyle}>Description</label>
+                    <textarea
+                      value={newArtistDesc}
+                      onChange={(e) => setNewArtistDesc(e.target.value)}
+                      placeholder="Type short bio..."
+                      rows="2"
+                      className={`${inputFieldStyle} border-2 resize-none p-3`}
+                    />
+                  </div>
+
+                <div className="flex flex-col items-center">
+                    <label className={accountLabelStyle}>Photo</label>
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setNewArtistPhoto(reader.result);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-24 h-24 rounded-full border-2  border-slate-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-slate-50 hover:bg-slate-100 transition relative group shadow-xs"
+                    >
+                      {newArtistPhoto ? (
+                        <div className="w-full h-full relative flex items-center justify-center">
+                          <img src={newArtistPhoto} alt="Preview" className="w-full h-full object-cover rounded-full" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-semibold text-center p-1 rounded-full">
+                            Change
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                          <span className="text-[11px] font-bold text-slate-600">Upload</span>
+                          <span className="text-[9px] text-slate-400">or drop</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setNewArtistPhoto(reader.result);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer rounded-full"
+                      />
                     </div>
                   </div>
-                </div>
+
+                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsArtistModalOpen(false)}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-md transition cursor-pointer border border-slate-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={isSavingArtist}
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 py-2 rounded-md transition cursor-pointer shadow-xs"
+                    >
+                      {isSavingArtist ? 'Saving...' : 'Save & Add Artist'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
+        </div>
+      )}
+
+{/* STEP 3: DATE & VENUE */}
+{activeStep === 3 && (
+  <div className="space-y-8">
+    <div className="space-y-4">
+      <h3 className={accountSectionHeading}>Event Schedule</h3>
+      
+      <div className="grid grid-cols-1 gap-3">
+        <div 
+          onClick={() => setFormData({ ...formData, eventScheduleType: 'single' })} 
+          className={`p-4 rounded-md border-2 cursor-pointer transition flex items-center justify-between ${formData.eventScheduleType === 'single' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'}`}
+        >
+          <div>
+            <h4 className="text-xs font-bold text-slate-800">Single event</h4>
+            <p className="text-[11px] text-slate-500">For events that happen only once</p>
+          </div>
+          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.eventScheduleType === 'single' ? 'border-blue-600' : 'border-slate-300'}`}>
+            {formData.eventScheduleType === 'single' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>}
+          </div>
+        </div>
+
+        <div 
+          onClick={() => setFormData({ ...formData, eventScheduleType: 'recurring' })} 
+          className={`p-4 rounded-md border-2 cursor-pointer transition flex items-center justify-between ${formData.eventScheduleType === 'recurring' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'}`}
+        >
+          <div>
+            <h4 className="text-xs font-bold text-slate-800">Recurring event</h4>
+            <p className="text-[11px] text-slate-500">For events that have repeating shows</p>
+          </div>
+          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.eventScheduleType === 'recurring' ? 'border-blue-600' : 'border-slate-300'}`}>
+            {formData.eventScheduleType === 'recurring' && <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>}
+          </div>
+        </div>
+      </div>
+
+      {/* SINGLE EVENT SCHEDULE (WITH DATE RESTRICTION ON TIME) */}
+      {formData.eventScheduleType === 'single' && (
+        <div className="pt-2 space-y-3">
+          <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start date</label>
+              <input type="date" name="startDate" value={formData.startDate || ''} onChange={handleInputChange} className={`${inputFieldStyle} border-2 w-full`} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start time</label>
+              <input 
+                type="time" 
+                name="startTime" 
+                value={formData.startTime || ''} 
+                onChange={(e) => {
+                  if (!formData.startDate) {
+                    toast.error('Please select a start date first', { id: 'date-restriction-toast' });
+                    return;
+                  }
+                  handleInputChange(e);
+                }} 
+                className={`${inputFieldStyle} border-2 w-full`} 
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-600 mb-1">End time</label>
+              <input 
+                type="time" 
+                name="endTime" 
+                value={formData.endTime || ''} 
+                onChange={(e) => {
+                  if (!formData.startDate) {
+                    toast.error('Please select a start date first', { id: 'date-restriction-toast' });
+                    return;
+                  }
+                  handleInputChange(e);
+                }} 
+                className={`${inputFieldStyle} border-2 w-full`} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RECURRING EVENT SCHEDULE (FULL WIDTH) */}
+      {formData.eventScheduleType === 'recurring' && (
+        <div className="pt-2 space-y-4 w-full">
+          {/* Heading & Horizontal Line */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
+            <hr className="border-slate-200" />
+          </div>
+
+          <h4 className="text-xs font-bold text-slate-800">Repeats</h4>
+          <div className="inline-flex bg-slate-100 rounded-md w-full">
+            <button 
+              type="button" 
+              onClick={() => setFormData({ ...formData, recurringType: 'daily' })} 
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'daily' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Daily
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setFormData({ ...formData, recurringType: 'weekly' })} 
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'weekly' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Weekly
+            </button>
+          </div>
+
+          {/* DAILY RECURRING VIEW (FULL WIDTH) WITH HOVER CROSS DELETE */}
+          {formData.recurringType === 'daily' ? (
+          <div className="space-y-4 pt-2 w-full">
+            {/* Flex container for inline alignment */}
+            <div className="flex items-center gap-4 w-full">
+              <label className="text-sm font-bold text-slate-800 whitespace-nowrap min-w-[80px]">Select date</label>
+              <div className="w-full max-w-xs">
+                <input 
+                  type="date" 
+                  name="startDate" 
+                  value={formData.startDate || ''} 
+                  onChange={handleInputChange} 
+                  className={`${inputFieldStyle} border-2 w-full`} 
+                />
+              </div>
+            </div>
+
+              <div className="space-y-3 w-full">
+                <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
+                
+                {(formData.dailyTimeSlots || [{ startTime: '', endTime: '' }]).map((slot, index, arr) => (
+                  <div key={index} className="relative group flex items-center gap-3 w-full">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                      <input 
+                        type="time" 
+                        value={slot.startTime} 
+                        onChange={(e) => {
+                          if (!formData.startDate) {
+                            toast.error('Please select a date first', { id: 'date-restriction-toast' });
+                            return;
+                          }
+                          const slots = [...arr];
+                          slots[index].startTime = e.target.value;
+                          setFormData({ ...formData, dailyTimeSlots: slots });
+                        }} 
+                        className={`${inputFieldStyle} border-2 w-full`} 
+                      />
+                    </div>
+                    <span className="text-slate-400 font-bold mt-5">-</span>
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">End time</label>
+                      <input 
+                        type="time" 
+                        value={slot.endTime} 
+                        onChange={(e) => {
+                          if (!formData.startDate) {
+                            toast.error('Please select a date first', { id: 'date-restriction-toast' });
+                            return;
+                          }
+                          const slots = [...arr];
+                          slots[index].endTime = e.target.value;
+                          setFormData({ ...formData, dailyTimeSlots: slots });
+                        }} 
+                        className={`${inputFieldStyle} border-2 w-full`} 
+                      />
+                    </div>
+                    <div className="mt-5 flex items-center gap-1">
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const slots = [...arr];
+                          slots.splice(index + 1, 0, { startTime: '', endTime: '' });
+                          setFormData({ ...formData, dailyTimeSlots: slots });
+                        }}
+                        className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer"
+                        title="Add time slot"
+                      >
+                        +
+                      </button>
+
+                      {arr.length > 1 && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            const slots = arr.filter((_, i) => i !== index);
+                            setFormData({ ...formData, dailyTimeSlots: slots });
+                          }}
+                          className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-xs cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete slot"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* WEEKLY RECURRING VIEW */
+            <div className="space-y-4 pt-2 w-full">
+              
+            <div className="space-y-4 pt-2 w-full">
+              {/* Flex container for inline alignment */}
+              <div className="flex items-center gap-4 w-full">
+                <label className="text-sm font-bold text-slate-800 whitespace-nowrap min-w-[80px]">
+                  Select date
+                </label>
+                <div className="w-full max-w-xs">
+                  <input 
+                    type="date" 
+                    id="weeklyDateInput"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) return;
+
+                      const currentList = formData.selectedWeeklyDates || [];
+
+                      if (currentList.length === 0) {
+                        const updatedDates = [val];
+                        const currentSlots = formData.weeklyTimeSlots || [];
+                        const updatedSlots = formData.sameTimeSlotForAll 
+                          ? currentSlots 
+                          : [...currentSlots.filter(s => s.date), { date: val, startTime: '', endTime: '' }];
+
+                        setFormData({ ...formData, selectedWeeklyDates: updatedDates, weeklyTimeSlots: updatedSlots.length ? updatedSlots : [{ date: val, startTime: '', endTime: '' }] });
+                        e.target.value = '';
+                        toast.success('First date selected!', { id: 'weekly-toast' });
+                        return;
+                      }
+
+                      const firstDate = new Date(currentList[0]);
+                      const newDate = new Date(val);
+                      const diffTime = newDate - firstDate;
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                      if (diffDays < 0) {
+                        toast.error('Selected date cannot be before the first weekly date.', { id: 'weekly-toast' });
+                        e.target.value = '';
+                      } else if (diffDays >= 7) {
+                        toast.error('Weekly selection must be within a 7-day window from the first date.', { id: 'weekly-toast' });
+                        e.target.value = '';
+                      } else if (currentList.includes(val)) {
+                        toast.error('Date already added.', { id: 'weekly-toast' });
+                        e.target.value = '';
+                      } else {
+                        const updatedDates = [...currentList, val];
+                        const currentSlots = formData.weeklyTimeSlots || [];
+                        
+                        const updatedSlots = formData.sameTimeSlotForAll 
+                          ? currentSlots 
+                          : [...currentSlots, { date: val, startTime: '', endTime: '' }];
+
+                        setFormData({ ...formData, selectedWeeklyDates: updatedDates, weeklyTimeSlots: updatedSlots });
+                        e.target.value = '';
+                        toast.success('Date added successfully!', { id: 'weekly-toast' });
+                      }
+                    }}
+                    className={`${inputFieldStyle} border-2 w-full`} 
+                  />
+                </div>
+              </div>
+              </div>
+
+              {/* Display Manually Selected Dates as Removable Pills */}
+              {formData.selectedWeeklyDates && formData.selectedWeeklyDates.length > 0 && (
+                <div className="w-full">
+                  <label className="block text-[11px] font-semibold text-slate-500 mb-2">Selected Dates</label>
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {formData.selectedWeeklyDates.map((dateStr, i) => {
+                      const d = new Date(dateStr);
+                      const dayNum = d.getDate();
+                      const monthStr = d.toLocaleDateString('en-US', { month: 'short' });
+                      const weekdayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+                      const formatted = `${weekdayStr} ${dayNum} ${monthStr}`;
+
+                      return (
+                        <div key={i} className="relative group px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-bold shadow-xs inline-flex items-center justify-center cursor-pointer">
+                          <span>{formatted}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedDates = formData.selectedWeeklyDates.filter((_, index) => index !== i);
+                              const updatedSlots = formData.sameTimeSlotForAll 
+                                ? formData.weeklyTimeSlots 
+                                : (formData.weeklyTimeSlots || []).filter(slot => slot.date !== dateStr);
+
+                              setFormData({ 
+                                ...formData, 
+                                selectedWeeklyDates: updatedDates, 
+                                weeklyTimeSlots: updatedSlots.length ? updatedSlots : [{ date: '', startTime: '', endTime: '' }] 
+                              });
+                            }}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-slate-700 shadow-md flex items-center justify-center text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-rose-100 hover:text-rose-600"
+                            title="Remove date"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Checkbox for Same Time Slot For All Days */}
+              <div className="flex items-center justify-between pt-2 w-full">
+                <span className="text-xs font-bold text-slate-700">Same time slot for all days</span>
+                <input 
+                  type="checkbox" 
+                  checked={formData.sameTimeSlotForAll || false} 
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    if (isChecked) {
+                      setFormData({ 
+                        ...formData, 
+                        sameTimeSlotForAll: true, 
+                        weeklyTimeSlots: [{ date: 'all', startTime: '', endTime: '' }] 
+                      });
+                    } else {
+                      const restoredSlots = (formData.selectedWeeklyDates || []).length > 0
+                        ? formData.selectedWeeklyDates.map(d => ({ date: d, startTime: '', endTime: '' }))
+                        : [{ date: '', startTime: '', endTime: '' }];
+
+                      setFormData({ 
+                        ...formData, 
+                        sameTimeSlotForAll: false, 
+                        weeklyTimeSlots: restoredSlots 
+                      });
+                    }
+                  }}
+                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
+                />
+              </div>
+
+              {/* Dynamic Time Slots Rows (WITH DATE RESTRICTION) */}
+              <div className="space-y-4 w-full pt-2">
+                <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
+                
+                {(formData.weeklyTimeSlots || [{ date: '', startTime: '', endTime: '' }]).map((slot, index, arr) => {
+                  let rowTitle = '';
+                  if (!formData.sameTimeSlotForAll && slot.date) {
+                    const d = new Date(slot.date);
+                    const dayNum = d.getDate();
+                    const monthStr = d.toLocaleDateString('en-US', { month: 'short' });
+                    const weekdayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+                    rowTitle = `${weekdayStr} ${dayNum} ${monthStr}`;
+                  }
+
+                  return (
+                    <div key={index} className="space-y-1 w-full">
+                      {!formData.sameTimeSlotForAll && rowTitle && (
+                        <span className="text-xs font-bold text-slate-700 block">{rowTitle}</span>
+                      )}
+
+                      <div className="relative group flex items-center gap-3 w-full">
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                          <input 
+                            type="time" 
+                            value={slot.startTime}
+                            onChange={(e) => {
+                              if (!formData.sameTimeSlotForAll && !slot.date && (!formData.selectedWeeklyDates || formData.selectedWeeklyDates.length === 0)) {
+                                toast.error('Please select a date first', { id: 'date-restriction-toast' });
+                                return;
+                              }
+                              const slots = [...arr];
+                              slots[index].startTime = e.target.value;
+                              setFormData({ ...formData, weeklyTimeSlots: slots });
+                            }}
+                            className={`${inputFieldStyle} border-2 w-full`} 
+                          />
+                        </div>
+                        <span className="text-slate-400 font-bold mt-5">-</span>
+                        <div className="flex-1">
+                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">End time</label>
+                          <input 
+                            type="time" 
+                            value={slot.endTime}
+                            onChange={(e) => {
+                              if (!formData.sameTimeSlotForAll && !slot.date && (!formData.selectedWeeklyDates || formData.selectedWeeklyDates.length === 0)) {
+                                toast.error('Please select a date first', { id: 'date-restriction-toast' });
+                                return;
+                              }
+                              const slots = [...arr];
+                              slots[index].endTime = e.target.value;
+                              setFormData({ ...formData, weeklyTimeSlots: slots });
+                            }}
+                            className={`${inputFieldStyle} border-2 w-full`} 
+                          />
+                        </div>
+
+                        <div className="mt-5 flex items-center gap-1">
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              const newSlot = { 
+                                date: formData.sameTimeSlotForAll ? 'all' : (slot.date || formData.selectedWeeklyDates?.[0] || ''), 
+                                startTime: '', 
+                                endTime: '' 
+                              };
+                              const slots = [...arr];
+                              slots.splice(index + 1, 0, newSlot);
+                              setFormData({ ...formData, weeklyTimeSlots: slots });
+                            }}
+                            className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer"
+                            title="Add time slot"
+                          >
+                            +
+                          </button>
+
+                          {arr.length > 1 && (
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const slots = arr.filter((_, i) => i !== index);
+                                setFormData({ ...formData, weeklyTimeSlots: slots });
+                              }}
+                              className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-xs cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Delete slot"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+
+ {/* VENUE DETAILS SECTION */}
+<div className="pt-6 border-t border-slate-100 space-y-4 w-full">
+  <h3 className={accountSectionHeading}>Venue Details</h3>
+  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+    
+    {/* Interactive Map Preview Area */}
+    <div className="lg:col-span-6 border-2 border-slate-200 rounded-2xl h-80 bg-slate-100 flex items-center justify-center text-center relative overflow-hidden shadow-xs">
+      {formData.venueAddress || formData.venueCity || formData.venueGoogleMapLink ? (
+        <iframe
+          title="Venue Location Map"
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          loading="lazy"
+          src={`https://maps.google.com/maps?q=${encodeURIComponent(
+            formData.venueGoogleMapLink && !formData.venueGoogleMapLink.includes('app.goo.gl') 
+              ? formData.venueGoogleMapLink 
+              : `${formData.venueAddress || ''}, ${formData.venueCity || ''}`
+          )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+        ></iframe>
+      ) : (
+        <div className="space-y-1 p-4">
+          <p className="text-xl">📍</p>
+          <p className="text-xs font-bold text-slate-700">Interactive Map Preview</p>
+          <p className="text-[10px] text-slate-400">Enter address or map details to load location</p>
+        </div>
+      )}
+    </div>
+
+    {/* Venue Form Inputs */}
+    <div className="lg:col-span-6 space-y-4">
+      <div>
+        <label className={accountLabelStyle}>Venue Name <span className="text-red-500">*</span></label>
+        <input 
+          type="text" 
+          name="venueName" 
+          placeholder="Enter venue name" 
+          value={formData.venueName || ''} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`} 
+        />
+      </div>
+
+      <div>
+        <label className={accountLabelStyle}>Address <span className="text-red-500">*</span></label>
+        <input 
+          type="text" 
+          name="venueAddress" 
+          placeholder="Enter address" 
+          value={formData.venueAddress || ''} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`} 
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={accountLabelStyle}>City <span className="text-red-500">*</span></label>
+          <select 
+            name="venueCity" 
+            value={formData.venueCity || ''} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyle} border-2 w-full`}
+          >
+            <option value="">Select city</option>
+            {indianCities.map((city, idx) => (
+              <option key={idx} value={typeof city === 'string' ? city : city.name}>
+                {typeof city === 'string' ? city : city.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={accountLabelStyle}>PIN Code</label>
+          <input 
+            type="text" 
+            name="venuePinCode" 
+            placeholder="PIN code" 
+            value={formData.venuePinCode || ''} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyle} border-2 w-full`} 
+          />
+        </div>
+      </div>
+
+      <div className="relative flex py-2 items-center">
+        <div className="flex-grow border-t border-slate-200"></div>
+        <span className="flex-shrink mx-4 text-slate-400 text-xs font-semibold">or</span>
+        <div className="flex-grow border-t border-slate-200"></div>
+      </div>
+
+      <div>
+        <label className={accountLabelStyle}>Google map link</label>
+        <input 
+          type="text" 
+          name="venueGoogleMapLink" 
+          placeholder="https://maps.google.com/..." 
+          value={formData.venueGoogleMapLink || ''} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`} 
+        />
+      </div>
+    </div>
+
+  </div>
+</div>
+  </div>
+)}
 
           {/* STEP 4: SEAT MAP & TICKET */}
           {activeStep === 4 && (
@@ -936,8 +1560,8 @@ const handleDragOver = (e) => {
                     {seatMapImage ? <img src={seatMapImage} alt="Seat Map" className="h-full object-contain" /> : <p className="text-xs text-slate-400">Upload seat map image (.jpg or .png)</p>}
                   </div>
                   <div className="lg:col-span-5 flex flex-col gap-3 justify-center">
-                    <Link to="/seatmap" className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl text-center no-underline">Open Seat Map Creator</Link>
-                    <label className="py-3 px-4 bg-white border-2 border-slate-200 text-slate-700 text-xs font-semibold rounded-xl text-center cursor-pointer">
+                    <Link to="/seatmap" className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md text-center no-underline">Open Seat Map Creator</Link>
+                    <label className="py-3 px-4 bg-white border-2 border-slate-200 text-slate-700 text-xs font-semibold rounded-md text-center cursor-pointer">
                       Upload image
                       <input type="file" accept="image/*" onChange={(e) => {
                         const f = e.target.files[0];
@@ -1041,9 +1665,12 @@ const handleDragOver = (e) => {
                 </div>
               </div>
 
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center text-xs text-amber-700 font-medium">
-                ℹ️ Your KYC verification is in progress.
-              </div>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-center gap-2 text-xs text-amber-700 font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+              </svg>
+              <span>Your KYC verification is in progress.</span>
+            </div>
             </div>
           )}
 
