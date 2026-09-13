@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate ,Link} from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import {
   navbar,
@@ -11,7 +11,9 @@ import {
   navSearchWrapper,
   navSearchInput,
   signInButton,
-  menuIconButton
+  menuIconButton,
+  dashBrandLogo,
+  dashBrandTitle
 } from '../styles/MasterCSSClass';
 
 const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
@@ -28,11 +30,10 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
 
   return (
     <nav className={navbar}>
-      {/* Left: Logo & Brand Name (Added cursor-pointer for UI feedback) */}
-      <div className={`${logoContainer} cursor-pointer`} onClick={handleLogoClick}>
-        <img src={Logo} alt="ShowIsHere Logo" className={logoImage} />
-        <span className={brandTitle}>showishere</span>
-      </div>
+       <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline">
+        <img src={Logo} alt="Logo" className={dashBrandLogo} />
+        <span className={dashBrandTitle}>showishere</span>
+      </Link>
 
       {/* Center: Search Bar with Light Gray/White Pill background */}
       <div className={navSearchWrapper}>

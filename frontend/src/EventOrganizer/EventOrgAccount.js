@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import GSTDeclaration from '../utils/GSTDeclaration';
 import SignAgrement from '../utils/SignAgrement';
@@ -73,7 +74,9 @@ import {
   imgModalCloseBtn,
   imgModalBody,
   imgModalImage,
-  accountFormCardtext
+  accountFormCardtext,
+  dashBrandLogo,
+  dashBrandTitle
 } from '../styles/MasterCSSClass';
 
 const EventOrgAccount = () => {
@@ -590,12 +593,13 @@ const handleProceed = async () => {
 
   return (
     <div className={mainContainer}>
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs w-full h-16 flex items-center">
+        <header className={"bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs w-full h-14  flex items-center"}>
         <div className={accountHeaderInner}>
-          <div className={accountLogoContainer}>
-            <img src={Logo} alt="Logo" className={accountLogoImg} />
-            <span className={accountBrandText}>let's do it</span>
-          </div>
+            <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline">
+            <img src={Logo} alt="Logo" className={dashBrandLogo} />
+            <span className={dashBrandTitle}>let's do it</span>
+          </Link>
+          
 
           <div className={accountStepsBar}>
             {steps.map((step) => {
@@ -1066,7 +1070,7 @@ const handleProceed = async () => {
           )}
         </div>
       </main>
-<footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-16 flex items-center">
+<footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
   <div className={accountFooterInner}>
     <button
       type="button"

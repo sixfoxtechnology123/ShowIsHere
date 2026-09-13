@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import userAvatar from '../assets/avatar.jpg';
 import {
@@ -15,10 +16,10 @@ import {
 const EventOrgHeader = () => {
   return (
     <header className={dashTopNavbar}>
-      <div className="flex items-center space-x-3">
+     <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline">
         <img src={Logo} alt="Logo" className={dashBrandLogo} />
         <span className={dashBrandTitle}>showishere</span>
-      </div>
+      </Link>
 
       <div className={dashTopNavRight}>
         <div className={dashNotificationIconBox}>

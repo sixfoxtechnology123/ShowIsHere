@@ -4,7 +4,9 @@ import { dashFooterArea } from '../styles/MasterCSSClass';
 const EventOrgFooter = () => {
   return (
     <footer className={dashFooterArea}>
-      Showishere © 2026 – All rights reserved
+      <div className="absolute right-6 text-xs text-slate-500 font-normal">
+      ShowIsHere © 2026 — All rights reserved
+    </div>
     </footer>
   );
 };

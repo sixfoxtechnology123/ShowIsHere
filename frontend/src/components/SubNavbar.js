@@ -18,12 +18,12 @@ const SubNavbar = () => {
   ];
 
   const rightLinks = [
-    { name: 'Create Events', path: '/event-create' },
+    { name: 'Create Events', path: '/create-event' },
     { name: 'Seat Map', path: '/seatmap' },
     { name: 'Artists', path: '/artist-master' },
     { name: 'Collaborate', path: '/dashboard' },
-    { name: 'Coupon', path: '#' },
-    { name: 'Find My Tickets', path: '#' }
+    { name: 'Coupon', path: '/event-org-account' },
+    { name: 'Find My Tickets', path: '/event-category-master' }
   ];
 
   return (

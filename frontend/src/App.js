@@ -12,7 +12,7 @@ import Footer from './components/Footer';
 import AboutPage from './components/AboutPage';
 import SeatMap from './components/SeatMap';
 import ArtistMaster from './Master/ArtistMaster';
-import EventCreate from './EventOrganizer/EventOrgAccount';
+import EventOrgAccount from './EventOrganizer/EventOrgAccount';
 import TermsOfUse from './components/TermsOfUse'; 
 import RefundAndCancellation from './components/RefundAndCancellation';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -20,6 +20,11 @@ import Dashboard from './EventOrganizer/EventOrgDashboard';
 import MyEvents from './EventOrganizer/MyEvents';
 import Paycheque from './EventOrganizer/Paycheque';
 import Report from './EventOrganizer/Report';
+import CreateEvent from './EventOrganizer/CreateEvent';
+import EventCategoryMaster from './Master/EventCategoryMaster';
+
+
+
 import { Toaster } from 'react-hot-toast';
 
 const AppContent = () => {
@@ -37,7 +42,8 @@ const AppContent = () => {
 
   const routerLocation = useLocation();
   const isSeatMapPage = routerLocation.pathname === '/seatmap';
-  const isEventCreatePage = routerLocation.pathname === '/event-create'; 
+  const isEventOrgAccountPage = routerLocation.pathname === '/event-org-account'; 
+  const isCreateevent = routerLocation.pathname === '/create-event'; 
   const isDashboardPage = routerLocation.pathname === '/dashboard';
   const isHomePage = routerLocation.pathname === '/';
   const isMyEventsPage = routerLocation.pathname === '/my-events';
@@ -159,8 +165,8 @@ const AppContent = () => {
         }}
       />
 
-      {/* Hide main headers on SeatMap, EventCreate, and Dashboard pages */}
-      {!isSeatMapPage && !isEventCreatePage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && (
+      {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
+      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && (
         <>
           <Navbar 
             location={location} 
@@ -183,7 +189,8 @@ const AppContent = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/seatmap" element={<SeatMap />} />
         <Route path="/artist-master" element={<ArtistMaster />} />
-        <Route path="/event-create" element={<EventCreate />} />
+        <Route path="/event-org-account" element={<EventOrgAccount />} />
+        <Route path="/create-event" element={<CreateEvent />} />
         <Route path="/terms" element={<TermsOfUse />} />
         <Route path="/refund-policy" element={<RefundAndCancellation />} />
         <Route path="/dashboard" element={<Dashboard />} />
@@ -191,6 +198,7 @@ const AppContent = () => {
         <Route path="/my-events" element={<MyEvents />} />
         <Route path="/paycheque" element={<Paycheque />} />
         <Route path="/report" element={<Report />} />
+        <Route path="/event-category-master" element={<EventCategoryMaster />} />
       </Routes>
 
       {/* Global Footer shown only on the home page */}
