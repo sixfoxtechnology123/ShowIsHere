@@ -434,7 +434,7 @@ const handleDragOver = (e) => {
                           : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
                       }`}
                     >
-                      <img src={cat.icon} alt={cat.name} className="w-10 h-10 mb-2 object-contain opacity-80" />
+                      <img src={cat.icon} alt={cat.name} className="w-11 h-11 mb-2 object-contain opacity-80" />
                       <span className="text-xs font-semibold">{cat.name}</span>
                     </div>
                   );
