@@ -127,7 +127,7 @@ const QuestionDatabseMaster = () => {
       }
       resetForm();
       fetchQuestions();
-      setViewMode('list');
+      // setViewMode('list');
     } catch (error) {
       toast.error(error.message || 'Save failed.', { id: 'question-db-toast' });
     } finally {
@@ -225,7 +225,7 @@ const QuestionDatabseMaster = () => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className={artistTableHeadStyle}>
-                      <th className="py-2 px-2">ID</th>
+                      <th className="py-2 px-2">Sl</th>
                       <th className="py-2 px-2">QUESTION</th>
                       <th className="py-2 px-2">OPTIONS</th>
                       <th className="py-2 px-2 text-right">ACTIONS</th>
@@ -236,9 +236,9 @@ const QuestionDatabseMaster = () => {
                       <tr><td colSpan="4" className="text-center py-5 text-slate-400">Loading questions...</td></tr>
                     ) : questions.length === 0 ? (
                       <tr><td colSpan="4" className="text-center py-5 text-slate-400">No questions found.</td></tr>
-                    ) : questions.map((item) => (
+                    ) : questions.map((item,idex) => (
                       <tr key={item._id} className={artistTableRowStyle}>
-                        <td className="py-2 px-2 font-bold">{item.questionId}</td>
+                        <td className="py-2 px-2 font-bold">{idex+1}</td>
                         <td className="py-2 px-2 font-semibold max-w-md truncate">{item.question}</td>
                         <td className="py-2 px-2">{[item.optionA, item.optionB, item.optionC, item.optionD, item.optionE].filter(Boolean).join(', ')}</td>
                         <td className="py-2 px-2 text-right space-x-2">

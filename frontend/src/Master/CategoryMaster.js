@@ -149,9 +149,7 @@ const handleImageFile = (file) => {
       <main className={accountMainContainer}>
         <div className={accountTitleSection}>
           <h1 className={accountMainTitle}>Category Master</h1>
-          <p className={accountMainSubTitle}>
-            {viewMode === 'form' ? 'Add or edit event categories with display images.' : 'Manage category status, image, edit and delete.'}
-          </p>
+          
         </div>
 
         <div className={accountFormCard}>

@@ -199,9 +199,7 @@ const ArtistMaster = () => {
       <main className={accountMainContainer}>
         <div className={accountTitleSection}>
           <h1 className={accountMainTitle}>ARTIST MASTER MANAGEMENT</h1>
-          <p className={accountMainSubTitle}>
-            {viewMode === 'form' ? (editId ? 'Edit existing artist profile details.' : 'Add a new artist or import via Excel.') : 'Manage your registered artists list.'}
-          </p>
+          
         </div>
 
         <div className={accountFormCard}>
