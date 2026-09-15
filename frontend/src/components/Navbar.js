@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate ,Link} from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import {
   navbar,
@@ -18,8 +18,25 @@ import {
 
 const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
-  // Handles home navigation safely (uses prop if available, falls back to React Router)
+  // Automatically close menu when clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
   const handleLogoClick = () => {
     if (onNavigateHome) {
       onNavigateHome();
@@ -35,7 +52,7 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
         <span className={dashBrandTitle}>showishere</span>
       </Link>
 
-      {/* Center: Search Bar with Light Gray/White Pill background */}
+      {/* Center: Search Bar */}
       <div className={navSearchWrapper}>
         <svg className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <circle cx="11" cy="11" r="8"></circle>
@@ -59,11 +76,43 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
           Sign in
         </button>
 
-        <button className={menuIconButton}>
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
-          </svg>
-        </button>
+        {/* 3-Line Menu Button with Master Options Dropdown & Outside Click Ref */}
+        <div className="relative" ref={menuRef}>
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)} 
+            className={menuIconButton}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+
+          {isMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-2xl py-1.5 z-[99999]">
+              <Link 
+                to="/artist-master" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Artist Master
+              </Link>
+              <Link 
+                to="/seatmap" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Seat Map
+              </Link>
+              <Link 
+                to="/event-category-master" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Category Master
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );
