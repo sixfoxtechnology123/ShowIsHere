@@ -18,6 +18,9 @@ import workshopIcon from '../assets/createevent/Workshop.png';
 import exhibitionIcon from '../assets/createevent/Exhibitation.png';
 import filmMediaIcon from '../assets/createevent/Film&Media.png';
 
+
+
+
 import {
   mainContainer,
   inputFieldStyle,
@@ -42,6 +45,16 @@ import {
   dashBrandTitle
 } from '../styles/MasterCSSClass';
 
+const formatTo12Hour = (timeStr) => {
+  if (!timeStr) return '';
+  const [hourStr, minuteStr] = timeStr.split(':');
+  let hour = parseInt(hourStr, 10);
+  if (isNaN(hour)) return timeStr;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  hour = hour ? hour : 12;
+  return `${hour}:${minuteStr} ${ampm}`;
+};
 const CreateEvent = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [isDataSaved, setIsDataSaved] = useState(false);
@@ -63,7 +76,7 @@ const [newArtistType, setNewArtistType] = useState('Artist');
 const [newArtistDesc, setNewArtistDesc] = useState('');
 const [newArtistPhoto, setNewArtistPhoto] = useState('');
 const [isSavingArtist, setIsSavingArtist] = useState(false);
-const [isOpen, setIsOpen] = useState(true);
+const [openSlotIndex, setOpenSlotIndex] = useState(null);
   const [ticketName, setTicketName] = useState('');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -82,20 +95,7 @@ const [isOpen, setIsOpen] = useState(true);
   const [sameTicketForEvent, setSameTicketForEvent] = useState(false);
   const [showTicketForm, setShowTicketForm] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
-  const [savedTickets, setSavedTickets] = useState([
-    {
-      name: 'VIP (A3-20)',
-      price: '500',
-      qty: '300',
-      available: '270',
-      startDate: '27-Aug-2026',
-      endDate: '29-Aug-2026',
-      ebPrice: '450',
-      ebQty: '50',
-      ebStart: '15-Aug-2026',
-      ebEnd: '17-Aug-2026'
-    }
-  ]);
+  const [savedTickets, setSavedTickets] = useState([]);
   const [formData, setFormData] = useState({
     // Step 1
     eventTitle: '',
@@ -212,6 +212,10 @@ useEffect(() => {
       })
       .catch((err) => console.error("Error loading artists:", err));
   }, []);
+  useEffect(() => {
+    setSavedTickets([]);
+    setOpenSlotIndex(null);
+  }, [formData.selectedWeeklyDates, formData.recurringType, formData.eventScheduleType]);
 const filteredMasterArtists = masterArtists.filter((artist) => {
     const query = formData.artistSearchQuery ? formData.artistSearchQuery.trim().toLowerCase() : '';
     if (!query) return false;
@@ -1057,7 +1061,16 @@ const handleDragOver = (e) => {
       
       <div className="grid grid-cols-1 gap-3">
         <div 
-          onClick={() => setFormData({ ...formData, eventScheduleType: 'single' })} 
+          onClick={() => setFormData({ 
+              ...formData, 
+              eventScheduleType: 'single',
+              startDate: '',
+              startTime: '',
+              endTime: '',
+              selectedWeeklyDates: [],
+              weeklyTimeSlots: [],
+              dailyTimeSlots: [{ startTime: '', endTime: '' }]
+            })}
           className={`p-4 rounded-md border-2 cursor-pointer transition flex items-center justify-between ${formData.eventScheduleType === 'single' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'}`}
         >
           <div>
@@ -1070,7 +1083,16 @@ const handleDragOver = (e) => {
         </div>
 
         <div 
-          onClick={() => setFormData({ ...formData, eventScheduleType: 'recurring' })} 
+          onClick={() => setFormData({ 
+          ...formData, 
+          eventScheduleType: 'recurring',
+          startDate: '',
+          startTime: '',
+          endTime: '',
+          selectedWeeklyDates: [],
+          weeklyTimeSlots: [],
+          dailyTimeSlots: [{ startTime: '', endTime: '' }]
+        })}
           className={`p-4 rounded-md border-2 cursor-pointer transition flex items-center justify-between ${formData.eventScheduleType === 'recurring' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'}`}
         >
           <div>
@@ -1083,115 +1105,370 @@ const handleDragOver = (e) => {
         </div>
       </div>
 
-      {/* SINGLE EVENT SCHEDULE (WITH DATE RESTRICTION ON TIME) */}
-      {formData.eventScheduleType === 'single' && (
-        <div className="pt-2 space-y-3">
-          <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start date</label>
-              <input type="date" name="startDate" value={formData.startDate || ''} onChange={handleInputChange} className={`${inputFieldStyle} border-2 w-full`} />
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start time</label>
-              <input 
-                type="time" 
-                name="startTime" 
-                value={formData.startTime || ''} 
-                onChange={(e) => {
-                  if (!formData.startDate) {
-                    toast.error('Please select a start date first', { id: 'date-restriction-toast' });
-                    return;
-                  }
-                  handleInputChange(e);
-                }} 
-                className={`${inputFieldStyle} border-2 w-full`} 
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">End time</label>
-              <input 
-                type="time" 
-                name="endTime" 
-                value={formData.endTime || ''} 
-                onChange={(e) => {
-                  if (!formData.startDate) {
-                    toast.error('Please select a start date first', { id: 'date-restriction-toast' });
-                    return;
-                  }
-                  handleInputChange(e);
-                }} 
-                className={`${inputFieldStyle} border-2 w-full`} 
-              />
-            </div>
+    {/* SINGLE EVENT SCHEDULE (WITH DATE RESTRICTION ON TIME) */}
+  {formData.eventScheduleType === 'single' && (
+    <div className="pt-2 space-y-3">
+      <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start date</label>
+          <input 
+            type="date" 
+            name="startDate" 
+            value={formData.startDate || ''} 
+            onChange={(e) => {
+              const val = e.target.value;
+              setFormData(prev => ({
+                ...prev,
+                startDate: val,
+                startTime: '',
+                endTime: ''
+              }));
+            }} 
+            className={`${inputFieldStyle} border-2 w-full`} 
+          />
+        </div>
+        <div>
+          <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start time</label>
+          <input 
+            type="time" 
+            name="startTime" 
+            disabled={!formData.startDate}
+            value={formData.startTime || ''} 
+            onChange={(e) => {
+              const val = e.target.value;
+              setFormData(prev => ({ ...prev, startTime: val, endTime: '' }));
+            }} 
+            className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+          />
+        </div>
+       <div>
+  <label className="block text-[11px] font-semibold text-slate-600 mb-1">End time</label>
+  <input 
+    type="time" 
+    name="endTime" 
+    disabled={!formData.startTime}
+    value={formData.endTime || ''} 
+    onChange={(e) => {
+      const val = e.target.value;
+      // Check if end time is equal to or before start time
+      if (formData.startTime && val <= formData.startTime) {
+        toast.error('End time must be later than start time.', { id: 'time-validation-error' });
+        return;
+      }
+      setFormData(prev => ({ ...prev, endTime: val }));
+    }} 
+    className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+  />
+</div>
+      </div>
+    </div>
+  )}
+
+  {/* RECURRING EVENT SCHEDULE (FULL WIDTH) */}
+  {formData.eventScheduleType === 'recurring' && (
+    <div className="pt-2 space-y-4 w-full">
+      {/* Heading & Horizontal Line */}
+      <div className="space-y-2">
+        <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
+        <hr className="border-slate-200" />
+      </div>
+
+      <h4 className="text-xs font-bold text-slate-800">Repeats</h4>
+      <div className="inline-flex bg-slate-100 rounded-md w-full">
+        <button 
+          type="button" 
+          onClick={() => setFormData({ 
+          ...formData, 
+          recurringType: 'daily',
+          startDate: '',
+          selectedWeeklyDates: [],
+          weeklyTimeSlots: [],
+          dailyTimeSlots: [{ startTime: '', endTime: '' }]
+        })}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'daily' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          Daily
+        </button>
+        <button 
+          type="button" 
+          onClick={() => setFormData({ 
+            ...formData, 
+            recurringType: 'weekly',
+            startDate: '',
+            selectedWeeklyDates: [],
+            weeklyTimeSlots: [],
+            dailyTimeSlots: [{ startTime: '', endTime: '' }]
+          })} 
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'weekly' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        >
+          Weekly
+        </button>
+      </div>
+
+      {/* DAILY RECURRING VIEW (FULL WIDTH) WITH HOVER CROSS DELETE */}
+      {formData.recurringType === 'daily' ? (
+      <div className="space-y-4 pt-2 w-full">
+        {/* Flex container for inline alignment */}
+        <div className="flex items-center gap-4 w-full">
+          <label className="text-sm font-bold text-slate-800 whitespace-nowrap min-w-[80px]">Select date</label>
+          <div className="w-full max-w-xs">
+            <input 
+              type="date" 
+              name="startDate" 
+              value={formData.startDate || ''} 
+              onChange={handleInputChange} 
+              className={`${inputFieldStyle} border-2 w-full`} 
+            />
           </div>
         </div>
-      )}
 
-      {/* RECURRING EVENT SCHEDULE (FULL WIDTH) */}
-      {formData.eventScheduleType === 'recurring' && (
-        <div className="pt-2 space-y-4 w-full">
-          {/* Heading & Horizontal Line */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
-            <hr className="border-slate-200" />
+          <div className="space-y-3 w-full">
+            <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
+            
+            {(formData.dailyTimeSlots || [{ startTime: '', endTime: '' }]).map((slot, index, arr) => (
+              <div key={index} className="relative group flex items-center gap-3 w-full">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                  <input 
+                    type="time" 
+                    disabled={!formData.startDate}
+                    value={slot.startTime} 
+                    onChange={(e) => {
+                      if (!formData.startDate) {
+                        toast.error('Please select a date first', { id: 'date-restriction-toast' });
+                        return;
+                      }
+                      const slots = [...arr];
+                      slots[index].startTime = e.target.value;
+                      setFormData({ ...formData, dailyTimeSlots: slots });
+                    }} 
+                    className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                  />
+                </div>
+                <span className="text-slate-400 font-bold mt-5">-</span>
+                <div className="flex-1">
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
+                 <input 
+                      type="time" 
+                      disabled={!slot.startTime}
+                      value={slot.endTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        // Check if end time is equal to or before start time
+                        if (slot.startTime && val <= slot.startTime) {
+                          toast.error('End time must be later than start time.', { id: 'time-validation-error' });
+                          return;
+                        }
+                        const slots = [...arr];
+                        slots[index].endTime = val;
+                        setFormData({ ...formData, [formData.recurringType === 'daily' ? 'dailyTimeSlots' : 'weeklyTimeSlots']: slots });
+                      }}
+                      className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                    />
+                </div>
+                <div className="mt-5 flex items-center gap-1">
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      const slots = [...arr];
+                      slots.splice(index + 1, 0, { startTime: '', endTime: '' });
+                      setFormData({ ...formData, dailyTimeSlots: slots });
+                    }}
+                    className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer"
+                    title="Add time slot"
+                  >
+                    +
+                  </button>
+
+                  {arr.length > 1 && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const slots = arr.filter((_, i) => i !== index);
+                        setFormData({ ...formData, dailyTimeSlots: slots });
+                      }}
+                      className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-xs cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Delete slot"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* WEEKLY RECURRING VIEW */
+        <div className="space-y-4 pt-2 w-full">
+          
+        <div className="space-y-4 pt-2 w-full">
+          {/* Flex container for inline alignment */}
+          <div className="flex items-center gap-4 w-full">
+            <label className="text-sm font-bold text-slate-800 whitespace-nowrap min-w-[80px]">
+              Select date
+            </label>
+            <div className="w-full max-w-xs">
+              <input 
+                type="date" 
+                id="weeklyDateInput"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+
+                  const currentList = formData.selectedWeeklyDates || [];
+
+                  if (currentList.length === 0) {
+                    const updatedDates = [val];
+                    const currentSlots = formData.weeklyTimeSlots || [];
+                    const updatedSlots = formData.sameTimeSlotForAll 
+                      ? currentSlots 
+                      : [...currentSlots.filter(s => s.date), { date: val, startTime: '', endTime: '' }];
+
+                    setFormData({ ...formData, selectedWeeklyDates: updatedDates, weeklyTimeSlots: updatedSlots.length ? updatedSlots : [{ date: val, startTime: '', endTime: '' }] });
+                    e.target.value = '';
+                    toast.success('First date selected!', { id: 'weekly-toast' });
+                    return;
+                  }
+
+                  const firstDate = new Date(currentList[0]);
+                  const newDate = new Date(val);
+                  const diffTime = newDate - firstDate;
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                  if (diffDays < 0) {
+                    toast.error('Selected date cannot be before the first weekly date.', { id: 'weekly-toast' });
+                    e.target.value = '';
+                  } else if (diffDays >= 7) {
+                    toast.error('Weekly selection must be within a 7-day window from the first date.', { id: 'weekly-toast' });
+                    e.target.value = '';
+                  } else if (currentList.includes(val)) {
+                    toast.error('Date already added.', { id: 'weekly-toast' });
+                    e.target.value = '';
+                  } else {
+                    const updatedDates = [...currentList, val];
+                    const currentSlots = formData.weeklyTimeSlots || [];
+                    
+                    const updatedSlots = formData.sameTimeSlotForAll 
+                      ? currentSlots 
+                      : [...currentSlots, { date: val, startTime: '', endTime: '' }];
+
+                    setFormData({ ...formData, selectedWeeklyDates: updatedDates, weeklyTimeSlots: updatedSlots });
+                    e.target.value = '';
+                    toast.success('Date added successfully!', { id: 'weekly-toast' });
+                  }
+                }}
+                className={`${inputFieldStyle} border-2 w-full`} 
+              />
+            </div>
+          </div>
           </div>
 
-          <h4 className="text-xs font-bold text-slate-800">Repeats</h4>
-          <div className="inline-flex bg-slate-100 rounded-md w-full">
-            <button 
-              type="button" 
-              onClick={() => setFormData({ ...formData, recurringType: 'daily' })} 
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'daily' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              Daily
-            </button>
-            <button 
-              type="button" 
-              onClick={() => setFormData({ ...formData, recurringType: 'weekly' })} 
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'weekly' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              Weekly
-            </button>
-          </div>
+          {/* Display Manually Selected Dates as Removable Pills */}
+          {formData.selectedWeeklyDates && formData.selectedWeeklyDates.length > 0 && (
+            <div className="w-full">
+              <label className="block text-[11px] font-semibold text-slate-500 mb-2">Selected Dates</label>
+              <div className="flex flex-wrap gap-2 w-full">
+                {formData.selectedWeeklyDates.map((dateStr, i) => {
+                  const d = new Date(dateStr);
+                  const dayNum = d.getDate();
+                  const monthStr = d.toLocaleDateString('en-US', { month: 'short' });
+                  const weekdayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+                  const formatted = `${weekdayStr} ${dayNum} ${monthStr}`;
 
-          {/* DAILY RECURRING VIEW (FULL WIDTH) WITH HOVER CROSS DELETE */}
-          {formData.recurringType === 'daily' ? (
-          <div className="space-y-4 pt-2 w-full">
-            {/* Flex container for inline alignment */}
-            <div className="flex items-center gap-4 w-full">
-              <label className="text-sm font-bold text-slate-800 whitespace-nowrap min-w-[80px]">Select date</label>
-              <div className="w-full max-w-xs">
-                <input 
-                  type="date" 
-                  name="startDate" 
-                  value={formData.startDate || ''} 
-                  onChange={handleInputChange} 
-                  className={`${inputFieldStyle} border-2 w-full`} 
-                />
+                  return (
+                    <div key={i} className="relative group px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-bold shadow-xs inline-flex items-center justify-center cursor-pointer">
+                      <span>{formatted}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedDates = formData.selectedWeeklyDates.filter((_, index) => index !== i);
+                          const updatedSlots = formData.sameTimeSlotForAll 
+                            ? formData.weeklyTimeSlots 
+                            : (formData.weeklyTimeSlots || []).filter(slot => slot.date !== dateStr);
+
+                          setFormData({ 
+                            ...formData, 
+                            selectedWeeklyDates: updatedDates, 
+                            weeklyTimeSlots: updatedSlots.length ? updatedSlots : [{ date: '', startTime: '', endTime: '' }] 
+                          });
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-slate-800 shadow-md flex items-center justify-center text-[11px] font-bold opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-rose-100 hover:text-rose-600"
+                        title="Remove date"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          )}
 
-              <div className="space-y-3 w-full">
-                <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
-                
-                {(formData.dailyTimeSlots || [{ startTime: '', endTime: '' }]).map((slot, index, arr) => (
-                  <div key={index} className="relative group flex items-center gap-3 w-full">
+          {/* Checkbox for Same Time Slot For All Days */}
+          <div className="flex items-center justify-between pt-2 w-full">
+            <span className="text-xs font-bold text-slate-800">Same time slot for all days</span>
+            <input 
+              type="checkbox" 
+              checked={formData.sameTimeSlotForAll || false} 
+              onChange={(e) => {
+                const isChecked = e.target.checked;
+                if (isChecked) {
+                  setFormData({ 
+                    ...formData, 
+                    sameTimeSlotForAll: true, 
+                    weeklyTimeSlots: [{ date: 'all', startTime: '', endTime: '' }] 
+                  });
+                } else {
+                  const restoredSlots = (formData.selectedWeeklyDates || []).length > 0
+                    ? formData.selectedWeeklyDates.map(d => ({ date: d, startTime: '', endTime: '' }))
+                    : [{ date: '', startTime: '', endTime: '' }];
+
+                  setFormData({ 
+                    ...formData, 
+                    sameTimeSlotForAll: false, 
+                    weeklyTimeSlots: restoredSlots 
+                  });
+                }
+              }}
+              className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
+            />
+          </div>
+
+          {/* Dynamic Time Slots Rows (WITH DATE RESTRICTION) */}
+          <div className="space-y-4 w-full pt-2">
+            <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
+            
+            {(formData.weeklyTimeSlots || [{ date: '', startTime: '', endTime: '' }]).map((slot, index, arr) => {
+              let rowTitle = '';
+              if (!formData.sameTimeSlotForAll && slot.date) {
+                const d = new Date(slot.date);
+                const dayNum = d.getDate();
+                const monthStr = d.toLocaleDateString('en-US', { month: 'short' });
+                const weekdayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+                rowTitle = `${weekdayStr} ${dayNum} ${monthStr}`;
+              }
+
+              return (
+                <div key={index} className="space-y-1 w-full">
+                  {!formData.sameTimeSlotForAll && rowTitle && (
+                    <span className="text-xs font-bold text-slate-800 block">{rowTitle}</span>
+                  )}
+
+                  <div className="relative group flex items-center gap-3 w-full">
                     <div className="flex-1">
                       <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
                       <input 
                         type="time" 
-                        value={slot.startTime} 
+                        disabled={!formData.sameTimeSlotForAll && !slot.date && (!formData.selectedWeeklyDates || formData.selectedWeeklyDates.length === 0)}
+                        value={slot.startTime}
                         onChange={(e) => {
-                          if (!formData.startDate) {
-                            toast.error('Please select a date first', { id: 'date-restriction-toast' });
-                            return;
-                          }
                           const slots = [...arr];
                           slots[index].startTime = e.target.value;
-                          setFormData({ ...formData, dailyTimeSlots: slots });
-                        }} 
-                        className={`${inputFieldStyle} border-2 w-full`} 
+                          setFormData({ ...formData, weeklyTimeSlots: slots });
+                        }}
+                        className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
                       />
                     </div>
                     <span className="text-slate-400 font-bold mt-5">-</span>
@@ -1199,26 +1476,35 @@ const handleDragOver = (e) => {
                       <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
                       <input 
                         type="time" 
-                        value={slot.endTime} 
+                        disabled={!slot.startTime}
+                        value={slot.endTime}
                         onChange={(e) => {
-                          if (!formData.startDate) {
-                            toast.error('Please select a date first', { id: 'date-restriction-toast' });
+                          const val = e.target.value;
+                          // Check if end time is equal to or before start time
+                          if (slot.startTime && val <= slot.startTime) {
+                            toast.error('End time must be later than start time.', { id: 'time-validation-error' });
                             return;
                           }
                           const slots = [...arr];
-                          slots[index].endTime = e.target.value;
-                          setFormData({ ...formData, dailyTimeSlots: slots });
-                        }} 
-                        className={`${inputFieldStyle} border-2 w-full`} 
+                          slots[index].endTime = val;
+                          setFormData({ ...formData, [formData.recurringType === 'daily' ? 'dailyTimeSlots' : 'weeklyTimeSlots']: slots });
+                        }}
+                        className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
                       />
                     </div>
+
                     <div className="mt-5 flex items-center gap-1">
                       <button 
                         type="button" 
                         onClick={() => {
+                          const newSlot = { 
+                            date: formData.sameTimeSlotForAll ? 'all' : (slot.date || formData.selectedWeeklyDates?.[0] || ''), 
+                            startTime: '', 
+                            endTime: '' 
+                          };
                           const slots = [...arr];
-                          slots.splice(index + 1, 0, { startTime: '', endTime: '' });
-                          setFormData({ ...formData, dailyTimeSlots: slots });
+                          slots.splice(index + 1, 0, newSlot);
+                          setFormData({ ...formData, weeklyTimeSlots: slots });
                         }}
                         className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer"
                         title="Add time slot"
@@ -1231,7 +1517,7 @@ const handleDragOver = (e) => {
                           type="button" 
                           onClick={() => {
                             const slots = arr.filter((_, i) => i !== index);
-                            setFormData({ ...formData, dailyTimeSlots: slots });
+                            setFormData({ ...formData, weeklyTimeSlots: slots });
                           }}
                           className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-xs cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                           title="Delete slot"
@@ -1241,245 +1527,14 @@ const handleDragOver = (e) => {
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* WEEKLY RECURRING VIEW */
-            <div className="space-y-4 pt-2 w-full">
-              
-            <div className="space-y-4 pt-2 w-full">
-              {/* Flex container for inline alignment */}
-              <div className="flex items-center gap-4 w-full">
-                <label className="text-sm font-bold text-slate-800 whitespace-nowrap min-w-[80px]">
-                  Select date
-                </label>
-                <div className="w-full max-w-xs">
-                  <input 
-                    type="date" 
-                    id="weeklyDateInput"
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!val) return;
-
-                      const currentList = formData.selectedWeeklyDates || [];
-
-                      if (currentList.length === 0) {
-                        const updatedDates = [val];
-                        const currentSlots = formData.weeklyTimeSlots || [];
-                        const updatedSlots = formData.sameTimeSlotForAll 
-                          ? currentSlots 
-                          : [...currentSlots.filter(s => s.date), { date: val, startTime: '', endTime: '' }];
-
-                        setFormData({ ...formData, selectedWeeklyDates: updatedDates, weeklyTimeSlots: updatedSlots.length ? updatedSlots : [{ date: val, startTime: '', endTime: '' }] });
-                        e.target.value = '';
-                        toast.success('First date selected!', { id: 'weekly-toast' });
-                        return;
-                      }
-
-                      const firstDate = new Date(currentList[0]);
-                      const newDate = new Date(val);
-                      const diffTime = newDate - firstDate;
-                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                      if (diffDays < 0) {
-                        toast.error('Selected date cannot be before the first weekly date.', { id: 'weekly-toast' });
-                        e.target.value = '';
-                      } else if (diffDays >= 7) {
-                        toast.error('Weekly selection must be within a 7-day window from the first date.', { id: 'weekly-toast' });
-                        e.target.value = '';
-                      } else if (currentList.includes(val)) {
-                        toast.error('Date already added.', { id: 'weekly-toast' });
-                        e.target.value = '';
-                      } else {
-                        const updatedDates = [...currentList, val];
-                        const currentSlots = formData.weeklyTimeSlots || [];
-                        
-                        const updatedSlots = formData.sameTimeSlotForAll 
-                          ? currentSlots 
-                          : [...currentSlots, { date: val, startTime: '', endTime: '' }];
-
-                        setFormData({ ...formData, selectedWeeklyDates: updatedDates, weeklyTimeSlots: updatedSlots });
-                        e.target.value = '';
-                        toast.success('Date added successfully!', { id: 'weekly-toast' });
-                      }
-                    }}
-                    className={`${inputFieldStyle} border-2 w-full`} 
-                  />
                 </div>
-              </div>
-              </div>
-
-              {/* Display Manually Selected Dates as Removable Pills */}
-              {formData.selectedWeeklyDates && formData.selectedWeeklyDates.length > 0 && (
-                <div className="w-full">
-                  <label className="block text-[11px] font-semibold text-slate-500 mb-2">Selected Dates</label>
-                  <div className="flex flex-wrap gap-2 w-full">
-                    {formData.selectedWeeklyDates.map((dateStr, i) => {
-                      const d = new Date(dateStr);
-                      const dayNum = d.getDate();
-                      const monthStr = d.toLocaleDateString('en-US', { month: 'short' });
-                      const weekdayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
-                      const formatted = `${weekdayStr} ${dayNum} ${monthStr}`;
-
-                      return (
-                        <div key={i} className="relative group px-4 py-2 bg-blue-600 text-white rounded-md text-xs font-bold shadow-xs inline-flex items-center justify-center cursor-pointer">
-                          <span>{formatted}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updatedDates = formData.selectedWeeklyDates.filter((_, index) => index !== i);
-                              const updatedSlots = formData.sameTimeSlotForAll 
-                                ? formData.weeklyTimeSlots 
-                                : (formData.weeklyTimeSlots || []).filter(slot => slot.date !== dateStr);
-
-                              setFormData({ 
-                                ...formData, 
-                                selectedWeeklyDates: updatedDates, 
-                                weeklyTimeSlots: updatedSlots.length ? updatedSlots : [{ date: '', startTime: '', endTime: '' }] 
-                              });
-                            }}
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-slate-800 shadow-md flex items-center justify-center text-[11px] font-bold opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-rose-100 hover:text-rose-600"
-                            title="Remove date"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Checkbox for Same Time Slot For All Days */}
-              <div className="flex items-center justify-between pt-2 w-full">
-                <span className="text-xs font-bold text-slate-800">Same time slot for all days</span>
-                <input 
-                  type="checkbox" 
-                  checked={formData.sameTimeSlotForAll || false} 
-                  onChange={(e) => {
-                    const isChecked = e.target.checked;
-                    if (isChecked) {
-                      setFormData({ 
-                        ...formData, 
-                        sameTimeSlotForAll: true, 
-                        weeklyTimeSlots: [{ date: 'all', startTime: '', endTime: '' }] 
-                      });
-                    } else {
-                      const restoredSlots = (formData.selectedWeeklyDates || []).length > 0
-                        ? formData.selectedWeeklyDates.map(d => ({ date: d, startTime: '', endTime: '' }))
-                        : [{ date: '', startTime: '', endTime: '' }];
-
-                      setFormData({ 
-                        ...formData, 
-                        sameTimeSlotForAll: false, 
-                        weeklyTimeSlots: restoredSlots 
-                      });
-                    }
-                  }}
-                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
-                />
-              </div>
-
-              {/* Dynamic Time Slots Rows (WITH DATE RESTRICTION) */}
-              <div className="space-y-4 w-full pt-2">
-                <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
-                
-                {(formData.weeklyTimeSlots || [{ date: '', startTime: '', endTime: '' }]).map((slot, index, arr) => {
-                  let rowTitle = '';
-                  if (!formData.sameTimeSlotForAll && slot.date) {
-                    const d = new Date(slot.date);
-                    const dayNum = d.getDate();
-                    const monthStr = d.toLocaleDateString('en-US', { month: 'short' });
-                    const weekdayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
-                    rowTitle = `${weekdayStr} ${dayNum} ${monthStr}`;
-                  }
-
-                  return (
-                    <div key={index} className="space-y-1 w-full">
-                      {!formData.sameTimeSlotForAll && rowTitle && (
-                        <span className="text-xs font-bold text-slate-800 block">{rowTitle}</span>
-                      )}
-
-                      <div className="relative group flex items-center gap-3 w-full">
-                        <div className="flex-1">
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
-                          <input 
-                            type="time" 
-                            value={slot.startTime}
-                            onChange={(e) => {
-                              if (!formData.sameTimeSlotForAll && !slot.date && (!formData.selectedWeeklyDates || formData.selectedWeeklyDates.length === 0)) {
-                                toast.error('Please select a date first', { id: 'date-restriction-toast' });
-                                return;
-                              }
-                              const slots = [...arr];
-                              slots[index].startTime = e.target.value;
-                              setFormData({ ...formData, weeklyTimeSlots: slots });
-                            }}
-                            className={`${inputFieldStyle} border-2 w-full`} 
-                          />
-                        </div>
-                        <span className="text-slate-400 font-bold mt-5">-</span>
-                        <div className="flex-1">
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
-                          <input 
-                            type="time" 
-                            value={slot.endTime}
-                            onChange={(e) => {
-                              if (!formData.sameTimeSlotForAll && !slot.date && (!formData.selectedWeeklyDates || formData.selectedWeeklyDates.length === 0)) {
-                                toast.error('Please select a date first', { id: 'date-restriction-toast' });
-                                return;
-                              }
-                              const slots = [...arr];
-                              slots[index].endTime = e.target.value;
-                              setFormData({ ...formData, weeklyTimeSlots: slots });
-                            }}
-                            className={`${inputFieldStyle} border-2 w-full`} 
-                          />
-                        </div>
-
-                        <div className="mt-5 flex items-center gap-1">
-                          <button 
-                            type="button" 
-                            onClick={() => {
-                              const newSlot = { 
-                                date: formData.sameTimeSlotForAll ? 'all' : (slot.date || formData.selectedWeeklyDates?.[0] || ''), 
-                                startTime: '', 
-                                endTime: '' 
-                              };
-                              const slots = [...arr];
-                              slots.splice(index + 1, 0, newSlot);
-                              setFormData({ ...formData, weeklyTimeSlots: slots });
-                            }}
-                            className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer"
-                            title="Add time slot"
-                          >
-                            +
-                          </button>
-
-                          {arr.length > 1 && (
-                            <button 
-                              type="button" 
-                              onClick={() => {
-                                const slots = arr.filter((_, i) => i !== index);
-                                setFormData({ ...formData, weeklyTimeSlots: slots });
-                              }}
-                              className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-xs cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Delete slot"
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       )}
+    </div>
+  )}
     </div>
 
   {/* VENUE DETAILS SECTION */}
@@ -1667,351 +1722,512 @@ const handleDragOver = (e) => {
               </div>
             </div>
 
-<div className="pt-6 border-t border-slate-100 space-y-4">
+      <div className="pt-6 border-t border-slate-100 space-y-4">
     <h3 className={accountSectionHeading}>Ticket Type</h3>
     
-    <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-2xs space-y-4">
+    <div className="rounded-2xl bg-white overflow-hidden shadow-2xs space-y-4 p-4">
       
-      {/* Time Slot Container (Supports multiple time slots dynamically) */}
-      <div className="rounded-xl overflow-hidden bg-white">
-        
-        {/* Accordion Header */}
-        <div 
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-between px-5 py-2 cursor-pointer select-none transition hover:bg-slate-100/80"
-        >
-          <span className="text-xs font-bold text-slate-800">Thu, 27 Aug - 12:00 AM to 12:30 AM</span>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-          </svg>
-        </div>
+    {(formData.eventScheduleType === 'single' 
+        ? (formData.startDate ? [{ date: formData.startDate, startTime: formData.startTime, endTime: formData.endTime }] : [])
+        : (formData.recurringType === 'daily'
+            ? (formData.startDate 
+                ? (formData.dailyTimeSlots && formData.dailyTimeSlots.length > 0 
+                    ? formData.dailyTimeSlots.map(slot => ({ date: formData.startDate, startTime: slot.startTime, endTime: slot.endTime }))
+                    : [{ date: formData.startDate, startTime: '', endTime: '' }]
+                  )
+                : []
+              )
+            : (formData.selectedWeeklyDates && formData.selectedWeeklyDates.length > 0 
+                ? formData.selectedWeeklyDates.map(date => {
+                    const match = (formData.weeklyTimeSlots || []).find(s => s.date === date || formData.sameTimeSlotForAll);
+                    return { date, startTime: match?.startTime || '', endTime: match?.endTime || '' };
+                  })
+                : []
+              )
+          )
+    ).map((slot, slotIdx) => {
+        const displayDate = slot.date || formData.startDate || '';
+        const displayStart = slot.startTime || '';
+        const displayEnd = slot.endTime || '';
 
-        {isOpen && (
-          <div className="p-6 space-y-2">
+        const slotTickets = savedTickets.filter(t => {
+          const slotIdentifier = `${displayDate}_${displayStart}`;
+          if (t.excludedSlots && t.excludedSlots.includes(slotIdentifier)) {
+            return false;
+          }
+          if (t.slotDate === 'all') return true;
+          return t.slotDate === displayDate && t.startTime === displayStart;
+        });
+
+        return (
+          <div key={slotIdx} className="border border-slate-200/80 rounded-xl overflow-hidden bg-white mb-4">
             
-            {/* Conditionally show "No tickets added yet!" ONLY if there are no saved tickets */}
-            {savedTickets.length === 0 && (
-              <div className="flex items-center justify-between w-full">
-                <div 
-                  onClick={() => {
-                    setEditingIndex(null);
-                    setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
-                    setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
-                    setShowTicketForm(!showTicketForm);
-                  }}
-                  className="flex-1 py-3.5 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-xl text-xs text-slate-600 font-medium text-center cursor-pointer transition border border-slate-200/60"
-                >
-                  No tickets added yet!
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingIndex(null);
-                    setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
-                    setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
-                    setShowTicketForm(!showTicketForm);
-                  }}
-                  className="ml-3 text-slate-800 hover:text-blue-600 font-bold text-lg px-2 cursor-pointer transition"
-                >
-                  {showTicketForm ? '−' : '+'}
-                </button>
-              </div>
-            )}
+            {/* Accordion Header */}
+            <div 
+                onClick={() => setOpenSlotIndex(openSlotIndex === slotIdx ? null : slotIdx)}
+                className="flex items-center justify-between px-5 py-3 bg-slate-50/80 border-b border-slate-200/80 cursor-pointer select-none transition hover:bg-slate-100/80"
+              >
+                <span className="text-xs font-bold text-slate-800">
+                  {(() => {
+                    const formatDateString = (dateStr) => {
+                      if (!dateStr) return '';
+                      const d = new Date(dateStr);
+                      if (isNaN(d)) return dateStr;
+                      const weekday = d.toLocaleDateString('en-US', { weekday: 'short' });
+                      const day = d.getDate();
+                      const month = d.toLocaleDateString('en-US', { month: 'short' });
+                      return `${weekday}, ${day} ${month}`;
+                    };
 
-            {/* Saved Tickets Table List */}
-            {savedTickets.length > 0 && (
-              <div className="space-y-3">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-slate-500 text-[12px]">
-                        <th className="py-2.5 px-2">Name</th>
-                        <th className="py-2.5 px-2">Price</th>
-                        <th className="py-2.5 px-2">Qty</th>
-                        <th className="py-2.5 px-2">Available</th>
-                        <th className="py-2.5 px-2">Start Date</th>
-                        <th className="py-2.5 px-2">End Date</th>
-                        <th className="py-2.5 px-2">EB</th>
-                        <th className="py-2.5 px-2">Price</th>
-                        <th className="py-2.5 px-2">Start Date</th>
-                        <th className="py-2.5 px-2">End Date</th>
-                        <th className="py-2.5 px-2 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {savedTickets.map((t, idx) => {
-                        const isLast = idx === savedTickets.length - 1;
-                        return (
-                          <tr key={idx} className="hover:bg-slate-50/50 text-[12px]">
-                            <td className="py-3 px-2 text-slate-800">{t.name}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.price}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.qty}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.available}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.startDate}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.endDate}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.ebPrice}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.ebQty}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.ebStart}</td>
-                            <td className="py-3 px-2 text-slate-800">{t.ebEnd}</td>
-                            <td className="py-3 px-2 text-right space-x-2 whitespace-nowrap">
-                              {/* Edit Button */}
-                              <button 
-                                type="button" 
-                              onClick={() => {
-                                setEditingIndex(idx);
-                                setTicketName(t.name);
-                                setPrice(t.price);
-                                setQuantity(t.qty);
-                                setAvailable(t.available);
-                                setStartDate(t.startDate);
-                                setStartTime(t.startTime || '');
-                                setEndDate(t.endDate);
-                                setEndTime(t.endTime || '');
-                                setShowTicketForm(true);
-                              }}
-                                className="text-slate-500 hover:text-blue-600 cursor-pointer" 
-                                title="Edit"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-3">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                                </svg>
-                              </button>
-                              {/* Delete Button */}
-                              <button 
-                                type="button" 
-                                onClick={() => setSavedTickets(savedTickets.filter((_, i) => i !== idx))} 
-                                className="text-slate-400 hover:text-red-600 cursor-pointer" 
-                                title="Delete"
-                              >
-                                ✕
-                              </button>
-                              {/* Last Item Plus/Minus Icon */}
-                              {isLast && (
-                                <button 
+                    const formattedDate = formatDateString(displayDate);
+                    const timePart = displayStart && displayEnd 
+                      ? `${formatTo12Hour(displayStart)} to ${formatTo12Hour(displayEnd)}` 
+                      : formatTo12Hour(displayStart) || formatTo12Hour(displayEnd);
+
+                    return [formattedDate, timePart].filter(Boolean).join(' - ');
+                  })()}
+                </span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${openSlotIndex === slotIdx ? 'rotate-180' : ''}`}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
+
+            {openSlotIndex === slotIdx && (
+              <div className="p-6 space-y-2">
+                
+                {slotTickets.length === 0 && (
+                  <div className="flex items-center justify-between w-full">
+                    <div 
+                      onClick={() => {
+                        setEditingIndex(null);
+                        setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
+                        setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+                        setHasEarlyBird(false);
+                        setEbPrice(''); setEbQuantity(''); setEbStartDate(''); setEbStartTime(''); setEbEndDate(''); setEbEndTime('');
+                        setSameTicketForEvent(false);
+                        setShowTicketForm(!showTicketForm);
+                      }}
+                      className="flex-1 py-3.5 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-xl text-xs text-slate-600 font-medium text-center cursor-pointer transition border border-slate-200/60"
+                    >
+                      No tickets added yet!
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingIndex(null);
+                        setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
+                        setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+                        setHasEarlyBird(false);
+                        setEbPrice(''); setEbQuantity(''); setEbStartDate(''); setEbStartTime(''); setEbEndDate(''); setEbEndTime('');
+                        setSameTicketForEvent(false);
+                        setShowTicketForm(!showTicketForm);
+                      }}
+                      className="ml-3 text-slate-800 hover:text-blue-600 font-bold text-lg px-2 cursor-pointer transition"
+                    >
+                      {showTicketForm ? '−' : '+'}
+                    </button>
+                  </div>
+                )}
+
+                {slotTickets.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-500 text-[12px]">
+                            <th className="py-2.5 px-2">Name</th>
+                            <th className="py-2.5 px-2">Price</th>
+                            <th className="py-2.5 px-2">Qty</th>
+                            <th className="py-2.5 px-2">Available</th>
+                            <th className="py-2.5 px-2">Start Date</th>
+                            <th className="py-2.5 px-2">End Date</th>
+                            <th className="py-2.5 px-2">EB</th>
+                            <th className="py-2.5 px-2">Price</th>
+                            <th className="py-2.5 px-2">Start Date</th>
+                            <th className="py-2.5 px-2">End Date</th>
+                            <th className="py-2.5 px-2 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {slotTickets.map((t, idx) => {
+                            const isLast = idx === slotTickets.length - 1;
+                            return (
+                              <tr key={idx} className="hover:bg-slate-50/50 text-[12px]">
+                                <td className="py-3 px-2 text-slate-800">{t.name}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.price}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.qty}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.available}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.startDate}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.endDate}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.ebPrice}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.ebQty}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.ebStart}</td>
+                                <td className="py-3 px-2 text-slate-800">{t.ebEnd}</td>
+                                <td className="py-3 px-2 text-right space-x-2 whitespace-nowrap">
+                                  <button 
                                   type="button" 
                                   onClick={() => {
-                                    if (!showTicketForm) {
-                                      setEditingIndex(null);
-                                      setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
-                                      setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
-                                    }
-                                    setShowTicketForm(!showTicketForm);
-                                  }} 
-                                  className="ml-1 text-slate-800 hover:text-blue-600 font-bold text-base px-1 cursor-pointer"
-                                  title="Add another ticket"
+                                    setEditingIndex(savedTickets.findIndex(item => item === t));
+                                    setTicketName(t.name);
+                                    setPrice(t.price);
+                                    setQuantity(t.qty);
+                                    setAvailable(t.available);
+                                    setStartDate(t.startDate);
+                                    setStartTime(t.startTime || '');
+                                    setEndDate(t.endDate);
+                                    setEndTime(t.endTime || '');
+                                    
+                                    // Properly pre-fill Early Bird fields & toggle state when editing
+                                    const hasEB = t.ebPrice && t.ebPrice !== '-';
+                                    setHasEarlyBird(hasEB);
+                                    setEbPrice(hasEB ? t.ebPrice : '');
+                                    setEbQuantity(hasEB ? t.ebQty : '');
+                                    setEbStartDate(hasEB && t.ebStart !== '-' ? t.ebStart : '');
+                                    setEbStartTime(hasEB && t.ebStartTime !== '-' ? (t.ebStartTime || '') : '');
+                                    setEbEndDate(hasEB && t.ebEnd !== '-' ? t.ebEnd : '');
+                                    setEbEndTime(hasEB && t.ebEndTime !== '-' ? (t.ebEndTime || '') : '');
+
+                                    // Pre-fill "Same ticket for this event" toggle state
+                                    setSameTicketForEvent(t.slotDate === 'all');
+                                    
+                                    setShowTicketForm(true);
+                                  }}
+                                  className="text-slate-500 hover:text-blue-600 cursor-pointer" 
+                                  title="Edit"
                                 >
-                                  {showTicketForm ? '−' : '+'}
+                                  ✏️
                                 </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Ticket Form (Appears when toggled open or editing) */}
-            {showTicketForm && (
-              <div className="space-y-5 pt-2 border-t border-slate-200">
-                
-                {/* Row 1: Ticket Name, Price, Quantity, Available */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
-                  <div className="sm:col-span-5 space-y-1.5">
-                    <label className="text-[11px] font-medium text-slate-800 block">Ticket Name</label>
-                    <input type="text" placeholder="" value={ticketName} onChange={(e) => setTicketName(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
-                  </div>
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <label className="text-[11px] font-medium text-slate-800 block">Price</label>
-                    <input type="text" placeholder="" value={price} onChange={(e) => setPrice(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
-                  </div>
-                  <div className="sm:col-span-2 space-y-1.5">
-                    <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
-                    <input type="text" placeholder="" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
-                  </div>
-                  <div className="sm:col-span-3 space-y-1.5">
-                    <label className="text-[11px] font-medium text-slate-800 block">Available</label>
-                    <input type="text" placeholder="" value={available} onChange={(e) => setAvailable(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
-                  </div>
-                </div>
-
-                {/* Sales Period with Date & Time Validation/Dependencies */}
-                <div className="space-y-2 pt-1">
-                  <span className="text-xs font-semibold text-slate-800 block">Sales Period</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                    <div className="sm:col-span-5 grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500 block">Start date</label>
-                        <input 
-                          type="date" 
-                          value={startDate} 
-                          onChange={(e) => {
-                            setStartDate(e.target.value);
-                            if (endDate && e.target.value > endDate) setEndDate(''); // Reset invalid end date
-                          }} 
-                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500 block">Start time</label>
-                        <input 
-                          type="time" 
-                          value={startTime} 
-                          onChange={(e) => {
-                            setStartTime(e.target.value);
-                            if (endTime && startDate === endDate && e.target.value >= endTime) setEndTime(''); // Reset invalid end time
-                          }} 
-                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
-                        />
-                      </div>
-                    </div>
-                    <span className="text-center text-slate-400 font-bold sm:col-span-1 pt-4">–</span>
-                    <div className="sm:col-span-6 grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500 block">End date</label>
-                        <input 
-                          type="date" 
-                          value={endDate} 
-                          min={startDate} 
-                          disabled={!startDate} 
-                          onChange={(e) => setEndDate(e.target.value)} 
-                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500 block">End time</label>
-                        <input 
-                          type="time" 
-                          value={endTime} 
-                          min={startDate === endDate ? startTime : undefined}
-                          disabled={!startTime} 
-                          onChange={(e) => setEndTime(e.target.value)} 
-                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Early Bird Offer Toggle */}
-                <div className="flex items-center gap-4 pt-2">
-                  <span className="text-xs font-semibold text-slate-800">Early Bird Offer</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={hasEarlyBird} 
-                      onChange={(e) => setHasEarlyBird(e.target.checked)} 
-                      className="sr-only peer" 
-                    />
-                    <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                {hasEarlyBird && (
-                  <div className="rounded-xl space-y-4">
-                    <div className="grid grid-cols-6 gap-6">
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-slate-800 block">Price</label>
-                        <input type="text" value={ebPrice} onChange={(e) => setEbPrice(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
-                        <input type="text" value={ebQuantity} onChange={(e) => setEbQuantity(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                      <div className="sm:col-span-5 grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-[11px] text-slate-500 block">Start date</label>
-                          <input type="date" value={ebStartDate} onChange={(e) => setEbStartDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] text-slate-500 block">Start time</label>
-                          <input type="time" value={ebStartTime} onChange={(e) => setEbStartTime(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
-                        </div>
-                      </div>
-                      <span className="text-center text-slate-400 font-bold sm:col-span-1 pt-4">–</span>
-                      <div className="sm:col-span-6 grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-[11px] text-slate-500 block">End date</label>
-                          <input type="date" value={ebEndDate} min={ebStartDate} disabled={!ebStartDate} onChange={(e) => setEbEndDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] text-slate-500 block">End time</label>
-                          <input type="time" value={ebEndTime} disabled={!ebStartTime} onChange={(e) => setEbEndTime(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} />
-                        </div>
-                      </div>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => {
+                                      if (t.slotDate === 'all') {
+                                        const slotIdentifier = `${displayDate}_${displayStart}`;
+                                        const updated = savedTickets.map(item => {
+                                          if (item === t) {
+                                            const exclusions = item.excludedSlots || [];
+                                            return { ...item, excludedSlots: [...exclusions, slotIdentifier] };
+                                          }
+                                          return item;
+                                        });
+                                        setSavedTickets(updated);
+                                      } else {
+                                        setSavedTickets(savedTickets.filter(item => item !== t));
+                                      }
+                                    }} 
+                                    className="text-slate-400 hover:text-red-600 cursor-pointer" 
+                                    title="Delete"
+                                  >
+                                    ✕
+                                  </button>
+                                  {isLast && (
+                                    <button 
+                                      type="button" 
+                                      onClick={() => setShowTicketForm(!showTicketForm)} 
+                                      className="ml-1 text-slate-800 hover:text-blue-600 font-bold text-base px-1 cursor-pointer"
+                                    >
+                                      {showTicketForm ? '−' : '+'}
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 )}
 
-                {/* Same ticket toggle & Save/Update Button */}
-                <div className="flex items-center justify-between pt-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-600">Same ticket for this event</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={sameTicketForEvent} 
-                        onChange={(e) => setSameTicketForEvent(e.target.checked)} 
-                        className="sr-only peer" 
-                      />
-                      <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
+                {/* Ticket Form */}
+                {showTicketForm && (
+                  <div className="space-y-5 pt-2 border-t border-slate-200">
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
+                      <div className="sm:col-span-5 space-y-1.5">
+                        <label className="text-[11px] font-medium text-slate-800 block">Ticket Name</label>
+                        <input type="text" placeholder="" value={ticketName} onChange={(e) => setTicketName(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
+                      </div>
+                      <div className="sm:col-span-2 space-y-1.5">
+                        <label className="text-[11px] font-medium text-slate-800 block">Price</label>
+                        <input 
+                          type="text" 
+                          placeholder="" 
+                          value={price} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*\.?\d*$/.test(val)) setPrice(val);
+                          }} 
+                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                        />
+                      </div>
+                      <div className="sm:col-span-2 space-y-1.5">
+                        <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
+                        <input 
+                          type="text" 
+                          placeholder="" 
+                          value={quantity} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*$/.test(val)) setQuantity(val);
+                          }} 
+                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                        />
+                      </div>
+                      <div className="sm:col-span-3 space-y-1.5">
+                        <label className="text-[11px] font-medium text-slate-800 block">Available</label>
+                        <input 
+                          type="text" 
+                          placeholder="" 
+                          value={available} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*$/.test(val)) setAvailable(val);
+                          }} 
+                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      <span className="text-xs font-semibold text-slate-800 block">Sales Period</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                        <div className="sm:col-span-5 grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-slate-500 block">Start date</label>
+                            <input 
+                              type="date" 
+                              value={startDate} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setStartDate(val);
+                                if (endDate && endDate < val) setEndDate('');
+                                setEndTime('');
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-slate-500 block">Start time</label>
+                            <input 
+                              type="time" 
+                              value={startTime} 
+                              disabled={!startDate}
+                              onChange={(e) => {
+                                setStartTime(e.target.value);
+                                setEndTime('');
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                            />
+                          </div>
+                        </div>
+                        <span className="text-center text-slate-400 font-bold sm:col-span-1 pt-4">–</span>
+                        <div className="sm:col-span-6 grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-slate-500 block">End date</label>
+                            <input 
+                              type="date" 
+                              value={endDate} 
+                              min={startDate} 
+                              disabled={!startDate} 
+                              onChange={(e) => {
+                                setEndDate(e.target.value);
+                                setEndTime('');
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-slate-500 block">End time</label>
+                            <input 
+                              type="time" 
+                              value={endTime} 
+                              min={startDate === endDate ? startTime : undefined}
+                              disabled={!startTime} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (startDate === endDate && startTime && val <= startTime) {
+                                  toast.error('End time must be later than start time.', { id: 'time-validation-error' });
+                                  return;
+                                }
+                                setEndTime(val);
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 pt-2">
+                      <span className="text-xs font-semibold text-slate-800">Early Bird Offer</span>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={hasEarlyBird} 
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setHasEarlyBird(checked);
+                            if (!checked) {
+                              setEbPrice('');
+                              setEbQuantity('');
+                              setEbStartDate('');
+                              setEbStartTime('');
+                              setEbEndDate('');
+                              setEbEndTime('');
+                            }
+                          }} 
+                          className="sr-only peer" 
+                        />
+                        <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    {hasEarlyBird && (
+                      <div className="rounded-xl space-y-4">
+                        <div className="grid grid-cols-6 gap-6">
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-medium text-slate-800 block">Price</label>
+                            <input 
+                              type="text" 
+                              value={ebPrice} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) setEbPrice(val);
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} 
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
+                            <input 
+                              type="text" 
+                              value={ebQuantity} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*$/.test(val)) {
+                                  setEbQuantity(val);
+                                  // Fixed exact arithmetic subtraction preventing string concatenation bugs
+                                  const baseStock = parseInt(available || quantity, 10) || 0;
+                                  const ebQ = parseInt(val, 10) || 0;
+                                  if (val !== '') {
+                                    setAvailable(Math.max(0, baseStock - ebQ).toString());
+                                  } else {
+                                    setAvailable(quantity);
+                                  }
+                                }
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                          <div className="sm:col-span-5 grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[11px] text-slate-500 block">Start date</label>
+                              <input type="date" value={ebStartDate} onChange={(e) => setEbStartDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] text-slate-500 block">Start time</label>
+                              <input type="time" value={ebStartTime} onChange={(e) => setEbStartTime(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
+                            </div>
+                          </div>
+                          <span className="text-center text-slate-400 font-bold sm:col-span-1 pt-4">–</span>
+                          <div className="sm:col-span-6 grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[11px] text-slate-500 block">End date</label>
+                              <input type="date" value={ebEndDate} min={ebStartDate} disabled={!ebStartDate} onChange={(e) => setEbEndDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] text-slate-500 block">End time</label>
+                              <input type="time" value={ebEndTime} disabled={!ebStartTime} onChange={(e) => setEbEndTime(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-600">Same ticket for this event</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={sameTicketForEvent} 
+                            onChange={(e) => setSameTicketForEvent(e.target.checked)} 
+                            className="sr-only peer" 
+                          />
+                          <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                     <button 
+                        type="button" 
+                        onClick={() => {
+                          if (!ticketName || !price || !quantity) return toast.error('Please fill required ticket details.', { id: 'ticket-val' });
+                          if (endDate && startDate && endDate < startDate) return toast.error('End date cannot be before start date.', { id: 'time-val' });
+
+                          const newTicketData = { 
+                            name: ticketName, 
+                            price, 
+                            qty: quantity, 
+                            available: available || quantity,
+                            startDate: startDate || '', 
+                            startTime: startTime || '',
+                            endDate: endDate || '', 
+                            endTime: endTime || '',
+                            ebPrice: hasEarlyBird ? ebPrice : '-', 
+                            ebQty: hasEarlyBird ? ebQuantity : '-',
+                            ebStart: hasEarlyBird ? ebStartDate : '-', 
+                            ebStartTime: hasEarlyBird ? ebStartTime : '-',
+                            ebEnd: hasEarlyBird ? ebEndDate : '-',
+                            ebEndTime: hasEarlyBird ? ebEndTime : '-',
+                            slotDate: sameTicketForEvent ? 'all' : displayDate,
+                            startTime: displayStart
+                          };
+
+                          if (editingIndex !== null) {
+                            const updated = [...savedTickets];
+                            updated[editingIndex] = newTicketData;
+                            setSavedTickets(updated);
+                            toast.success('Ticket updated successfully!', { id: 'ticket-toast' });
+                          } else {
+                            setSavedTickets([...savedTickets, newTicketData]);
+                            toast.success('Ticket added!', { id: 'ticket-toast' });
+                          }
+
+                          setTicketName(''); 
+                          setPrice(''); 
+                          setQuantity(''); 
+                          setAvailable('');
+                          setStartDate(''); 
+                          setStartTime(''); 
+                          setEndDate(''); 
+                          setEndTime('');
+                          setHasEarlyBird(false);
+                          setEbPrice('');
+                          setEbQuantity('');
+                          setEbStartDate('');
+                          setEbStartTime('');
+                          setEbEndDate('');
+                          setEbEndTime('');
+                          setSameTicketForEvent(false);
+                          setEditingIndex(null);
+                          setShowTicketForm(false);
+                        }} 
+                        className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition cursor-pointer"
+                      >
+                        {editingIndex !== null ? 'Update' : 'Save'}
+                      </button>
+                    </div>
+
                   </div>
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      if (!ticketName || !price || !quantity) return toast.error('Please fill required ticket details.');
-                      if (endDate && startDate && endDate < startDate) return toast.error('End date cannot be before start date.');
-
-                  const newTicketData = { 
-                    name: ticketName, 
-                    price, 
-                    qty: quantity, 
-                    available: available || quantity,
-                    startDate: startDate || '', 
-                    startTime: startTime || '',
-                    endDate: endDate || '', 
-                    endTime: endTime || '',
-                    ebPrice: hasEarlyBird ? ebPrice : '-', 
-                    ebQty: hasEarlyBird ? ebQuantity : '-',
-                    ebStart: hasEarlyBird ? ebStartDate : '-', 
-                    ebEnd: hasEarlyBird ? ebEndDate : '-'
-                  };
-
-                      if (editingIndex !== null) {
-                        // Update existing ticket
-                        const updated = [...savedTickets];
-                        updated[editingIndex] = newTicketData;
-                        setSavedTickets(updated);
-                        toast.success('Ticket updated successfully!');
-                      } else {
-                        // Add new ticket
-                        setSavedTickets([...savedTickets, newTicketData]);
-                        toast.success('Ticket added!');
-                      }
-
-                      setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
-                      setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
-                      setEditingIndex(null);
-                      setShowTicketForm(false);
-                    }} 
-                    className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition cursor-pointer"
-                  >
-                    {editingIndex !== null ? 'Update' : 'Save'}
-                  </button>
-                </div>
+                )}
 
               </div>
             )}
-
           </div>
-        )}
-      </div>
+        );
+      })}
 
     </div>
   </div>
