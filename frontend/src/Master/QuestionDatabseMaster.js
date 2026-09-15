@@ -170,7 +170,7 @@ const QuestionDatabseMaster = () => {
       <main className={accountMainContainer}>
         <div className={accountTitleSection}>
           <h1 className={accountMainTitle}>Question Database Master</h1>
-          <p className={accountMainSubTitle}>Add questions manually or upload them from Excel.</p>
+         
         </div>
 
         <div className={accountFormCard}>

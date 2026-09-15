@@ -131,6 +131,13 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
               >
                 Question DB
               </Link>
+              <Link 
+                to="/event-question-master" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Event Question
+              </Link>
             </div>
           )}
         </div>

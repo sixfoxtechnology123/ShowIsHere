@@ -42,6 +42,13 @@ const formatTo12Hour = (timeStr) => {
   hour = hour ? hour : 12;
   return `${hour}:${minuteStr} ${ampm}`;
 };
+
+const calculateAvailableAfterEarlyBird = (ticketQty, earlyBirdQty) => {
+  const baseQty = parseInt(ticketQty, 10) || 0;
+  const ebQty = parseInt(earlyBirdQty, 10) || 0;
+  return Math.max(0, baseQty - ebQty).toString();
+};
+
 const CreateEvent = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [isDataSaved, setIsDataSaved] = useState(false);
@@ -415,14 +422,14 @@ const handleDragOver = (e) => {
 
       <main className={accountMainContainer}>
         <div className={accountTitleSection}>
-          <h1 className={accountMainTitle}>{steps[activeStep - 1].label}</h1>
+          <h1 className={accountMainTitle}>{activeStep === 1 && 'Event Details'}</h1>
           <p className={accountMainSubTitle}>
             {activeStep === 1 && 'Tell us what makes your event special.'}
-            {activeStep === 2 && 'Add artists, performers, and hashtags.'}
+            {/* {activeStep === 2 && 'Add artists, performers, and hashtags.'}
             {activeStep === 3 && 'Set event schedule and venue location.'}
             {activeStep === 4 && 'Configure seating maps and ticket pricing.'}
             {activeStep === 5 && 'Configure event rules, age limits, and guides.'}
-            {activeStep === 6 && 'Provide event inquiry contact details.'}
+            {activeStep === 6 && 'Provide event inquiry contact details.'} */}
           </p>
         </div>
 
@@ -631,8 +638,8 @@ const handleDragOver = (e) => {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100">
-              <h3 className={accountSectionHeading}>Event banner</h3>
+            <div className="pt-4">
+              <h3 className="font-semibold text-base">Event banner</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-3">
                 
                 {/* BANNER UPLOAD BOX (1200x600 px) */}
@@ -794,7 +801,7 @@ const handleDragOver = (e) => {
 
     {/* Selected Artists Grid matching reference layout */}
     <div className="pt-4 border-t border-slate-100">
-      <h3 className={accountSectionHeading}>Artists</h3>
+      <h3 className="font-semibold text-base">Artists</h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-8  pt-3">
         {formData.artistsList.map((artist) => (
           <div 
@@ -831,7 +838,7 @@ const handleDragOver = (e) => {
 
     {/* Exactly 5 Hashtag Input Boxes with Validation (No spaces, must start with #) */}
     <div className="pt-4 border-t border-slate-100">
-      <h3 className={accountSectionHeading}>Event Hashtag</h3>
+      <h3 className="font-semibold text-base">Event Hashtag</h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-2">
         {formData.hashtags.slice(0, 5).map((tag, index) => (
           <input
@@ -1072,7 +1079,7 @@ const handleDragOver = (e) => {
 {activeStep === 3 && (
   <div className="space-y-8">
     <div className="space-y-4">
-      <h3 className={accountSectionHeading}>Event Schedule</h3>
+      <h3 className="font-semibold text-base">Event Schedule</h3>
       
       <div className="grid grid-cols-1 gap-3">
         <div 
@@ -1554,7 +1561,7 @@ const handleDragOver = (e) => {
 
   {/* VENUE DETAILS SECTION */}
   <div className="pt-6 border-t border-slate-100 space-y-4 w-full">
-    <h3 className={accountSectionHeading}>Venue Details</h3>
+    <h3 className="font-semibold text-base">Venue Details</h3>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
       
       {/* Interactive Map Preview Area */}
@@ -1665,7 +1672,7 @@ const handleDragOver = (e) => {
           {activeStep === 4 && (
             <div className="space-y-8">
              <div className="space-y-4">
-              <h3 className={accountSectionHeading}>Seat Map configuration</h3>
+              <h3 className="font-semibold text-base">Seat Map configuration</h3>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* Left Column: Image Box + Info Notice */}
@@ -1738,7 +1745,7 @@ const handleDragOver = (e) => {
             </div>
 
       <div className="pt-6 border-t border-slate-100 space-y-4">
-    <h3 className={accountSectionHeading}>Ticket Type</h3>
+    <h3 className="font-semibold text-base">Ticket Type</h3>
     
     <div className="rounded-2xl bg-white overflow-hidden shadow-2xs space-y-4 p-4">
       
@@ -1983,7 +1990,12 @@ const handleDragOver = (e) => {
                           value={quantity} 
                           onChange={(e) => {
                             const val = e.target.value;
-                            if (val === '' || /^\d*$/.test(val)) setQuantity(val);
+                            if (val === '' || /^\d*$/.test(val)) {
+                              setQuantity(val);
+                              if (hasEarlyBird) {
+                                setAvailable(val === '' ? '' : calculateAvailableAfterEarlyBird(val, ebQuantity));
+                              }
+                            }
                           }} 
                           className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
                         />
@@ -2082,9 +2094,13 @@ const handleDragOver = (e) => {
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setHasEarlyBird(checked);
+                            if (checked) {
+                              setAvailable(quantity ? calculateAvailableAfterEarlyBird(quantity, ebQuantity) : '');
+                            }
                             if (!checked) {
                               setEbPrice('');
                               setEbQuantity('');
+                              setAvailable(quantity);
                               setEbStartDate('');
                               setEbStartTime('');
                               setEbEndDate('');
@@ -2121,14 +2137,7 @@ const handleDragOver = (e) => {
                                 const val = e.target.value;
                                 if (val === '' || /^\d*$/.test(val)) {
                                   setEbQuantity(val);
-                                  // Fixed exact arithmetic subtraction preventing string concatenation bugs
-                                  const baseStock = parseInt(available || quantity, 10) || 0;
-                                  const ebQ = parseInt(val, 10) || 0;
-                                  if (val !== '') {
-                                    setAvailable(Math.max(0, baseStock - ebQ).toString());
-                                  } else {
-                                    setAvailable(quantity);
-                                  }
+                                  setAvailable(quantity ? calculateAvailableAfterEarlyBird(quantity, val) : '');
                                 }
                               }} 
                               className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} 
@@ -2185,7 +2194,7 @@ const handleDragOver = (e) => {
                             name: ticketName, 
                             price, 
                             qty: quantity, 
-                            available: available || quantity,
+                            available: hasEarlyBird ? calculateAvailableAfterEarlyBird(quantity, ebQuantity) : (available || quantity),
                             startDate: startDate || '', 
                             startTime: startTime || '',
                             endDate: endDate || '', 
@@ -2273,7 +2282,7 @@ const handleDragOver = (e) => {
               </div>
 
               <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h3 className={accountSectionHeading}>Event Guide</h3>
+                <h3 className="font-semibold text-base">Event Guide</h3>
                 
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
                   <span className="text-xs font-medium text-slate-800">Is your event pet-friendly?</span>
@@ -2303,7 +2312,7 @@ const handleDragOver = (e) => {
           {/* STEP 6: EVENT CONTACT */}
           {activeStep === 6 && (
             <div className="space-y-6">
-              <h3 className={accountSectionHeading}>Contact Person</h3>
+              <h3 className="font-semibold text-base">Contact Person</h3>
               <p className="text-xs text-slate-500">Please add a contact for event enquiries.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2321,7 +2330,7 @@ const handleDragOver = (e) => {
                 </div>
               </div>
 
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-center gap-2 text-xs text-amber-700 font-medium">
+              <div className=" bg-amber-50 border border-amber-200 rounded-md flex items-center justify-center gap-2 text-xs text-amber-700 font-medium absolute bottom-44 left-72 right-72 p-3">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
               </svg>

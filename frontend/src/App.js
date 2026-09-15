@@ -24,6 +24,7 @@ import CreateEvent from './EventOrganizer/CreateEvent';
 import EventCategoryMaster from './Master/EventCategoryMaster';
 import CategoryMaster from './Master/CategoryMaster';
 import QuestionDatabseMaster from './Master/QuestionDatabseMaster';
+import EventQuestion from './Master/EventQuestion';
 import Profile from './EventOrganizer/Profile';
 import KYCDetails from './EventOrganizer/KYCDetails';
 import Setting from './EventOrganizer/Setting';
@@ -214,6 +215,7 @@ const AppContent = () => {
         <Route path="/category-master" element={<CategoryMaster />} />
         <Route path="/question-databse-master" element={<QuestionDatabseMaster />} />
         <Route path="/question-database-master" element={<QuestionDatabseMaster />} />
+        <Route path="/event-question-master" element={<EventQuestion />} />
 
 
         <Route path="/profile" element={<Profile />} />
