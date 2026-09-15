@@ -8,19 +8,6 @@ import { indianCities } from '../utils/indianCities';
 import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
 
-// Import Category Icons from createevent assets folder
-import musicIcon from '../assets/createevent/Music.png';
-import performingArtIcon from '../assets/createevent/Performingart.png';
-import conferenceIcon from '../assets/createevent/conference.png';
-import sportsIcon from '../assets/createevent/Sports.png';
-import artCultureIcon from '../assets/createevent/Arts&Culture.png';
-import workshopIcon from '../assets/createevent/Workshop.png';
-import exhibitionIcon from '../assets/createevent/Exhibitation.png';
-import filmMediaIcon from '../assets/createevent/Film&Media.png';
-
-
-
-
 import {
   mainContainer,
   inputFieldStyle,
@@ -60,6 +47,7 @@ const CreateEvent = () => {
   const [isDataSaved, setIsDataSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [masterCategories, setMasterCategories] = useState([]);
+  const [eventCategoryTrees, setEventCategoryTrees] = useState([]);
 
   // Modal / Preview states
   const [bannerPreview, setBannerPreview] = useState(null);
@@ -158,16 +146,6 @@ const [openSlotIndex, setOpenSlotIndex] = useState(null);
     { id: 6, label: 'Event Contact' }
   ];
 
-  const categories = [
-    { name: 'Music', icon: musicIcon },
-    { name: 'Performing Art', icon: performingArtIcon },
-    { name: 'Conference', icon: conferenceIcon },
-    { name: 'Sport', icon: sportsIcon },
-    { name: 'Art & Culture', icon: artCultureIcon },
-    { name: 'Workshop', icon: workshopIcon },
-    { name: 'Exhibition', icon: exhibitionIcon },
-    { name: 'Film & Media', icon: filmMediaIcon }
-  ];
   const location = useLocation();
 
 
@@ -191,11 +169,17 @@ useEffect(() => {
 
   // Fetch category master data on load
   useEffect(() => {
-    API.get('/event-categories')
+    API.get('/categories?status=ACTIVE')
       .then((res) => {
-        setMasterCategories(res.data.data || res.data || []);
+        setMasterCategories(res.data || []);
       })
       .catch((err) => console.error("Error loading categories", err));
+
+    API.get('/event-categories')
+      .then((res) => {
+        setEventCategoryTrees(res.data || []);
+      })
+      .catch((err) => console.error("Error loading category hierarchy", err));
   }, []);
 
 
@@ -225,25 +209,29 @@ const filteredMasterArtists = masterArtists.filter((artist) => {
 
 
 
-const selectedMasterCat = masterCategories.find(
-  (cat) => cat.categoryName?.trim().toLowerCase() === formData.eventCategory?.trim().toLowerCase()
+const selectedMasterCat = eventCategoryTrees.find(
+  (cat) => cat.categoryId === formData.eventCategory || cat.categoryName?.trim().toLowerCase() === formData.eventCategory?.trim().toLowerCase()
 );
-  const availableSubCategories = selectedMasterCat ? selectedMasterCat.subCategories : [];
+  const availableSubCategories = selectedMasterCat ? (selectedMasterCat.subCategories || []).filter((sub) => sub.isActive !== false) : [];
 
   const selectedSubCatObj = availableSubCategories.find(
     (sub) => sub.subCategoryName?.trim().toLowerCase() === formData.eventSubCategory?.trim().toLowerCase()
   );
-  const availableEventTypes = selectedSubCatObj ? selectedSubCatObj.eventTypes : [];
+  const availableEventTypes = selectedSubCatObj ? (selectedSubCatObj.eventTypes || []).filter((type) => type.isActive !== false) : [];
 
-  const handleLanguageSelect = (e) => {
-    const lang = e.target.value;
-    if (lang && !formData.eventLanguages.includes(lang)) {
-      setFormData({
-        ...formData,
-        eventLanguages: [...formData.eventLanguages, lang]
-      });
+const handleLanguageSelect = (e) => {
+  const lang = e.target.value;
+  if (lang && !formData.eventLanguages.includes(lang)) {
+    if (formData.eventLanguages.length >= 2) {
+     toast.error('You can select only 2 language.', { id: 'language-limit-toast' });
+      return;
     }
-  };
+    setFormData({
+      ...formData,
+      eventLanguages: [...formData.eventLanguages, lang]
+    });
+  }
+};
 
   const removeLanguage = (langToRemove) => {
     setFormData({
@@ -459,15 +447,15 @@ const handleDragOver = (e) => {
             <div>
               <label className={accountLabelStyle}>Event Category</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
-                {categories.map((cat) => {
-                  const isSelected = formData.eventCategory === cat.name;
+                {masterCategories.map((cat) => {
+                  const isSelected = formData.eventCategory === cat.categoryId;
                   return (
                     <div
-                      key={cat.name}
+                      key={cat.categoryId}
                       onClick={() => {
                         setFormData({ 
                           ...formData, 
-                          eventCategory: cat.name,
+                          eventCategory: cat.categoryId,
                           eventSubCategory: '', 
                           eventType: '' 
                         });
@@ -479,11 +467,22 @@ const handleDragOver = (e) => {
                           : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
                       }`}
                     >
-                      <img src={cat.icon} alt={cat.name} className="w-11 h-11 mb-2 object-contain opacity-80" />
-                      <span className="text-xs font-semibold">{cat.name}</span>
+                      {cat.imageBase64 ? (
+                        <img src={cat.imageBase64} alt={cat.categoryName} className="w-11 h-11 mb-2  " />
+                      ) : (
+                        <div className="w-12 h-12 mb-2 rounded-full bg-slate-100  flex items-center justify-center text-[10px] font-bold text-slate-400">
+                          CAT
+                        </div>
+                      )}
+                      <span className="text-xs font-semibold">{cat.categoryName}</span>
                     </div>
                   );
                 })}
+                {masterCategories.length === 0 && (
+                  <div className="col-span-full text-xs text-slate-400 text-center py-6 border border-slate-200 rounded-md">
+                    No active categories found.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -501,7 +500,7 @@ const handleDragOver = (e) => {
                   className={`${inputFieldStyle} border-2 ${!formData.eventCategory ? 'bg-slate-100 cursor-not-allowed opacity-60' : ''}`}
                 >
                   <option value="">{!formData.eventCategory ? 'First select an event category' : 'Select sub-category'}</option>
-                  {availableSubCategories.map((sub) => (
+                 {availableSubCategories.filter(sub => sub.status === 'ACTIVE').map((sub) => (
                     <option key={sub._id || sub.subCategoryName} value={sub.subCategoryName}>
                       {sub.subCategoryName}
                     </option>
@@ -519,7 +518,7 @@ const handleDragOver = (e) => {
                   className={`${inputFieldStyle} border-2 ${!formData.eventSubCategory ? 'bg-slate-100 cursor-not-allowed opacity-60' : ''}`}
                 >
                   <option value="">{!formData.eventSubCategory ? 'First select a sub-category' : 'Select event type'}</option>
-                  {availableEventTypes.map((type) => (
+                  {availableEventTypes.filter(type => type.status === 'ACTIVE').map((type) => (
                     <option key={type._id || type.typeName} value={type.typeName}>
                       {type.typeName}
                     </option>
@@ -530,39 +529,55 @@ const handleDragOver = (e) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <label className={accountLabelStyle + " mb-0"}>
-                    Event Language
-                  </label>
-                  {formData.eventLanguages.length > 0 && (
-                    <div className="flex gap-1.5 flex-wrap">
-                      {formData.eventLanguages.map((lang) => (
-                        <span key={lang} className="group relative inline-flex items-center gap-1 px-3 py-0.5 rounded-md text-xs font-semibold border border-blue-300 bg-blue-50/100 text-blue-700 shadow-2xs cursor-pointer">
-                          {lang}
-                          <button 
-                            type="button" 
-                            onClick={() => removeLanguage(lang)} 
-                            className="hidden group-hover:inline-flex items-center text-blue-400 hover:text-red-600 font-bold text-sm leading-none ml-0.5"
-                            title="Remove"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <select
-                  onChange={handleLanguageSelect}
-                  value=""
-                  className={`${inputFieldStyle} border-2`}
-                >
-                  <option value="" disabled>Select language</option>
-                  <option value="English">English</option>
-                  <option value="Bengali">Bengali</option>
-                  <option value="Hindi">Hindi</option>
-                </select>
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <label className={accountLabelStyle + " mb-0"}>
+                  Event Language
+                </label>
+                {formData.eventLanguages.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {formData.eventLanguages.map((lang) => (
+                      <span key={lang} className="group relative inline-flex items-center gap-1 px-3 py-0.5 rounded-md text-xs font-semibold border border-blue-300 bg-blue-50/100 text-blue-700 shadow-2xs cursor-pointer">
+                        {lang}
+                        <button 
+                          type="button" 
+                          onClick={() => removeLanguage(lang)} 
+                          className="hidden group-hover:inline-flex items-center text-blue-400 hover:text-red-600 font-bold text-sm leading-none ml-0.5"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
+              <select
+                onChange={handleLanguageSelect}
+                value=""
+                className={`${inputFieldStyle} border-2`}
+              >
+                <option value="" disabled>Select language</option>
+                <option value="English">English</option>
+                <option value="Bengali">Bengali</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Urdu">Urdu</option>
+                <option value="Tamil">Tamil</option>
+                <option value="Telugu">Telugu</option>
+                <option value="Marathi">Marathi</option>
+                <option value="Gujarati">Gujarati</option>
+                <option value="Bhojpuri">Bhojpuri</option>
+                <option value="Kannada">Kannada</option>
+                <option value="Maithili">Maithili</option>
+                <option value="Malayalam">Malayalam</option>
+                <option value="Odia">Odia</option>
+                <option value="Punjabi">Punjabi</option>
+                <option value="Nepali">Nepali</option>
+                <option value="Assamese">Assamese</option>
+                <option value="Sanskrit">Sanskrit</option>
+                <option value="Regional">Regional</option>
+                <option value="Multilingual">Multilingual</option>
+              </select>
+            </div>
 
               <div>
                 <label className={accountLabelStyle}>Event Format</label>

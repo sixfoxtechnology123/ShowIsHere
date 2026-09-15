@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const eventRoutes = require('./routes/eventRoutes');
-const artistRoutes = require('./routes/artistRoutes'); // Import artist routes here as well
 
 const app = express();
 
@@ -19,8 +18,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/events', eventRoutes);
-app.use('/api/artists', artistRoutes); // Register artist routes here cleanly
+app.use('/events', eventRoutes);
 
 app.get('/', (req, res) => {
   res.send('ShowIsHere API is running...');

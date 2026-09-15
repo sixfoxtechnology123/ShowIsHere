@@ -104,17 +104,38 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
                 Seat Map
               </Link>
               <Link 
-                to="/event-category-master" 
+                to="/category-master" 
                 onClick={() => setIsMenuOpen(false)}
                 className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
               >
                 Category Master
               </Link>
+               <Link 
+                to="/event-category-master" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Category Listing
+              </Link>
+               {/* <Link 
+                to="/event-category-master" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Category Master
+              </Link> */}
+               <Link 
+                to="/question-database-master" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Question DB
+              </Link>
             </div>
           )}
         </div>
       </div>
-    </nav>
+    </nav> 
   );
 };
 

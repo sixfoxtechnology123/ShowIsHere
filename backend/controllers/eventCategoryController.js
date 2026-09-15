@@ -91,7 +91,7 @@ exports.addEventType = async (req, res) => {
 // Save the complete 3-stage category tree with robust update & duplicate checks
 exports.createFullCategoryTree = async (req, res) => {
   try {
-    const { categoryId, categoryName, status, subCategories } = req.body;
+    const { recordId, categoryId, categoryName, status, subCategories } = req.body;
     if (!categoryName || !categoryName.trim()) {
       return res.status(400).json({ success: false, message: 'Category name is required.' });
     }
@@ -106,23 +106,24 @@ exports.createFullCategoryTree = async (req, res) => {
     }));
 
     let existingCategory = null;
-    if (categoryId) {
-      existingCategory = await EventCategoryMaster.findById(categoryId);
+    if (recordId) {
+      existingCategory = await EventCategoryMaster.findById(recordId);
     }
     
     if (!existingCategory) {
       existingCategory = await EventCategoryMaster.findOne({
-        categoryName: { $regex: new RegExp(`^${categoryName.trim()}$`, 'i') }
+        categoryId
       });
     }
 
     // If it exists in DB, but the frontend didn't pass a matching ID (meaning it's a brand new submit with an existing name)
-    if (existingCategory && (!categoryId || existingCategory._id.toString() !== categoryId.toString())) {
+    if (existingCategory && (!recordId || existingCategory._id.toString() !== recordId.toString())) {
       return res.status(400).json({ success: false, message: 'Already exist this category.' });
     }
 
-    if (existingCategory && categoryId) {
+    if (existingCategory && recordId) {
       // UPDATE EXISTING
+      existingCategory.categoryId = categoryId || existingCategory.categoryId;
       existingCategory.categoryName = categoryName.trim();
       existingCategory.status = status || existingCategory.status;
       existingCategory.subCategories = formattedSubCategories;
@@ -136,11 +137,8 @@ exports.createFullCategoryTree = async (req, res) => {
     }
 
     // CREATE NEW RECORD
-    const count = await EventCategoryMaster.countDocuments();
-    const finalCategoryId = `EC${count + 1}`;
-
     const newCategory = new EventCategoryMaster({
-      categoryId: finalCategoryId,
+      categoryId,
       categoryName: categoryName.trim(),
       status: status || 'ACTIVE',
       subCategories: formattedSubCategories
@@ -148,6 +146,16 @@ exports.createFullCategoryTree = async (req, res) => {
 
     await newCategory.save();
     res.status(201).json({ success: true, message: 'Category and sub-categories saved successfully!', data: newCategory });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteCategoryTree = async (req, res) => {
+  try {
+    const deleted = await EventCategoryMaster.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Category hierarchy not found.' });
+    res.status(200).json({ success: true, message: 'Category hierarchy deleted successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

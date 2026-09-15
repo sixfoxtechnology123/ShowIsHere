@@ -150,7 +150,7 @@ export const artistListHeaderRow = "grid grid-cols-1 sm:grid-cols-3 items-center
 export const artistSearchInputCenter = "w-full bg-slate-50 border border-slate-300 rounded-md px-3 py-1 text-sm font-medium text-center focus:outline-none";
 export const artistTableHeadStyle = "border-b border-slate-200 text-slate-400 text-[10px]";
 export const artistTableRowStyle = "hover:bg-slate-50 transition border-b border-slate-100 text-sm text-slate-700";
-export const artistAvatarCircle = "w-7 h-7 object-cover rounded-full border-2 border-slate-200";
+export const artistAvatarCircle = "w-7 h-7 rounded-full";
 export const artistAvatarFallback = "w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-400 text-[9px]";
 export const artistActionBtnEditClass = "text-blue-600 hover:text-blue-800 font-bold cursor-pointer text-[11px]";
 export const artistActionBtnDeleteClass = "text-rose-600 hover:text-rose-800 font-bold cursor-pointer text-[11px]";
@@ -163,7 +163,7 @@ export const artistThDesc = "py-0.5 px-2";
 export const artistThAction = "py-0.5 px-2 text-right w-24";
 
 export const artistImageUploadWrapper = "flex flex-col items-center justify-center my-1";
-export const artistCirclePickerContainer = "relative w-20 h-20 rounded-full overflow-hidden border-2 border-blue-200 hover:border-blue-600 bg-slate-50 flex items-center justify-center cursor-pointer transition shadow-xs group";
+export const artistCirclePickerContainer = "relative w-24 h-24 rounded-full overflow-hidden border-2 border-blue-200 hover:border-blue-600 bg-slate-50 flex items-center justify-center cursor-pointer transition shadow-xs group";
 export const artistCirclePreviewImage = "w-full h-full object-cover rounded-full";
 export const artistCirclePlaceholderText = "text-[10px] font-bold text-slate-400 group-hover:text-blue-600 text-center";
 export const artistDescImageGrid = "grid grid-cols-1 md:grid-cols-12 gap-3 items-center";

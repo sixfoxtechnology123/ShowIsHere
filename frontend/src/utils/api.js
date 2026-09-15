@@ -1,6 +1,6 @@
 const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5005/api' 
-  : '/api';
+  ? 'http://localhost:5005' 
+  : '';
 
 const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');

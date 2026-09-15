@@ -20,13 +20,16 @@ const SubNavbar = () => {
   const rightLinks = [
     { name: 'Create Events', path: '/create-event' },
     // { name: 'Seat Map', path: '/seatmap' },
+    // { name: 'Category Master', path: '/category-master' },
+    // { name: 'Event Category Master', path: '/event-category-master' },
+    // { name: 'Question DB', path: '/question-database-master' },
     // { name: 'Artists', path: '/artist-master' },
     { name: 'Collaborate', path: '/dashboard' },
     { name: 'Coupon', path: '/event-org-account' },
     // { name: 'Find My Tickets', path: '/event-category-master' }
   ];
 
-  return (
+  return ( 
     <div className={subNavbarContainer}>
       <div className={subNavLeftLinks}>
         {leftLinks.map((item) => (

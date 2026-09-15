@@ -11,11 +11,15 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 const artistRoutes = require('./routes/artistRoutes');
 const eventOrgAccountRoutes = require('./routes/eventOrgAccountRoutes');
 const eventCategoryRoutes = require('./routes/eventCategoryRoutes');
+const categoryMasterRoutes = require('./routes/categoryMasterRoutes');
+const questionDatabaseRoutes = require('./routes/questionDatabaseRoutes');
 
 // Register Artist Routes
-app.use('/api/artists', artistRoutes);
-app.use('/api/org', eventOrgAccountRoutes);
-app.use('/api/event-categories', eventCategoryRoutes);
+app.use('/artists', artistRoutes);
+app.use('/org', eventOrgAccountRoutes);
+app.use('/event-categories', eventCategoryRoutes);
+app.use('/categories', categoryMasterRoutes);
+app.use('/question-database', questionDatabaseRoutes);
 
 const startServer = async () => {
   try {

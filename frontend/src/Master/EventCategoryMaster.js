@@ -7,38 +7,43 @@ import {
   accountMainContainer,
   accountTitleSection,
   accountMainTitle,
-  accountMainSubTitle,
   accountFormCard,
-  accountPrimaryBtn
+  accountPrimaryBtn,
+  artistActionBtnEditClass,
+  artistActionBtnDeleteClass,
+  accountFooterInner,
+  accountSecondaryBtn
 } from '../styles/MasterCSSClass';
 
-const PREDEFINED_CATEGORIES = [
-  'Music',
-  'Performing Art',
-  'Conference',
-  'Sport',
-  'Art & Culture',
-  'Workshop',
-  'Exhibition',
-  'Film & Media'
-];
-
 const EventCategoryMaster = () => {
+  const [masterCategories, setMasterCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [selectedCategoryName, setSelectedCategoryName] = useState('');
   const [status, setStatus] = useState('ACTIVE');
   const [subCategories, setSubCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingCategoriesData, setExistingCategoriesData] = useState([]);
   const [isEditingExisting, setIsEditingExisting] = useState(false);
-  const [currentCategoryId, setCurrentCategoryId] = useState(null);
+  const [currentRecordId, setCurrentRecordId] = useState(null);
   const [showListModal, setShowListModal] = useState(false);
 
   // Fetch all saved categories from backend on component mount
   useEffect(() => {
+    fetchMasterCategories();
     fetchAllSavedCategories();
   }, []);
 
-const fetchAllSavedCategories = async () => {
+  const fetchMasterCategories = async () => {
+    try {
+      const response = await API.get('/categories?status=ACTIVE');
+      setMasterCategories(response?.data || []);
+    } catch (error) {
+      console.error('Error fetching master categories:', error);
+      setMasterCategories([]);
+    }
+  };
+
+  const fetchAllSavedCategories = async () => {
     try {
       const response = await API.get('/event-categories/');
       
@@ -66,7 +71,10 @@ const fetchAllSavedCategories = async () => {
 
     // Reset editing state so it treats this dropdown selection as a brand new entry attempt
     setIsEditingExisting(false);
-    setCurrentCategoryId(null);
+    const selected = masterCategories.find((cat) => cat.categoryId === chosenName);
+    setSelectedCategoryId(selected?.categoryId || '');
+    setSelectedCategoryName(selected?.categoryName || '');
+    setCurrentRecordId(null);
     setSubCategories([]);
     setStatus('ACTIVE');
   };
@@ -88,7 +96,7 @@ const fetchAllSavedCategories = async () => {
 
 const handleSubmitAll = async (e) => {
     e.preventDefault();
-    if (!selectedCategoryName.trim()) {
+    if (!selectedCategoryId || !selectedCategoryName.trim()) {
       // Use a unique ID so clicking multiple times doesn't stack duplicate toasts
       return toast.error('Please select a Category Name from the dropdown.', { id: 'category-error' });
     }
@@ -98,7 +106,8 @@ const handleSubmitAll = async (e) => {
     setIsSubmitting(true);
     try {
       const payload = {
-        categoryId: currentCategoryId,
+        recordId: currentRecordId,
+        categoryId: selectedCategoryId,
         categoryName: selectedCategoryName,
         status,
         subCategories
@@ -114,9 +123,10 @@ const handleSubmitAll = async (e) => {
 
       fetchAllSavedCategories();
       setSelectedCategoryName('');
+      setSelectedCategoryId('');
       setSubCategories([]);
       setIsEditingExisting(false);
-      setCurrentCategoryId(null);
+      setCurrentRecordId(null);
     } catch (error) {
       const errorMessage = 
         error.response?.data?.message || 
@@ -131,9 +141,10 @@ const handleSubmitAll = async (e) => {
   };
 
   const handlePrefillEdit = (item) => {
+    setSelectedCategoryId(item.categoryId || '');
     setSelectedCategoryName(item.categoryName);
     setStatus(item.status || 'ACTIVE');
-    setCurrentCategoryId(item._id);
+    setCurrentRecordId(item._id);
     setIsEditingExisting(true);
     
     const mappedSubs = (item.subCategories || []).map((sub) => ({
@@ -148,7 +159,18 @@ const handleSubmitAll = async (e) => {
     }));
     setSubCategories(mappedSubs);
     setShowListModal(false);
-    toast.success(`Loaded "${item.categoryName}" for editing.`);
+    toast.success(`Loaded "${item.categoryName}" for editing.`, { id: 'category-success' });
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this category hierarchy?')) return;
+    try {
+      await API.delete(`/event-categories/${id}`);
+      toast.success('Category hierarchy deleted successfully!', { id: 'category-success' });
+      fetchAllSavedCategories();
+    } catch (error) {
+      toast.error(error.message || 'Delete failed.', { id: 'category-error' });
+    }
   };
   return (
     <div className={mainContainer}>
@@ -189,14 +211,15 @@ const handleSubmitAll = async (e) => {
                <div className="sm:col-span-8">
                   <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Category Name</label>
                   <select
-                    value={selectedCategoryName}
+                    value={selectedCategoryId}
                     onChange={handleCategorySelectChange}
+                    disabled={isEditingExisting}
                     className={`${inputFieldStyle} border-2 font-semibold bg-white cursor-pointer`}
                   >
                     <option value="">-- Select Category from Dropdown --</option>
-                    {PREDEFINED_CATEGORIES.map((cat, idx) => (
-                      <option key={idx} value={cat}>
-                        {cat}
+                    {masterCategories.map((cat) => (
+                      <option key={cat.categoryId} value={cat.categoryId}>
+                        {cat.categoryName}
                       </option>
                     ))}
                   </select>
@@ -413,17 +436,26 @@ const handleSubmitAll = async (e) => {
               </div>
             </div>
 
-            {/* FINAL SUBMIT BUTTON */}
-            <div className="pt-6 border-t border-slate-200 flex justify-end">
-              <button
-                type="submit"
-                disabled={isSubmitting || !selectedCategoryName}
-                className={accountPrimaryBtn + " w-full sm:w-auto px-8 py-3 text-sm cursor-pointer"}
-              >
-                {isSubmitting ? 'Saving to Database...' : isEditingExisting ? 'Update Category Hierarchy' : 'Save Category Hierarchy'}
-              </button>
-            </div>
+      <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
+              <div className={accountFooterInner}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowListModal(true)} 
+                  className={accountSecondaryBtn}
+                >
+                  Back List
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting || !selectedCategoryName} 
+                  className={accountPrimaryBtn}
+                >
+                  {isSubmitting ? 'Saving...' : isEditingExisting ? 'Update Category Hierarchy' : 'Save Category Hierarchy'}
+                </button>
+              </div>
+            </footer>
 
+            
           </form>
         </div>
 
@@ -451,8 +483,11 @@ const handleSubmitAll = async (e) => {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-y border-slate-200 text-slate-700">
+                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/4">Sl</th>
                         <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/4">Category</th>
                         <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/3">Subcategories & Event Types</th>
+                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider">Status</th>
+
        
                         <th className="py-2.5 px-3 font-bold uppercase tracking-wider text-right w-1/6">Action</th>
                       </tr>
@@ -461,9 +496,13 @@ const handleSubmitAll = async (e) => {
                       {existingCategoriesData.map((item, idx) => (
                         <tr key={idx} className="hover:bg-slate-50/80">
                           {/* Category Name */}
+                             <td className="py-3 px-3 font-semibold text-slate-600 align-top">
+                            {idx+1}
+                          </td>
                           <td className="py-3 px-3 font-bold text-slate-900 align-top">
                             {item.categoryName}
                           </td>
+                         
 
                           {/* Compact Subcategories & Event Types Summary */}
                           <td className="py-3 px-3 text-slate-700 align-top">
@@ -485,16 +524,27 @@ const handleSubmitAll = async (e) => {
                             )}
                           </td>
 
-                      
+                         <td className="py-2 px-2">
+                          <span className={item.status === 'ACTIVE' ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold' : 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold'}>
+                            {item.status}
+                          </span>
+                        </td>
 
                           {/* Edit Action Button */}
-                          <td className="py-3 px-3 text-right align-top">
+                          <td className="py-2 px-2 text-right space-x-2">
                             <button
                               type="button"
                               onClick={() => handlePrefillEdit(item)}
-                              className="px-3 py-1 bg-slate-900 hover:bg-blue-600 text-white font-semibold rounded shadow-2xs transition cursor-pointer"
+                              className={artistActionBtnEditClass}
                             >
                               Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(item._id)}
+                              className={artistActionBtnDeleteClass}
+                            >
+                              Delete
                             </button>
                           </td>
                         </tr>
