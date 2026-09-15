@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 import {
   seatMapWrapper,
@@ -513,15 +514,18 @@ const handleDeleteSelected = () => {
     }
   };
 
+const navigate = useNavigate();
+
 const handleCancelClick = () => {
-    if (hasInteractedRef.current) {
-      if (window.confirm("You have made changes or performed activity during this session. Are you sure you want to cancel?")) {
-        window.history.back();
-      }
-    } else {
-      window.history.back();
+  if (hasInteractedRef.current) {
+    if (window.confirm("You have made changes or performed activity during this session. Are you sure you want to cancel?")) {
+      // Navigates back to the create event page and tells it to open step 4
+      navigate('/create-event', { state: { targetStep: 4 } });
     }
-  };
+  } else {
+    navigate('/create-event', { state: { targetStep: 4 } });
+  }
+};
   const handleFullDeleteZone = (zoneIdToDelete) => {
     if (zones.length <= 1) {
       alert("You must keep at least one zone.");

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link,  useLocation} from 'react-router-dom';
 import { indianCities } from '../utils/indianCities';
+
+
 
 import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
@@ -61,8 +63,39 @@ const [newArtistType, setNewArtistType] = useState('Artist');
 const [newArtistDesc, setNewArtistDesc] = useState('');
 const [newArtistPhoto, setNewArtistPhoto] = useState('');
 const [isSavingArtist, setIsSavingArtist] = useState(false);
-
-  // Comprehensive Form Data State
+const [isOpen, setIsOpen] = useState(true);
+  const [ticketName, setTicketName] = useState('');
+  const [price, setPrice] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [available, setAvailable] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [hasEarlyBird, setHasEarlyBird] = useState(false);
+  const [ebPrice, setEbPrice] = useState('');
+  const [ebQuantity, setEbQuantity] = useState('');
+  const [ebStartDate, setEbStartDate] = useState('');
+  const [ebStartTime, setEbStartTime] = useState('');
+  const [ebEndDate, setEbEndDate] = useState('');
+  const [ebEndTime, setEbEndTime] = useState('');
+  const [sameTicketForEvent, setSameTicketForEvent] = useState(false);
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [savedTickets, setSavedTickets] = useState([
+    {
+      name: 'VIP (A3-20)',
+      price: '500',
+      qty: '300',
+      available: '270',
+      startDate: '27-Aug-2026',
+      endDate: '29-Aug-2026',
+      ebPrice: '450',
+      ebQty: '50',
+      ebStart: '15-Aug-2026',
+      ebEnd: '17-Aug-2026'
+    }
+  ]);
   const [formData, setFormData] = useState({
     // Step 1
     eventTitle: '',
@@ -135,6 +168,14 @@ const [isSavingArtist, setIsSavingArtist] = useState(false);
     { name: 'Exhibition', icon: exhibitionIcon },
     { name: 'Film & Media', icon: filmMediaIcon }
   ];
+  const location = useLocation();
+
+
+useEffect(() => {
+  if (location.state?.targetStep) {
+    setActiveStep(location.state.targetStep);
+  }
+}, [location.state]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -431,7 +472,7 @@ const handleDragOver = (e) => {
                       className={`h-28 flex flex-col items-center justify-center p-4 rounded-md border-2 cursor-pointer transition-all ${
                         isSelected
                           ? 'border-blue-600 bg-blue-50/40 text-blue-700 shadow-xs'
-                          : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                          : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
                       }`}
                     >
                       <img src={cat.icon} alt={cat.name} className="w-11 h-11 mb-2 object-contain opacity-80" />
@@ -522,7 +563,7 @@ const handleDragOver = (e) => {
               <div>
                 <label className={accountLabelStyle}>Event Format</label>
                 <div className="flex items-center gap-6 pt-3">
-                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
                     <input
                       type="radio"
                       name="eventFormat"
@@ -533,7 +574,7 @@ const handleDragOver = (e) => {
                     />
                     Live Event
                   </label>
-                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
                     <input
                       type="radio"
                       name="eventFormat"
@@ -823,7 +864,7 @@ const handleDragOver = (e) => {
             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full mt-1">{selectedArtistModal.role}</span>
           </div>
           <div className="pt-3 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-slate-700 mb-1">Description</h4>
+            <h4 className="text-xs font-bold text-slate-800 mb-1">Description</h4>
             <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-md border border-slate-200">
               {selectedArtistModal.description || 'No description available for this artist.'}
             </p>
@@ -959,7 +1000,7 @@ const handleDragOver = (e) => {
                       {newArtistPhoto ? (
                         <div className="w-full h-full relative flex items-center justify-center">
                           <img src={newArtistPhoto} alt="Preview" className="w-full h-full object-cover rounded-full" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-semibold text-center p-1 rounded-full">
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-semibold text-center p-1 rounded-full">
                             Change
                           </div>
                         </div>
@@ -989,7 +1030,7 @@ const handleDragOver = (e) => {
                     <button
                       type="button"
                       onClick={() => setIsArtistModalOpen(false)}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-md transition cursor-pointer border border-slate-200"
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-4 py-2 rounded-md transition cursor-pointer border border-slate-200"
                     >
                       Cancel
                     </button>
@@ -1137,7 +1178,7 @@ const handleDragOver = (e) => {
                 {(formData.dailyTimeSlots || [{ startTime: '', endTime: '' }]).map((slot, index, arr) => (
                   <div key={index} className="relative group flex items-center gap-3 w-full">
                     <div className="flex-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
                       <input 
                         type="time" 
                         value={slot.startTime} 
@@ -1155,7 +1196,7 @@ const handleDragOver = (e) => {
                     </div>
                     <span className="text-slate-400 font-bold mt-5">-</span>
                     <div className="flex-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">End time</label>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
                       <input 
                         type="time" 
                         value={slot.endTime} 
@@ -1298,7 +1339,7 @@ const handleDragOver = (e) => {
                                 weeklyTimeSlots: updatedSlots.length ? updatedSlots : [{ date: '', startTime: '', endTime: '' }] 
                               });
                             }}
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-slate-700 shadow-md flex items-center justify-center text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-rose-100 hover:text-rose-600"
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white text-slate-800 shadow-md flex items-center justify-center text-[11px] font-bold opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-rose-100 hover:text-rose-600"
                             title="Remove date"
                           >
                             ×
@@ -1312,7 +1353,7 @@ const handleDragOver = (e) => {
 
               {/* Checkbox for Same Time Slot For All Days */}
               <div className="flex items-center justify-between pt-2 w-full">
-                <span className="text-xs font-bold text-slate-700">Same time slot for all days</span>
+                <span className="text-xs font-bold text-slate-800">Same time slot for all days</span>
                 <input 
                   type="checkbox" 
                   checked={formData.sameTimeSlotForAll || false} 
@@ -1357,12 +1398,12 @@ const handleDragOver = (e) => {
                   return (
                     <div key={index} className="space-y-1 w-full">
                       {!formData.sameTimeSlotForAll && rowTitle && (
-                        <span className="text-xs font-bold text-slate-700 block">{rowTitle}</span>
+                        <span className="text-xs font-bold text-slate-800 block">{rowTitle}</span>
                       )}
 
                       <div className="relative group flex items-center gap-3 w-full">
                         <div className="flex-1">
-                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                          <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
                           <input 
                             type="time" 
                             value={slot.startTime}
@@ -1380,7 +1421,7 @@ const handleDragOver = (e) => {
                         </div>
                         <span className="text-slate-400 font-bold mt-5">-</span>
                         <div className="flex-1">
-                          <label className="block text-[10px] font-semibold text-slate-400 mb-0.5">End time</label>
+                          <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
                           <input 
                             type="time" 
                             value={slot.endTime}
@@ -1441,155 +1482,539 @@ const handleDragOver = (e) => {
       )}
     </div>
 
- {/* VENUE DETAILS SECTION */}
-<div className="pt-6 border-t border-slate-100 space-y-4 w-full">
-  <h3 className={accountSectionHeading}>Venue Details</h3>
-  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
-    
-    {/* Interactive Map Preview Area */}
-    <div className="lg:col-span-6 border-2 border-slate-200 rounded-2xl h-80 bg-slate-100 flex items-center justify-center text-center relative overflow-hidden shadow-xs">
-      {formData.venueAddress || formData.venueCity || formData.venueGoogleMapLink ? (
-        <iframe
-          title="Venue Location Map"
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          loading="lazy"
-          src={`https://maps.google.com/maps?q=${encodeURIComponent(
-            formData.venueGoogleMapLink && !formData.venueGoogleMapLink.includes('app.goo.gl') 
-              ? formData.venueGoogleMapLink 
-              : `${formData.venueAddress || ''}, ${formData.venueCity || ''}`
-          )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-        ></iframe>
-      ) : (
-        <div className="space-y-1 p-4">
-          <p className="text-xl">📍</p>
-          <p className="text-xs font-bold text-slate-700">Interactive Map Preview</p>
-          <p className="text-[10px] text-slate-400">Enter address or map details to load location</p>
-        </div>
-      )}
-    </div>
-
-    {/* Venue Form Inputs */}
-    <div className="lg:col-span-6 space-y-4">
-      <div>
-        <label className={accountLabelStyle}>Venue Name <span className="text-red-500">*</span></label>
-        <input 
-          type="text" 
-          name="venueName" 
-          placeholder="Enter venue name" 
-          value={formData.venueName || ''} 
-          onChange={handleInputChange} 
-          className={`${inputFieldStyle} border-2 w-full`} 
-        />
+  {/* VENUE DETAILS SECTION */}
+  <div className="pt-6 border-t border-slate-100 space-y-4 w-full">
+    <h3 className={accountSectionHeading}>Venue Details</h3>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+      
+      {/* Interactive Map Preview Area */}
+      <div className="lg:col-span-6 border-2 border-slate-200 rounded-2xl h-80 bg-slate-100 flex items-center justify-center text-center relative overflow-hidden shadow-xs">
+        {formData.venueAddress || formData.venueCity || formData.venueGoogleMapLink ? (
+          <iframe
+            title="Venue Location Map"
+            width="100%"
+            height="100%"
+            style={{ border: 0 }}
+            loading="lazy"
+            src={`https://maps.google.com/maps?q=${encodeURIComponent(
+              formData.venueGoogleMapLink && !formData.venueGoogleMapLink.includes('app.goo.gl') 
+                ? formData.venueGoogleMapLink 
+                : `${formData.venueAddress || ''}, ${formData.venueCity || ''}`
+            )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+          ></iframe>
+        ) : (
+          <div className="space-y-1 p-4">
+            <p className="text-xl">📍</p>
+            <p className="text-xs font-bold text-slate-800">Interactive Map Preview</p>
+            <p className="text-[11px] text-slate-400">Enter address or map details to load location</p>
+          </div>
+        )}
       </div>
 
-      <div>
-        <label className={accountLabelStyle}>Address <span className="text-red-500">*</span></label>
-        <input 
-          type="text" 
-          name="venueAddress" 
-          placeholder="Enter address" 
-          value={formData.venueAddress || ''} 
-          onChange={handleInputChange} 
-          className={`${inputFieldStyle} border-2 w-full`} 
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+      {/* Venue Form Inputs */}
+      <div className="lg:col-span-6 space-y-4">
         <div>
-          <label className={accountLabelStyle}>City <span className="text-red-500">*</span></label>
-          <select 
-            name="venueCity" 
-            value={formData.venueCity || ''} 
-            onChange={handleInputChange} 
-            className={`${inputFieldStyle} border-2 w-full`}
-          >
-            <option value="">Select city</option>
-            {indianCities.map((city, idx) => (
-              <option key={idx} value={typeof city === 'string' ? city : city.name}>
-                {typeof city === 'string' ? city : city.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={accountLabelStyle}>PIN Code</label>
+          <label className={accountLabelStyle}>Venue Name <span className="text-red-500">*</span></label>
           <input 
             type="text" 
-            name="venuePinCode" 
-            placeholder="PIN code" 
-            value={formData.venuePinCode || ''} 
+            name="venueName" 
+            placeholder="Enter venue name" 
+            value={formData.venueName || ''} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyle} border-2 w-full`} 
+          />
+        </div>
+
+        <div>
+          <label className={accountLabelStyle}>Address <span className="text-red-500">*</span></label>
+          <input 
+            type="text" 
+            name="venueAddress" 
+            placeholder="Enter address" 
+            value={formData.venueAddress || ''} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyle} border-2 w-full`} 
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={accountLabelStyle}>City <span className="text-red-500">*</span></label>
+            <select 
+              name="venueCity" 
+              value={formData.venueCity || ''} 
+              onChange={handleInputChange} 
+              className={`${inputFieldStyle} border-2 w-full`}
+            >
+              <option value="">Select city</option>
+              {indianCities.map((city, idx) => (
+                <option key={idx} value={typeof city === 'string' ? city : city.name}>
+                  {typeof city === 'string' ? city : city.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={accountLabelStyle}>PIN Code</label>
+            <input 
+              type="text" 
+              name="venuePinCode" 
+              placeholder="PIN code" 
+              value={formData.venuePinCode || ''} 
+              onChange={handleInputChange} 
+              className={`${inputFieldStyle} border-2 w-full`} 
+            />
+          </div>
+        </div>
+
+        <div className="relative flex py-2 items-center">
+          <div className="flex-grow border-t border-slate-200"></div>
+          <span className="flex-shrink mx-4 text-slate-400 text-xs font-semibold">or</span>
+          <div className="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <div>
+          <label className={accountLabelStyle}>Google map link</label>
+          <input 
+            type="text" 
+            name="venueGoogleMapLink" 
+            placeholder="https://maps.google.com/..." 
+            value={formData.venueGoogleMapLink || ''} 
             onChange={handleInputChange} 
             className={`${inputFieldStyle} border-2 w-full`} 
           />
         </div>
       </div>
 
-      <div className="relative flex py-2 items-center">
-        <div className="flex-grow border-t border-slate-200"></div>
-        <span className="flex-shrink mx-4 text-slate-400 text-xs font-semibold">or</span>
-        <div className="flex-grow border-t border-slate-200"></div>
+        </div>
       </div>
-
-      <div>
-        <label className={accountLabelStyle}>Google map link</label>
-        <input 
-          type="text" 
-          name="venueGoogleMapLink" 
-          placeholder="https://maps.google.com/..." 
-          value={formData.venueGoogleMapLink || ''} 
-          onChange={handleInputChange} 
-          className={`${inputFieldStyle} border-2 w-full`} 
-        />
-      </div>
-    </div>
-
-  </div>
-</div>
-  </div>
-)}
+        </div>
+      )}
 
           {/* STEP 4: SEAT MAP & TICKET */}
           {activeStep === 4 && (
             <div className="space-y-8">
-              <div className="space-y-4">
-                <h3 className={accountSectionHeading}>Seat Map configuration</h3>
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                  <div className="lg:col-span-7 border-2  border-slate-200 rounded-2xl h-48 bg-slate-50 flex items-center justify-center p-4 text-center">
-                    {seatMapImage ? <img src={seatMapImage} alt="Seat Map" className="h-full object-contain" /> : <p className="text-xs text-slate-400">Upload seat map image (.jpg or .png)</p>}
+             <div className="space-y-4">
+              <h3 className={accountSectionHeading}>Seat Map configuration</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* Left Column: Image Box + Info Notice */}
+                <div className="lg:col-span-7 space-y-3">
+                  <div 
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const f = e.dataTransfer.files[0];
+                      if (f && f.type.startsWith('image/')) {
+                        const r = new FileReader();
+                        r.onloadend = () => setSeatMapImage(r.result);
+                        r.readAsDataURL(f);
+                        toast.success('Seat map image uploaded successfully!');
+                      } else {
+                        toast.error('Please drop a valid image file (.jpg or .png)');
+                      }
+                    }}
+                    className="border-2 border-slate-200 rounded-2xl h-48  flex items-center justify-center p-4 text-center cursor-pointer overflow-hidden transition hover:border-blue-400"
+                  >
+                    {seatMapImage ? (
+                      <img src={seatMapImage} alt="Seat Map" className="h-full object-contain" />
+                    ) : null}
                   </div>
-                  <div className="lg:col-span-5 flex flex-col gap-3 justify-center">
-                    <Link to="/seatmap" className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md text-center no-underline">Open Seat Map Creator</Link>
-                    <label className="py-3 px-4 bg-white border-2 border-slate-200 text-slate-700 text-xs font-semibold rounded-md text-center cursor-pointer">
-                      Upload image
-                      <input type="file" accept="image/*" onChange={(e) => {
+
+                  {/* Info Notice Box */}
+                  <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-start gap-2.5">
+                    <span className="text-blue-500 text-sm mt-0.5">  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                              </svg></span>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Upload a image of your event seat map as per your ticket category (.jpg or .png 600 X 750px recomended)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Column: Buttons */}
+                <div className="lg:col-span-5 flex flex-col gap-3 justify-center pt-8">
+                  <Link 
+                    to="/seatmap" 
+                    className="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg text-center no-underline shadow-xs transition"
+                  >
+                    Open Seat Map Creator
+                  </Link>
+                  
+                  <div className="text-center text-xs text-slate-400 font-medium my-1">or</div>
+
+                  <label className="py-3 px-4 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-800 text-xs font-semibold rounded-lg text-center cursor-pointer shadow-xs transition">
+                    Upload image
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => {
                         const f = e.target.files[0];
                         if (f) {
                           const r = new FileReader();
-                          r.onloadend = () => setSeatMapImage(r.result);
+                          r.onloadend = () => {
+                            setSeatMapImage(r.result);
+                            toast.success('Seat map image uploaded successfully!');
+                          };
                           r.readAsDataURL(f);
                         }
-                      }} className="hidden" />
+                      }} 
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
+
+              </div>
+            </div>
+
+<div className="pt-6 border-t border-slate-100 space-y-4">
+    <h3 className={accountSectionHeading}>Ticket Type</h3>
+    
+    <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-2xs space-y-4">
+      
+      {/* Time Slot Container (Supports multiple time slots dynamically) */}
+      <div className="rounded-xl overflow-hidden bg-white">
+        
+        {/* Accordion Header */}
+        <div 
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center justify-between px-5 py-2 cursor-pointer select-none transition hover:bg-slate-100/80"
+        >
+          <span className="text-xs font-bold text-slate-800">Thu, 27 Aug - 12:00 AM to 12:30 AM</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </div>
+
+        {isOpen && (
+          <div className="p-6 space-y-2">
+            
+            {/* Conditionally show "No tickets added yet!" ONLY if there are no saved tickets */}
+            {savedTickets.length === 0 && (
+              <div className="flex items-center justify-between w-full">
+                <div 
+                  onClick={() => {
+                    setEditingIndex(null);
+                    setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
+                    setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+                    setShowTicketForm(!showTicketForm);
+                  }}
+                  className="flex-1 py-3.5 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-xl text-xs text-slate-600 font-medium text-center cursor-pointer transition border border-slate-200/60"
+                >
+                  No tickets added yet!
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingIndex(null);
+                    setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
+                    setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+                    setShowTicketForm(!showTicketForm);
+                  }}
+                  className="ml-3 text-slate-800 hover:text-blue-600 font-bold text-lg px-2 cursor-pointer transition"
+                >
+                  {showTicketForm ? '−' : '+'}
+                </button>
+              </div>
+            )}
+
+            {/* Saved Tickets Table List */}
+            {savedTickets.length > 0 && (
+              <div className="space-y-3">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-500 text-[12px]">
+                        <th className="py-2.5 px-2">Name</th>
+                        <th className="py-2.5 px-2">Price</th>
+                        <th className="py-2.5 px-2">Qty</th>
+                        <th className="py-2.5 px-2">Available</th>
+                        <th className="py-2.5 px-2">Start Date</th>
+                        <th className="py-2.5 px-2">End Date</th>
+                        <th className="py-2.5 px-2">EB</th>
+                        <th className="py-2.5 px-2">Price</th>
+                        <th className="py-2.5 px-2">Start Date</th>
+                        <th className="py-2.5 px-2">End Date</th>
+                        <th className="py-2.5 px-2 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {savedTickets.map((t, idx) => {
+                        const isLast = idx === savedTickets.length - 1;
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50/50 text-[12px]">
+                            <td className="py-3 px-2 text-slate-800">{t.name}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.price}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.qty}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.available}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.startDate}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.endDate}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.ebPrice}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.ebQty}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.ebStart}</td>
+                            <td className="py-3 px-2 text-slate-800">{t.ebEnd}</td>
+                            <td className="py-3 px-2 text-right space-x-2 whitespace-nowrap">
+                              {/* Edit Button */}
+                              <button 
+                                type="button" 
+                              onClick={() => {
+                                setEditingIndex(idx);
+                                setTicketName(t.name);
+                                setPrice(t.price);
+                                setQuantity(t.qty);
+                                setAvailable(t.available);
+                                setStartDate(t.startDate);
+                                setStartTime(t.startTime || '');
+                                setEndDate(t.endDate);
+                                setEndTime(t.endTime || '');
+                                setShowTicketForm(true);
+                              }}
+                                className="text-slate-500 hover:text-blue-600 cursor-pointer" 
+                                title="Edit"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-3">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                </svg>
+                              </button>
+                              {/* Delete Button */}
+                              <button 
+                                type="button" 
+                                onClick={() => setSavedTickets(savedTickets.filter((_, i) => i !== idx))} 
+                                className="text-slate-400 hover:text-red-600 cursor-pointer" 
+                                title="Delete"
+                              >
+                                ✕
+                              </button>
+                              {/* Last Item Plus/Minus Icon */}
+                              {isLast && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    if (!showTicketForm) {
+                                      setEditingIndex(null);
+                                      setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
+                                      setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+                                    }
+                                    setShowTicketForm(!showTicketForm);
+                                  }} 
+                                  className="ml-1 text-slate-800 hover:text-blue-600 font-bold text-base px-1 cursor-pointer"
+                                  title="Add another ticket"
+                                >
+                                  {showTicketForm ? '−' : '+'}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Ticket Form (Appears when toggled open or editing) */}
+            {showTicketForm && (
+              <div className="space-y-5 pt-2 border-t border-slate-200">
+                
+                {/* Row 1: Ticket Name, Price, Quantity, Available */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
+                  <div className="sm:col-span-5 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Ticket Name</label>
+                    <input type="text" placeholder="" value={ticketName} onChange={(e) => setTicketName(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
+                  </div>
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Price</label>
+                    <input type="text" placeholder="" value={price} onChange={(e) => setPrice(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
+                  </div>
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
+                    <input type="text" placeholder="" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
+                  </div>
+                  <div className="sm:col-span-3 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Available</label>
+                    <input type="text" placeholder="" value={available} onChange={(e) => setAvailable(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
+                  </div>
+                </div>
+
+                {/* Sales Period with Date & Time Validation/Dependencies */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-xs font-semibold text-slate-800 block">Sales Period</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                    <div className="sm:col-span-5 grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-500 block">Start date</label>
+                        <input 
+                          type="date" 
+                          value={startDate} 
+                          onChange={(e) => {
+                            setStartDate(e.target.value);
+                            if (endDate && e.target.value > endDate) setEndDate(''); // Reset invalid end date
+                          }} 
+                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-500 block">Start time</label>
+                        <input 
+                          type="time" 
+                          value={startTime} 
+                          onChange={(e) => {
+                            setStartTime(e.target.value);
+                            if (endTime && startDate === endDate && e.target.value >= endTime) setEndTime(''); // Reset invalid end time
+                          }} 
+                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                        />
+                      </div>
+                    </div>
+                    <span className="text-center text-slate-400 font-bold sm:col-span-1 pt-4">–</span>
+                    <div className="sm:col-span-6 grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-500 block">End date</label>
+                        <input 
+                          type="date" 
+                          value={endDate} 
+                          min={startDate} 
+                          disabled={!startDate} 
+                          onChange={(e) => setEndDate(e.target.value)} 
+                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-500 block">End time</label>
+                        <input 
+                          type="time" 
+                          value={endTime} 
+                          min={startDate === endDate ? startTime : undefined}
+                          disabled={!startTime} 
+                          onChange={(e) => setEndTime(e.target.value)} 
+                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Early Bird Offer Toggle */}
+                <div className="flex items-center gap-4 pt-2">
+                  <span className="text-xs font-semibold text-slate-800">Early Bird Offer</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={hasEarlyBird} 
+                      onChange={(e) => setHasEarlyBird(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                {hasEarlyBird && (
+                  <div className="rounded-xl space-y-4">
+                    <div className="grid grid-cols-6 gap-6">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium text-slate-800 block">Price</label>
+                        <input type="text" value={ebPrice} onChange={(e) => setEbPrice(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
+                        <input type="text" value={ebQuantity} onChange={(e) => setEbQuantity(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                      <div className="sm:col-span-5 grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-slate-500 block">Start date</label>
+                          <input type="date" value={ebStartDate} onChange={(e) => setEbStartDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-slate-500 block">Start time</label>
+                          <input type="time" value={ebStartTime} onChange={(e) => setEbStartTime(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
+                        </div>
+                      </div>
+                      <span className="text-center text-slate-400 font-bold sm:col-span-1 pt-4">–</span>
+                      <div className="sm:col-span-6 grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-slate-500 block">End date</label>
+                          <input type="date" value={ebEndDate} min={ebStartDate} disabled={!ebStartDate} onChange={(e) => setEbEndDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-slate-500 block">End time</label>
+                          <input type="time" value={ebEndTime} disabled={!ebStartTime} onChange={(e) => setEbEndTime(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Same ticket toggle & Save/Update Button */}
+                <div className="flex items-center justify-between pt-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-600">Same ticket for this event</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={sameTicketForEvent} 
+                        onChange={(e) => setSameTicketForEvent(e.target.checked)} 
+                        className="sr-only peer" 
+                      />
+                      <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
-                </div>
-              </div>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (!ticketName || !price || !quantity) return toast.error('Please fill required ticket details.');
+                      if (endDate && startDate && endDate < startDate) return toast.error('End date cannot be before start date.');
 
-              <div className="pt-6 border-t border-slate-100 space-y-4">
-                <h3 className={accountSectionHeading}>Ticket Type</h3>
-                <div className="border-2 border-slate-200 rounded-2xl bg-white overflow-hidden p-6 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                    <input type="text" placeholder="Ticket Name" className={`${inputFieldStyle} border-2 sm:col-span-5`} />
-                    <input type="text" placeholder="Price" className={`${inputFieldStyle} border-2 sm:col-span-2`} />
-                    <input type="text" placeholder="Qty" className={`${inputFieldStyle} border-2 sm:col-span-2`} />
-                    <input type="text" placeholder="Available" className={`${inputFieldStyle} border-2 sm:col-span-3`} />
-                  </div>
-                  <div className="flex justify-end">
-                    <button type="button" onClick={() => toast.success('Ticket added!')} className="px-6 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg">Save</button>
-                  </div>
+                  const newTicketData = { 
+                    name: ticketName, 
+                    price, 
+                    qty: quantity, 
+                    available: available || quantity,
+                    startDate: startDate || '', 
+                    startTime: startTime || '',
+                    endDate: endDate || '', 
+                    endTime: endTime || '',
+                    ebPrice: hasEarlyBird ? ebPrice : '-', 
+                    ebQty: hasEarlyBird ? ebQuantity : '-',
+                    ebStart: hasEarlyBird ? ebStartDate : '-', 
+                    ebEnd: hasEarlyBird ? ebEndDate : '-'
+                  };
+
+                      if (editingIndex !== null) {
+                        // Update existing ticket
+                        const updated = [...savedTickets];
+                        updated[editingIndex] = newTicketData;
+                        setSavedTickets(updated);
+                        toast.success('Ticket updated successfully!');
+                      } else {
+                        // Add new ticket
+                        setSavedTickets([...savedTickets, newTicketData]);
+                        toast.success('Ticket added!');
+                      }
+
+                      setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
+                      setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+                      setEditingIndex(null);
+                      setShowTicketForm(false);
+                    }} 
+                    className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition cursor-pointer"
+                  >
+                    {editingIndex !== null ? 'Update' : 'Save'}
+                  </button>
                 </div>
+
               </div>
+            )}
+
+          </div>
+        )}
+      </div>
+
+    </div>
+  </div>
             </div>
           )}
 
@@ -1620,7 +2045,7 @@ const handleDragOver = (e) => {
                 <h3 className={accountSectionHeading}>Event Guide</h3>
                 
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                  <span className="text-xs font-medium text-slate-700">Is your event pet-friendly?</span>
+                  <span className="text-xs font-medium text-slate-800">Is your event pet-friendly?</span>
                   <div className="flex gap-4 text-xs font-semibold">
                     <label><input type="radio" name="isPetFriendly" value="yes" checked={formData.isPetFriendly === 'yes'} onChange={handleInputChange} /> Yes</label>
                     <label><input type="radio" name="isPetFriendly" value="no" checked={formData.isPetFriendly === 'no'} onChange={handleInputChange} /> No</label>
