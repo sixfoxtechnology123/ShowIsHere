@@ -142,7 +142,7 @@ export const artistFormBox = "bg-white rounded-2xl shadow-sm border border-slate
 export const artistFormHeader = "flex justify-between items-center border-b border-slate-100 pb-1.5";
 export const artistFormHeading = "text-sm font-extrabold tracking-wide text-slate-800";
 export const artistFormGrid = "grid grid-cols-1 md:grid-cols-2 gap-2";
-export const artistLabelStyle = "block text-[10px] font-bold text-slate-700 mb-0.5";
+export const artistLabelStyle = "block text-[11px] font-bold text-slate-700 mb-0.5";
 export const artistInputStyle = "w-full bg-slate-50 border border-slate-300 rounded-md px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium";
 export const artistTextareaStyle = "w-full bg-slate-50 border border-slate-300 rounded-md px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium resize-none";
 export const artistListCard = "bg-white rounded-2xl shadow-sm border border-slate-100 p-3 space-y-2 flex-1 flex flex-col w-full";
@@ -603,3 +603,21 @@ export const modalPhotoDropBox = "w-20 h-20 rounded-full border-2 border-slate23
 export const modalPhotoChangeOverlay = "absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-semibold text-center p-1 rounded-full";
 export const modalSecondaryBtn = "bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer border-2 border-slate-200";
 
+
+export const eventSidebarTopInfo = "p-6 pb-4 border-b border-slate-100";
+export const eventSidebarTitle = "text-lg font-bold text-slate-900 leading-snug";
+export const eventSidebarSubtitle = "text-sm font-semibold text-blue-600 mt-1";
+export const eventSidebarMetaList = "mt-4 space-y-2 text-xs text-slate-500";
+export const eventSidebarMetaItem = "flex items-start space-x-2";
+export const eventSidebarProgressBox = "px-6 py-4 border-b border-slate-100";
+export const eventSidebarProgressHeader = "flex justify-between items-center mb-1.5 text-sm font-bold text-slate-900";
+export const eventSidebarProgressBarTrack = "w-full bg-slate-100 h-2 rounded-full overflow-hidden";
+export const eventSidebarProgressBarFill = "bg-blue-600 h-full rounded-full";
+export const eventSidebarFooterToggle = "p-6 mt-auto border-t border-slate-100 flex items-center justify-between";
+export const eventSidebarToggleText = "text-sm font-bold text-slate-900";
+
+export const dashGridContainer = "grid grid-cols-12 gap-6";
+export const dashCardBase = "bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative";
+export const dashCardHeaderFlex = "flex justify-between items-start mb-4";
+export const dashCardTitle = "text-sm font-bold text-slate-900 uppercase tracking-wider";
+export const dashCardMenuDots = "text-slate-300 hover:text-slate-600 cursor-pointer font-bold";

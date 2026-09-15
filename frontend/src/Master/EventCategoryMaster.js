@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API from '../utils/api';
 import {
@@ -12,11 +12,64 @@ import {
   accountPrimaryBtn
 } from '../styles/MasterCSSClass';
 
+const PREDEFINED_CATEGORIES = [
+  'Music',
+  'Performing Art',
+  'Conference',
+  'Sport',
+  'Art & Culture',
+  'Workshop',
+  'Exhibition',
+  'Film & Media'
+];
+
 const EventCategoryMaster = () => {
-  const [categoryName, setCategoryName] = useState('');
+  const [selectedCategoryName, setSelectedCategoryName] = useState('');
   const [status, setStatus] = useState('ACTIVE');
   const [subCategories, setSubCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existingCategoriesData, setExistingCategoriesData] = useState([]);
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
+  const [currentCategoryId, setCurrentCategoryId] = useState(null);
+  const [showListModal, setShowListModal] = useState(false);
+
+  // Fetch all saved categories from backend on component mount
+  useEffect(() => {
+    fetchAllSavedCategories();
+  }, []);
+
+const fetchAllSavedCategories = async () => {
+    try {
+      const response = await API.get('/event-categories/');
+      
+      // Unpack based on your backend structure: { success: true, data: [...] }
+      let categoriesArray = [];
+      if (Array.isArray(response)) {
+        categoriesArray = response;
+      } else if (response && Array.isArray(response.data)) {
+        categoriesArray = response.data;
+      } else if (response && response.data && Array.isArray(response.data.data)) {
+        categoriesArray = response.data.data;
+      }
+
+      setExistingCategoriesData(categoriesArray);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setExistingCategoriesData([]);
+    }
+  };
+
+// Handle dropdown selection: ONLY sets the category name. Does NOT auto-fetch or prefill.
+  const handleCategorySelectChange = (e) => {
+    const chosenName = e.target.value;
+    setSelectedCategoryName(chosenName);
+
+    // Reset editing state so it treats this dropdown selection as a brand new entry attempt
+    setIsEditingExisting(false);
+    setCurrentCategoryId(null);
+    setSubCategories([]);
+    setStatus('ACTIVE');
+  };
 
   // Stage 2: Add Subcategory
   const handleAddSubCategory = () => {
@@ -33,56 +86,120 @@ const EventCategoryMaster = () => {
     setSubCategories(updated);
   };
 
-  const handleSubmitAll = async (e) => {
+const handleSubmitAll = async (e) => {
     e.preventDefault();
-    if (!categoryName.trim()) {
-      return toast.error('Category Name is required.');
+    if (!selectedCategoryName.trim()) {
+      // Use a unique ID so clicking multiple times doesn't stack duplicate toasts
+      return toast.error('Please select a Category Name from the dropdown.', { id: 'category-error' });
     }
+
+    if (isSubmitting) return; // Prevent multiple simultaneous submissions
 
     setIsSubmitting(true);
     try {
       const payload = {
-        categoryName,
+        categoryId: currentCategoryId,
+        categoryName: selectedCategoryName,
         status,
         subCategories
       };
 
       await API.post('/event-categories/create-full', payload);
-      toast.success('3-Stage Category Hierarchy saved successfully to database!');
-      setCategoryName('');
+      
+      // Give it a unique ID ('category-success') so it replaces any existing success toast
+      toast.success(
+        isEditingExisting ? 'Category updated successfully!' : 'New category hierarchy saved successfully!',
+        { id: 'category-success' }
+      );
+
+      fetchAllSavedCategories();
+      setSelectedCategoryName('');
       setSubCategories([]);
+      setIsEditingExisting(false);
+      setCurrentCategoryId(null);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save to database.');
+      const errorMessage = 
+        error.response?.data?.message || 
+        error.message || 
+        'Already exist this category.';
+      
+      // Give error a unique ID ('category-error') to prevent stacking multiple duplicate popups
+      toast.error(errorMessage, { id: 'category-error' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handlePrefillEdit = (item) => {
+    setSelectedCategoryName(item.categoryName);
+    setStatus(item.status || 'ACTIVE');
+    setCurrentCategoryId(item._id);
+    setIsEditingExisting(true);
+    
+    const mappedSubs = (item.subCategories || []).map((sub) => ({
+      name: sub.subCategoryName || '',
+      isActive: sub.isActive !== undefined ? sub.isActive : true,
+      isEditing: false,
+      eventTypes: (sub.eventTypes || []).map((type) => ({
+        name: type.typeName || '',
+        isActive: type.isActive !== undefined ? type.isActive : true,
+        isEditing: false
+      }))
+    }));
+    setSubCategories(mappedSubs);
+    setShowListModal(false);
+    toast.success(`Loaded "${item.categoryName}" for editing.`);
+  };
   return (
     <div className={mainContainer}>
       <main className={accountMainContainer}>
+        
+        {/* Title Section with List Button */}
         <div className={accountTitleSection}>
-          <h1 className={accountMainTitle}>Service Category Master</h1>
-          <p className={accountMainSubTitle}>DEFINE HIERARCHICAL SERVICE CATEGORIZATION (3-STAGE MODEL)</p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className={accountMainTitle}>Service Category Master</h1>
+              
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowListModal(true)}
+              className="px-4 py-2 bg-slate-900 hover:bg-blue-600 text-white text-xs font-bold rounded-lg shadow-xs transition flex items-center gap-2 cursor-pointer shrink-0"
+            >
+              <span>View List ({existingCategoriesData.length})</span>
+            </button>
+          </div>
         </div>
 
         <div className={accountFormCard}>
           <form onSubmit={handleSubmitAll} className="space-y-6">
             
-            {/* STAGE 1: CATEGORY REGISTRATION */}
+            {/* STAGE 1: CATEGORY REGISTRATION DROPDOWN */}
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-slate-800 tracking-wider uppercase border-b pb-2">1. Category Registration</h3>
+              <h3 className="text-xs font-bold text-slate-800 tracking-wider uppercase border-b pb-2 flex justify-between items-center">
+                <span>1. Category Registration</span>
+                {isEditingExisting && (
+                  <span className="text-blue-600 font-semibold lowercase text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    Category already exists 
+                  </span>
+                )}
+              </h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-6">
-                <div className="sm:col-span-8">
+               <div className="sm:col-span-8">
                   <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Category Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter category name"
-                    value={categoryName}
-                    onChange={(e) => setCategoryName(e.target.value)}
-                    className={`${inputFieldStyle} border-2 font-semibold`}
-                  />
+                  <select
+                    value={selectedCategoryName}
+                    onChange={handleCategorySelectChange}
+                    className={`${inputFieldStyle} border-2 font-semibold bg-white cursor-pointer`}
+                  >
+                    <option value="">-- Select Category from Dropdown --</option>
+                    {PREDEFINED_CATEGORIES.map((cat, idx) => (
+                      <option key={idx} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="sm:col-span-4">
@@ -106,211 +223,290 @@ const EventCategoryMaster = () => {
                 <button
                   type="button"
                   onClick={handleAddSubCategory}
-                  className="w-full sm:w-auto px-3.5 py-2 sm:py-1 bg-slate-900 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-xs transition flex items-center justify-center gap-1"
+                  className="w-full sm:w-auto px-3.5 py-2 sm:py-1 bg-slate-900 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-xs transition flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <span>+ Add Sub-Category (Stage 2)</span>
+                  <span>+ Add Sub-Category</span>
                 </button>
               </div>
 
               {/* Tree Container */}
               <div className="p-3 sm:p-4 bg-slate-50/60 rounded-xl border border-slate-200 space-y-4 min-h-[160px] overflow-x-auto">
                 {subCategories.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic text-center py-6">No sub-categories added yet. Click "+ Add Sub-Category (Stage 2)" above.</p>
+                  <p className="text-xs text-slate-400 italic text-center py-6">
+                    {selectedCategoryName ? 'No sub-categories added for this category yet. Click "+ Add Sub-Category" above.' : 'Please select a category from the dropdown above first.'}
+                  </p>
                 ) : (
-                  subCategories.map((subCat, subIndex) => {
-                    return (
-                      <div key={subIndex} className="p-3 sm:p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3 min-w-[280px]">
-                        
-                        {/* STAGE 2: SUBCATEGORY ROW */}
-                        <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                          <div className="flex items-center gap-2.5 flex-1 min-w-[200px]">
-                            <input
-                              type="checkbox"
-                              checked={subCat.isActive}
-                              onChange={(e) => {
-                                const updated = [...subCategories];
-                                updated[subIndex].isActive = e.target.checked;
-                                setSubCategories(updated);
-                              }}
-                              className="w-4 h-4 text-blue-600 rounded cursor-pointer accent-blue-600 shrink-0"
-                            />
+                  subCategories.map((subCat, subIndex) => (
+                    <div key={subIndex} className="p-3 sm:p-4 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-3 min-w-[280px]">
+                      
+                      {/* STAGE 2: SUBCATEGORY ROW */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-[200px]">
+                          <input
+                            type="checkbox"
+                            checked={subCat.isActive}
+                            onChange={(e) => {
+                              const updated = [...subCategories];
+                              updated[subIndex].isActive = e.target.checked;
+                              setSubCategories(updated);
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded cursor-pointer accent-blue-600 shrink-0"
+                          />
 
-                            {subCat.isEditing ? (
-                              <div className="flex items-center gap-1 w-full max-w-xs">
-                                <input
-                                  type="text"
-                                  value={subCat.name}
-                                  onChange={(e) => {
-                                    const updated = [...subCategories];
-                                    updated[subIndex].name = e.target.value;
-                                    setSubCategories(updated);
-                                  }}
-                                  className={`${inputFieldStyle} border-2 text-xs py-1 font-semibold w-full`}
-                                  placeholder="Sub-category name"
-                                  autoFocus
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!subCat.name.trim()) return toast.error('Name cannot be empty');
-                                    const updated = [...subCategories];
-                                    updated[subIndex].isEditing = false;
-                                    setSubCategories(updated);
-                                    toast.success('Subcategory saved');
-                                  }}
-                                  className="text-emerald-600 font-bold px-1.5 text-sm shrink-0"
-                                  title="Save"
-                                >
-                                  ✓
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-800">{subCat.name}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const updated = [...subCategories];
-                                    updated[subIndex].isEditing = true;
-                                    setSubCategories(updated);
-                                  }}
-                                  className="text-blue-500 hover:text-blue-700 text-xs shrink-0"
-                                  title="Edit Sub-Category"
-                                >
-                                  ✏️
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          {subCat.isEditing ? (
+                            <div className="flex items-center gap-1 w-full max-w-xs">
+                              <input
+                                type="text"
+                                value={subCat.name}
+                                onChange={(e) => {
+                                  const updated = [...subCategories];
+                                  updated[subIndex].name = e.target.value;
+                                  setSubCategories(updated);
+                                }}
+                                className={`${inputFieldStyle} border-2 text-xs py-1 font-semibold w-full`}
+                                placeholder="Sub-category name"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!subCat.name.trim()) return toast.error('Name cannot be empty');
+                                  const updated = [...subCategories];
+                                  updated[subIndex].isEditing = false;
+                                  setSubCategories(updated);
+                                  toast.success('Subcategory saved');
+                                }}
+                                className="text-emerald-600 font-bold px-1.5 text-sm shrink-0 cursor-pointer"
+                                title="Save"
+                              >
+                                ✓
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-800">{subCat.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...subCategories];
+                                  updated[subIndex].isEditing = true;
+                                  setSubCategories(updated);
+                                }}
+                                className="text-blue-500 hover:text-blue-700 text-xs shrink-0 cursor-pointer"
+                                title="Edit Sub-Category"
+                              >
+                                ✏️
+                              </button>
+                            </div>
+                          )}
+                        </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = subCategories.filter((_, idx) => idx !== subIndex);
+                              setSubCategories(updated);
+                            }}
+                            className="text-red-400 hover:text-red-600 text-xs p-1 cursor-pointer"
+                            title="Delete Sub-Category"
+                          >
+                            🗑️
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAddEventType(subIndex)}
+                            className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center hover:bg-blue-600 shadow-2xs transition shrink-0 cursor-pointer"
+                            title="Add Event Type"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* STAGE 3: EVENT TYPES LIST */}
+                      <div className="pl-4 sm:pl-8 space-y-2 pt-2 border-l-2 border-slate-100 ml-1 sm:ml-2">
+                        {subCat.eventTypes?.map((eventType, typeIndex) => (
+                          <div key={typeIndex} className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 flex-1">
+                              <input
+                                type="checkbox"
+                                checked={eventType.isActive}
+                                onChange={(e) => {
+                                  const updated = [...subCategories];
+                                  updated[subIndex].eventTypes[typeIndex].isActive = e.target.checked;
+                                  setSubCategories(updated);
+                                }}
+                                className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer accent-blue-600 shrink-0"
+                              />
+
+                              {eventType.isEditing ? (
+                                <div className="flex items-center gap-1 w-full max-w-xs">
+                                  <input
+                                    type="text"
+                                    value={eventType.name}
+                                    onChange={(e) => {
+                                      const updated = [...subCategories];
+                                      updated[subIndex].eventTypes[typeIndex].name = e.target.value;
+                                      setSubCategories(updated);
+                                    }}
+                                    className={`${inputFieldStyle} border-2 text-xs py-1 w-full bg-slate-50`}
+                                    placeholder="Event type name"
+                                    autoFocus
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!eventType.name.trim()) return toast.error('Name cannot be empty');
+                                      const updated = [...subCategories];
+                                      updated[subIndex].eventTypes[typeIndex].isEditing = false;
+                                      setSubCategories(updated);
+                                      toast.success('Event type saved');
+                                    }}
+                                    className="text-emerald-600 font-bold px-1.5 text-sm shrink-0 cursor-pointer"
+                                    title="Save"
+                                  >
+                                    ✓
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-slate-700 font-medium">
+                                    🏷️ {eventType.name}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...subCategories];
+                                      updated[subIndex].eventTypes[typeIndex].isEditing = true;
+                                      setSubCategories(updated);
+                                    }}
+                                    className="text-blue-500 hover:text-blue-700 text-xs shrink-0 cursor-pointer"
+                                    title="Edit Event Type"
+                                  >
+                                    ✏️
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
                             <button
                               type="button"
                               onClick={() => {
-                                const updated = subCategories.filter((_, idx) => idx !== subIndex);
+                                const updated = [...subCategories];
+                                updated[subIndex].eventTypes.splice(typeIndex, 1);
                                 setSubCategories(updated);
                               }}
-                              className="text-red-400 hover:text-red-600 text-xs p-1"
-                              title="Delete Sub-Category"
+                              className="text-red-400 hover:text-red-600 text-xs p-1 shrink-0 cursor-pointer"
+                              title="Delete Event Type"
                             >
                               🗑️
                             </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleAddEventType(subIndex)}
-                              className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center hover:bg-blue-600 shadow-2xs transition shrink-0"
-                              title="Add Event Type (Final Stage)"
-                            >
-                              +
-                            </button>
                           </div>
-                        </div>
-
-                        {/* STAGE 3: EVENT TYPES LIST */}
-                        <div className="pl-4 sm:pl-8 space-y-2 pt-2 border-l-2 border-slate-100 ml-1 sm:ml-2">
-                          {subCat.eventTypes?.map((eventType, typeIndex) => {
-                            return (
-                              <div key={typeIndex} className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2.5 flex-1">
-                                  <input
-                                    type="checkbox"
-                                    checked={eventType.isActive}
-                                    onChange={(e) => {
-                                      const updated = [...subCategories];
-                                      updated[subIndex].eventTypes[typeIndex].isActive = e.target.checked;
-                                      setSubCategories(updated);
-                                    }}
-                                    className="w-3.5 h-3.5 text-blue-600 rounded cursor-pointer accent-blue-600 shrink-0"
-                                  />
-
-                                  {eventType.isEditing ? (
-                                    <div className="flex items-center gap-1 w-full max-w-xs">
-                                      <input
-                                        type="text"
-                                        value={eventType.name}
-                                        onChange={(e) => {
-                                          const updated = [...subCategories];
-                                          updated[subIndex].eventTypes[typeIndex].name = e.target.value;
-                                          setSubCategories(updated);
-                                        }}
-                                        className={`${inputFieldStyle} border-2 text-xs py-1 w-full bg-slate-50`}
-                                        placeholder="Event type name"
-                                        autoFocus
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (!eventType.name.trim()) return toast.error('Name cannot be empty');
-                                          const updated = [...subCategories];
-                                          updated[subIndex].eventTypes[typeIndex].isEditing = false;
-                                          setSubCategories(updated);
-                                          toast.success('Event type saved');
-                                        }}
-                                        className="text-emerald-600 font-bold px-1.5 text-sm shrink-0"
-                                        title="Save"
-                                      >
-                                        ✓
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-slate-700 font-medium">
-                                        🏷️ {eventType.name}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const updated = [...subCategories];
-                                          updated[subIndex].eventTypes[typeIndex].isEditing = true;
-                                          setSubCategories(updated);
-                                        }}
-                                        className="text-blue-500 hover:text-blue-700 text-xs shrink-0"
-                                        title="Edit Event Type"
-                                      >
-                                        ✏️
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const updated = [...subCategories];
-                                    updated[subIndex].eventTypes.splice(typeIndex, 1);
-                                    setSubCategories(updated);
-                                  }}
-                                  className="text-red-400 hover:text-red-600 text-xs p-1 shrink-0"
-                                  title="Delete Event Type"
-                                >
-                                  🗑️
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-
+                        ))}
                       </div>
-                    );
-                  })
+
+                    </div>
+                  ))
                 )}
               </div>
             </div>
 
-            {/* FINAL SUBMIT BUTTON AT THE BOTTOM */}
+            {/* FINAL SUBMIT BUTTON */}
             <div className="pt-6 border-t border-slate-200 flex justify-end">
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className={accountPrimaryBtn + " w-full sm:w-auto px-8 py-3 text-sm"}
+                disabled={isSubmitting || !selectedCategoryName}
+                className={accountPrimaryBtn + " w-full sm:w-auto px-8 py-3 text-sm cursor-pointer"}
               >
-                {isSubmitting ? 'Saving to Database...' : 'Submit Category & Sub-Categories'}
+                {isSubmitting ? 'Saving to Database...' : isEditingExisting ? 'Update Category Hierarchy' : 'Save Category Hierarchy'}
               </button>
             </div>
 
           </form>
         </div>
+
+{/* LIST MODAL POPUP SHOWING ALL SAVED CATEGORIES IN A COMPACT TABLE */}
+        {showListModal && (
+          <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto shadow-xl">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Saved Categories Directory ({existingCategoriesData.length})
+                </h3>
+                <button 
+                  type="button" 
+                  onClick={() => setShowListModal(false)}
+                  className="text-slate-500 hover:text-slate-800 font-bold text-xs uppercase tracking-wider cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                {existingCategoriesData.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-6">No categories saved to database yet.</p>
+                ) : (
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-y border-slate-200 text-slate-700">
+                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/4">Category</th>
+                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/3">Subcategories & Event Types</th>
+       
+                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider text-right w-1/6">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {existingCategoriesData.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/80">
+                          {/* Category Name */}
+                          <td className="py-3 px-3 font-bold text-slate-900 align-top">
+                            {item.categoryName}
+                          </td>
+
+                          {/* Compact Subcategories & Event Types Summary */}
+                          <td className="py-3 px-3 text-slate-700 align-top">
+                            {(!item.subCategories || item.subCategories.length === 0) ? (
+                              <span className="text-slate-400 italic">No subcategories</span>
+                            ) : (
+                              <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                                {item.subCategories.map((sub, sIdx) => (
+                                  <div key={sIdx} className="bg-slate-100/70 p-1.5 rounded border border-slate-200/60 text-[11px]">
+                                    <span className="font-semibold text-sm text-slate-900 block">{sub.subCategoryName}</span>
+                                    <span className="text-slate-600 block text-[14px] mt-0.5">
+                                      {sub.eventTypes && sub.eventTypes.length > 0 
+                                        ? sub.eventTypes.map(t => t.typeName).join(', ') 
+                                        : <span className="text-slate-400 italic">No event types</span>}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+
+                      
+
+                          {/* Edit Action Button */}
+                          <td className="py-3 px-3 text-right align-top">
+                            <button
+                              type="button"
+                              onClick={() => handlePrefillEdit(item)}
+                              className="px-3 py-1 bg-slate-900 hover:bg-blue-600 text-white font-semibold rounded shadow-2xs transition cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );

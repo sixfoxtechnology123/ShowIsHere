@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef  } from 'react';
+import { useNavigate,Link } from 'react-router-dom';
 import EventOrgHeader from './EventOrgHeader';
 import EventOrgFooter from './EventOrgFooter';
 import EventOrgLefSidebar from './EventOrgLefSidebar';
@@ -199,76 +199,77 @@ const Dashboard = () => {
                 </button>
               </div>
 
-              <div className={dashActiveEventCardBox}>
-                {/* Card 1: Green Theme (3:4 Aspect Ratio) */}
-                <div className="bg-emerald-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4]">
-                  <div className="flex flex-col space-y-4 mb-3">
-                    <div className="flex -space-x-2 overflow-hidden">
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <span className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-white text-[10px] font-bold text-slate-700 shadow-sm">+49</span>
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-800">Stand up comedy show</h4>
-                  </div>
-                  <div className="space-y-1.5 mt-2">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="font-medium text-slate-600">Event Completion</span>
-                      <span className="font-extrabold text-slate-800">67%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: '67%' }}></div>
-                    </div>
-                  </div>
+        
+          <div className={dashActiveEventCardBox}>
+            {/* Card 1: Green Theme (3:4 Aspect Ratio) */}
+            <Link to="/event-dashboard" className="bg-emerald-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4] cursor-pointer hover:scale-[1.02] transition-transform">
+              <div className="flex flex-col space-y-4 mb-3">
+                <div className="flex -space-x-2 overflow-hidden">
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <span className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-white text-[10px] font-bold text-slate-700 shadow-sm">+49</span>
                 </div>
-
-                {/* Card 2: Orange/Peach Theme (3:4 Aspect Ratio) */}
-                <div className="bg-amber-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4]">
-                  <div className="flex flex-col space-y-4 mb-3">
-                    <div className="flex -space-x-2 overflow-hidden">
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <span className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-white text-[10px] font-bold text-slate-700 shadow-sm">+49</span>
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-800">Graphics meetup</h4>
-                  </div>
-                  <div className="space-y-1.5 mt-2">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="font-medium text-slate-600">Event Completion</span>
-                      <span className="font-extrabold text-slate-800">32%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-600 rounded-full" style={{ width: '32%' }}></div>
-                    </div>
-                  </div>
+                <h4 className="text-xs font-bold text-slate-800">Stand up comedy show</h4>
+              </div>
+              <div className="space-y-1.5 mt-2">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="font-medium text-slate-600">Event Completion</span>
+                  <span className="font-extrabold text-slate-800">67%</span>
                 </div>
-
-                {/* Card 3: Blue Theme (3:4 Aspect Ratio) */}
-                <div className="bg-sky-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4]">
-                  <div className="flex flex-col space-y-4 mb-3">
-                    <div className="flex -space-x-2 overflow-hidden">
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
-                      <span className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-white text-[10px] font-bold text-slate-700 shadow-sm">+49</span>
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-800">DIGI Tech Freelancers</h4>
-                  </div>
-                  <div className="space-y-1.5 mt-2">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="font-medium text-slate-600">Event Completion</span>
-                      <span className="font-extrabold text-slate-800">54%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600 rounded-full" style={{ width: '54%' }}></div>
-                    </div>
-                  </div>
+                <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: '67%' }}></div>
                 </div>
               </div>
+            </Link>
+
+            {/* Card 2: Orange/Peach Theme (3:4 Aspect Ratio) */}
+            <Link to="/event-dashboard" className="bg-amber-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4] cursor-pointer hover:scale-[1.02] transition-transform">
+              <div className="flex flex-col space-y-4 mb-3">
+                <div className="flex -space-x-2 overflow-hidden">
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <span className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-white text-[10px] font-bold text-slate-700 shadow-sm">+49</span>
+                </div>
+                <h4 className="text-xs font-bold text-slate-800">Graphics meetup</h4>
+              </div>
+              <div className="space-y-1.5 mt-2">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="font-medium text-slate-600">Event Completion</span>
+                  <span className="font-extrabold text-slate-800">32%</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-600 rounded-full" style={{ width: '32%' }}></div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Card 3: Blue Theme (3:4 Aspect Ratio) */}
+            <Link to="/event-dashboard" className="bg-sky-100/70 border-0 rounded-3xl px-3 py-8 flex flex-col justify-between relative overflow-hidden shadow-xs aspect-[3/4] cursor-pointer hover:scale-[1.02] transition-transform">
+              <div className="flex flex-col space-y-4 mb-3">
+                <div className="flex -space-x-2 overflow-hidden">
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" src={userAvatar} alt="" />
+                  <span className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-white bg-white text-[10px] font-bold text-slate-700 shadow-sm">+49</span>
+                </div>
+                <h4 className="text-xs font-bold text-slate-800">DIGI Tech Freelancers</h4>
+              </div>
+              <div className="space-y-1.5 mt-2">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="font-medium text-slate-600">Event Completion</span>
+                  <span className="font-extrabold text-slate-800">54%</span>
+                </div>
+                <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-600 rounded-full" style={{ width: '54%' }}></div>
+                </div>
+              </div>
+            </Link>
+          </div>
             </div>
 
             {/* Row 2: Stats Cards */}

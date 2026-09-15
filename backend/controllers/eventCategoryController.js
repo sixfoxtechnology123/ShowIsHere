@@ -18,6 +18,13 @@ exports.createCategory = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Category name is required.' });
     }
 
+    const existing = await EventCategoryMaster.findOne({
+      categoryName: { $regex: new RegExp(`^${categoryName.trim()}$`, 'i') }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Already exist this category.' });
+    }
+
     let finalCategoryId = categoryId;
     if (!finalCategoryId) {
       const count = await EventCategoryMaster.countDocuments();
@@ -81,7 +88,7 @@ exports.addEventType = async (req, res) => {
   }
 };
 
-// Save the complete 3-stage category tree (Category -> Subcategories -> Event Types)
+// Save the complete 3-stage category tree with robust update & duplicate checks
 exports.createFullCategoryTree = async (req, res) => {
   try {
     const { categoryId, categoryName, status, subCategories } = req.body;
@@ -89,20 +96,48 @@ exports.createFullCategoryTree = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Category name is required.' });
     }
 
-    let finalCategoryId = categoryId;
-    if (!finalCategoryId) {
-      const count = await EventCategoryMaster.countDocuments();
-      finalCategoryId = `EC${count + 1}`;
-    }
-
-    // Map frontend 'name' properties to the Mongoose schema fields ('subCategoryName' and 'typeName')
     const formattedSubCategories = (subCategories || []).map((sub) => ({
       subCategoryName: (sub.name || sub.subCategoryName || '').trim(),
       isActive: sub.isActive !== undefined ? sub.isActive : true,
       eventTypes: (sub.eventTypes || []).map((type) => ({
-        typeName: (type.name || type.typeName || '').trim()
+        typeName: (type.name || type.typeName || '').trim(),
+        isActive: type.isActive !== undefined ? type.isActive : true
       }))
     }));
+
+    let existingCategory = null;
+    if (categoryId) {
+      existingCategory = await EventCategoryMaster.findById(categoryId);
+    }
+    
+    if (!existingCategory) {
+      existingCategory = await EventCategoryMaster.findOne({
+        categoryName: { $regex: new RegExp(`^${categoryName.trim()}$`, 'i') }
+      });
+    }
+
+    // If it exists in DB, but the frontend didn't pass a matching ID (meaning it's a brand new submit with an existing name)
+    if (existingCategory && (!categoryId || existingCategory._id.toString() !== categoryId.toString())) {
+      return res.status(400).json({ success: false, message: 'Already exist this category.' });
+    }
+
+    if (existingCategory && categoryId) {
+      // UPDATE EXISTING
+      existingCategory.categoryName = categoryName.trim();
+      existingCategory.status = status || existingCategory.status;
+      existingCategory.subCategories = formattedSubCategories;
+
+      await existingCategory.save();
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Category hierarchy updated successfully!', 
+        data: existingCategory 
+      });
+    }
+
+    // CREATE NEW RECORD
+    const count = await EventCategoryMaster.countDocuments();
+    const finalCategoryId = `EC${count + 1}`;
 
     const newCategory = new EventCategoryMaster({
       categoryId: finalCategoryId,

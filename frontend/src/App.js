@@ -25,7 +25,7 @@ import EventCategoryMaster from './Master/EventCategoryMaster';
 import Profile from './EventOrganizer/Profile';
 import KYCDetails from './EventOrganizer/KYCDetails';
 import Setting from './EventOrganizer/Setting';
-
+import EventDashboard from './Event/EventDashboard';
 
 
 import { Toaster } from 'react-hot-toast';
@@ -55,6 +55,7 @@ const AppContent = () => {
   const isprofile = routerLocation.pathname === '/profile';
   const iskyc = routerLocation.pathname === '/profile/kyc';
   const isprofilesettings = routerLocation.pathname === '/profile/settings';
+  const isEventDashboard = routerLocation.pathname === '/event-dashboard';
 
   
   
@@ -175,7 +176,7 @@ const AppContent = () => {
       />
 
       {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
-      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && (
+      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && (
         <>
           <Navbar 
             location={location} 
@@ -212,7 +213,9 @@ const AppContent = () => {
 
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/kyc" element={<KYCDetails />} />
-        <Route path="/profile/settings" element={<Setting />} />
+        <Route path="/profile/settings" element={<Setting />} />.
+       
+        <Route path="/event-dashboard" element={<EventDashboard />} />
       </Routes>
 
       {/* Global Footer shown only on the home page */}
