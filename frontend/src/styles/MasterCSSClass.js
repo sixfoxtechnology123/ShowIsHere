@@ -121,6 +121,7 @@ export const pageTabInactive = "px-3 py-1 rounded font-bold transition cursor-po
 export const addPageButton = "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition cursor-pointer";
 
 export const inputFieldStyle = "w-full  border-2 border-slate-200 rounded-lg px-3 py-1 text-sm text-slate-900 outline-none focus:border-blue-500 font-normal";
+export const inputFieldStyleduration = "border-2 border-slate-200 rounded-lg px-3 py-1 text-sm text-slate-900 outline-none focus:border-blue-500 font-normal";
 
 // ==========================================
 // SIDEBAR ELEMENT & TEMPLATE STYLES

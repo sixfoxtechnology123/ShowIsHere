@@ -29,7 +29,8 @@ import {
   accountSecondaryBtn,
   accountPrimaryBtn,
   dashBrandLogo,
-  dashBrandTitle
+  dashBrandTitle,
+  inputFieldStyleduration
 } from '../styles/MasterCSSClass';
 
 const formatTo12Hour = (timeStr) => {
@@ -128,8 +129,8 @@ const [openSlotIndex, setOpenSlotIndex] = useState(null);
     ],
     // Step 5
     minAgeLimit: '',
-    durationHours: '3',
-    durationMinutes: '20',
+    durationHours: '',
+    durationMinutes: '',
     isPetFriendly: 'no',
     idRequired: '',
     allowedDressCode: '',
@@ -385,7 +386,7 @@ const handleDragOver = (e) => {
 
   return (
     <div className={mainContainer}>
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs w-full h-14 flex items-center">
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-xs w-full h-14 flex items-center">
         <div className={accountHeaderInner}>
           <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline">
             <img src={Logo} alt="Logo" className={dashBrandLogo} />
@@ -470,8 +471,8 @@ const handleDragOver = (e) => {
                       }}
                       className={`h-28 flex flex-col items-center justify-center p-4 rounded-md border-2 cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-blue-600 bg-blue-50/40 text-blue-700 shadow-xs'
-                          : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
+                          ? 'border-blue-600  text-blue-700 shadow-xs'
+                          : 'border-slate-200  hover:border-slate-300 text-slate-800'
                       }`}
                     >
                       {cat.imageBase64 ? (
@@ -776,7 +777,7 @@ const handleDragOver = (e) => {
                   toast.error('Artist already added.');
                 }
               }}
-              className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-none"
+              className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer  last:border-none"
             >
               {artist.photoUrl ? (
                 <img 
@@ -904,7 +905,7 @@ const handleDragOver = (e) => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           {/* Reduced padding to p-3.5 and spacing to space-y-2 to decrease modal height */}
           <div className="bg-white rounded-2xl max-w-lg w-full p-3.5 relative shadow-2xl space-y-2">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="flex items-center justify-between  pb-2">
               <h3 className="text-sm font-bold text-slate-800">Add New Artist</h3>
                   <button
                     type="button"
@@ -1021,7 +1022,7 @@ const handleDragOver = (e) => {
                           reader.readAsDataURL(file);
                         }
                       }}
-                      className="w-24 h-24 rounded-full border-2  border-slate-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-slate-50 hover:bg-slate-100 transition relative group shadow-xs"
+                      className="w-20 h-24 rounded-full border-2  border-slate-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-slate-50 hover:bg-slate-100 transition relative group shadow-xs"
                     >
                       {newArtistPhoto ? (
                         <div className="w-full h-full relative flex items-center justify-center">
@@ -1787,7 +1788,7 @@ const handleDragOver = (e) => {
             {/* Accordion Header */}
             <div 
                 onClick={() => setOpenSlotIndex(openSlotIndex === slotIdx ? null : slotIdx)}
-                className="flex items-center justify-between px-5 py-3 bg-slate-50/80 border-b border-slate-200/80 cursor-pointer select-none transition hover:bg-slate-100/80"
+                className="flex items-center justify-between px-5 py-3 bg-slate-50/80 border-b border-slate-100/80 cursor-pointer select-none transition hover:bg-slate-100/80"
               >
                 <span className="text-xs font-bold text-slate-800">
                   {(() => {
@@ -1856,7 +1857,7 @@ const handleDragOver = (e) => {
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
-                          <tr className="border-b border-slate-200 text-slate-500 text-[12px]">
+                          <tr className="border-b border-slate-100 text-slate-500 text-[12px]">
                             <th className="py-2.5 px-2">Name</th>
                             <th className="py-2.5 px-2">Price</th>
                             <th className="py-2.5 px-2">Qty</th>
@@ -2255,59 +2256,115 @@ const handleDragOver = (e) => {
 
     </div>
   </div>
-            </div>
-          )}
+  </div>
+)}
 
-          {/* STEP 5: EVENT FEATURES */}
-          {activeStep === 5 && (
-            <div className="space-y-6">
-              <div>
-                <label className={accountLabelStyle}>Minimum Age Limit</label>
-                <select name="minAgeLimit" value={formData.minAgeLimit} onChange={handleInputChange} className={`${inputFieldStyle} border-2`}>
-                  <option value="">Select age limit</option>
-                  <option value="18">18 & above</option>
-                  <option value="21">21 & above</option>
-                </select>
-              </div>
+{activeStep === 5 && (
+  <div className="space-y-6">
+    {/* Minimum Age Limit (1 to 99) */}
+    <div>
+      <label className={accountLabelStyle}>Minimum Age Limit</label>
+      <div className="flex items-center gap-3">
+        <select 
+          name="minAgeLimit" 
+          value={formData.minAgeLimit} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`}
+        >
+          <option value="">Select</option>
+          {Array.from({ length: 99 }, (_, i) => i + 1).map((age) => (
+            <option key={age} value={age}>
+              {age}
+            </option>
+          ))}
+        </select>
+        <span className="text-sm font-medium text-slate-700 whitespace-nowrap">& above</span>
+      </div>
+    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={accountLabelStyle}>Hours</label>
-                  <input type="number" name="durationHours" value={formData.durationHours} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                </div>
-                <div>
-                  <label className={accountLabelStyle}>Minutes</label>
-                  <input type="number" name="durationMinutes" value={formData.durationMinutes} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                </div>
-              </div>
+    {/* Duration Section */}
+    <div className="space-y-3">
+      <div className="flex items-center gap-4 flex-wrap">
+        <label className={`${accountLabelStyle} mb-0`}>Duration</label>
+        
+        <div className="flex items-center gap-2">
+          <input 
+            type="number" 
+            name="durationHours" 
+            value={formData.durationHours} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyleduration} border-2 w-20 text-center`} 
+          />
+          <span className="text-sm text-slate-700">Hours</span>
+        </div>
 
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <h3 className="font-semibold text-base">Event Guide</h3>
-                
-                <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                  <span className="text-xs font-medium text-slate-800">Is your event pet-friendly?</span>
-                  <div className="flex gap-4 text-xs font-semibold">
-                    <label><input type="radio" name="isPetFriendly" value="yes" checked={formData.isPetFriendly === 'yes'} onChange={handleInputChange} /> Yes</label>
-                    <label><input type="radio" name="isPetFriendly" value="no" checked={formData.isPetFriendly === 'no'} onChange={handleInputChange} /> No</label>
-                  </div>
-                </div>
+        <div className="flex items-center gap-2">
+          <input 
+            type="number" 
+            name="durationMinutes" 
+            value={formData.durationMinutes} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyleduration} border-2 w-20 text-center`} 
+          />
+          <span className="text-sm text-slate-700">Minutes</span>
+        </div>
+      </div>
 
-                <div>
-                  <label className={accountLabelStyle}>Is ID required for entry?</label>
-                  <select name="idRequired" value={formData.idRequired} onChange={handleInputChange} className={`${inputFieldStyle} border-2`}>
-                    <option value="">Select option</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                </div>
+      {/* Optional Duration Preview Badge */}
+      {(formData.durationHours || formData.durationMinutes) && (
+        <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-16 ml-16 py-1.5 rounded-md">
+          Duration : {formData.durationHours || 0} Hours {formData.durationMinutes || 0} Minutes
+        </div>
+      )}
+    </div>
 
-                <div>
-                  <label className={accountLabelStyle}>Allowed dress code:</label>
-                  <input type="text" name="allowedDressCode" placeholder="e.g. Smart casuals only" value={formData.allowedDressCode} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
-                </div>
-              </div>
-            </div>
-          )}
+<div className="space-y-4 pt-4">
+      <h3 className="font-semibold text-base text-slate-900">Event Guide</h3>
+      <p className="text-xs text-slate-500 -mt-2">Provide attendees with valuable information and address their questions</p>
+      
+      {/* 1. Pet Friendly */}
+      <div className="flex justify-between items-center pb-2 ">
+        <span className="text-xs font-medium text-slate-800">Is your event pet-friendly?</span>
+        <div className="w-1/3 flex gap-6 text-xs font-semibold">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" name="isPetFriendly" value="yes" checked={formData.isPetFriendly === 'yes'} onChange={handleInputChange} /> Yes
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <input type="radio" name="isPetFriendly" value="no" checked={formData.isPetFriendly === 'no'} onChange={handleInputChange} /> No
+          </label>
+        </div>
+      </div>
+      <div className="border-b border-slate-100"></div>
+      {/* 2. ID Required */}
+      <div className="flex justify-between items-center py-2 ">
+        <span className="text-xs font-medium text-slate-800">Is ID required for entry?</span>
+        <select name="idRequired" value={formData.idRequired} onChange={handleInputChange} className="w-1/3 text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500">
+          <option value="">Select</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
+      </div>
+  <div className="border-b border-slate-100"></div>
+      {/* 3. Allowed Dress Code */}
+      <div className="flex justify-between items-center py-2 ">
+        <span className="text-xs font-medium text-slate-800">Allowed dress code:</span>
+        <input type="text" name="allowedDressCode" placeholder="e.g. Smart casuals only" value={formData.allowedDressCode} onChange={handleInputChange} className="w-1/3 text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500" />
+      </div>
+  <div className="border-b border-slate-100"></div>
+      {/* 4. Venue Indoor or Outdoor */}
+      <div className="flex justify-between items-center py-2 ">
+        <span className="text-xs font-medium text-slate-800">Is venue indoor or outdoor?</span>
+        <select name="venueType" value={formData.venueType || ''} onChange={handleInputChange} className="w-1/3 text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500">
+          <option value="">Select</option>
+          <option value="Indoor">Indoor</option>
+          <option value="Outdoor">Outdoor</option>
+          <option value="Both">Both</option>
+        </select>
+      </div>
+        <div className="border-b border-slate-100"></div>
+      </div>
+  </div>
+)}
 
           {/* STEP 6: EVENT CONTACT */}
           {activeStep === 6 && (
