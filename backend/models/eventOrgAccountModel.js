@@ -12,6 +12,8 @@ const eventOrgAccountSchema = new mongoose.Schema({
   state: { type: String },
   contactFullName: { type: String }, 
   contactEmail: { type: String, required: true },
+  loginMobileNumber: { type: String, trim: true },
+  verifiedEmail: { type: Boolean, default: false },
   contactMobile: { type: String },
   accountHolderName: { type: String }, 
   accountType: { type: String, enum: ['Savings', 'Current', ''], default: '' },

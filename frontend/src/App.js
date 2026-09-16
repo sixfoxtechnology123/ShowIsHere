@@ -37,12 +37,19 @@ import { Toaster } from 'react-hot-toast';
 const AppContent = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
-  const [location, setLocation] = useState('');
+  
+  // <-- CHANGED: Initialize location from localStorage
+  const [location, setLocation] = useState(() => {
+    return localStorage.getItem('selectedCity') || '';
+  });
+
   const [activeTab, setActiveTab] = useState('All');
   const [loading, setLoading] = useState(true);
   
-  // INITIALIZED TO TRUE SO IT OPENS AUTOMATICALLY ON FIRST PAGE LOAD
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(true);
+  // <-- CHANGED: Open modal automatically ONLY IF location is NOT in localStorage
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(() => {
+    return !localStorage.getItem('selectedCity');
+  });
 
   // POPUP NOTIFICATION STATE FOR LOCATION UPDATE
   const [locationPopup, setLocationPopup] = useState(null);
@@ -62,9 +69,6 @@ const AppContent = () => {
   const isEventDashboard = routerLocation.pathname === '/event-dashboard';
   const isSigninDashboard = routerLocation.pathname === '/signinDashboard';
 
-
-  
-  
 
   useEffect(() => {
     fetchEvents();
@@ -96,6 +100,10 @@ const AppContent = () => {
 
   const handleSelectCity = (selectedCity) => {
     setLocation(selectedCity);
+    
+    // <-- ADDED: Save selected city into localStorage so it stays permanent
+    localStorage.setItem('selectedCity', selectedCity);
+
     setIsLocationModalOpen(false);
 
     // Trigger floating popup message

@@ -26,6 +26,8 @@ const SignAgrement = ({
   bankAccountName = "",
   bankName = "",
   bankAccountNumber = "",
+  accountHolderName="",
+  accountType="",
   bankIfsc = "",
   signatoryEmail = "",
   signedDateTime = "",
@@ -508,7 +510,9 @@ const SignAgrement = ({
             <p>d. Name of the authorized signatory: {organizerName || 'N/A'}</p>
             <p>e. GST number: {organizerGst || 'N/A'}</p>
             <p>f. PAN Number: {organizerPan || 'N/A'}</p>
-            <p>g. Bank Account Details:  {bankName || 'N/A'}, {bankAccountNumber || 'N/A'}, {bankIfsc || 'N/A'}</p>
+           <p>
+              g. Bank Account Details: Name: {accountHolderName || 'N/A'}, Bank Name: {bankName || 'N/A'}, A/c Type: {accountType || 'N/A'}, A/c No: {bankAccountNumber || 'N/A'}, IFSC: {bankIfsc || 'N/A'}
+            </p>
           </div>
 
           {/* Centered Schedule 2 Headers */}

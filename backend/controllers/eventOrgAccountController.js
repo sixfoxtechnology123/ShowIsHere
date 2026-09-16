@@ -357,7 +357,7 @@ const getOrgAccount = async (req, res) => {
 
 const saveOrgStep = async (req, res) => {
   try { 
-    const { orgId, tenantKey, panNumber, panLinkedAadhaar, contactEmail, contactMobile, accountHolderName, accountType, accountNumber, signinAgreement, ...stepData } = req.body;
+    const { orgId, tenantKey, panNumber, panLinkedAadhaar, contactEmail, loginMobileNumber,verifiedEmail,contactMobile, accountHolderName, accountType, accountNumber, signinAgreement, ...stepData } = req.body;
 
     // 🛡️ BULLETPROOF AUTO-RECOVERY LOOKUP:
     // Even if the frontend forgets the orgId, find the existing draft automatically 
@@ -416,7 +416,8 @@ const saveOrgStep = async (req, res) => {
         });
       }
 
-      Object.assign(org, stepData, { contactEmail, contactMobile, accountNumber, accountHolderName, accountType });
+      Object.assign(org, stepData, { contactEmail,loginMobileNumber, contactMobile, accountNumber, accountHolderName, accountType });
+      if (loginMobileNumber !== undefined) org.loginMobileNumber = loginMobileNumber;
       if (panLinkedAadhaar !== undefined) org.panLinkedAadhaar = panLinkedAadhaar;
       if (accountHolderName !== undefined) org.accountHolderName = accountHolderName;
       if (accountType !== undefined) org.accountType = accountType;
@@ -443,6 +444,8 @@ const saveOrgStep = async (req, res) => {
         panNumber: panNumber ? panNumber.toUpperCase() : 'TEMP_PAN',
         contactEmail,
         contactMobile,
+        loginMobileNumber: loginMobileNumber || contactMobile, // <--- Save mobile here
+        verifiedEmail: verifiedEmail || false,
         accountNumber,
         accountHolderName, 
         accountType,
@@ -535,6 +538,10 @@ const verifyEmailOtp = async (req, res) => {
 
     // Clear record on successful match
     delete emailOtpStore[email];
+    await EventOrgAccount.findOneAndUpdate(
+      { contactEmail: email },
+      { verifiedEmail: true }
+    );
     return res.status(200).json({ success: true, message: 'Email verified successfully!' });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server Error while verifying OTP' });

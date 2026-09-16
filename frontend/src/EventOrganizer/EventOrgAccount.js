@@ -558,6 +558,8 @@ const saveToDatabase = async () => {
   try {
     const payload = {
       ...formData,
+      loginMobileNumber: formData.contactMobile, // <--- Explicitly send mobile number
+      verifiedEmail: isEmailVerified,
       panNumber: formData.panNumber,
       panCardDocument: panCardBase64,
       signatureImage: signatureImage,
@@ -1126,9 +1128,11 @@ const handleProceed = async () => {
                   organizerPan={formData.panNumber}
                   organizerGst={formData.gstinNumber}
                   isPanLinkedWithAadhaar={formData.panLinkedAadhaar || "NA"} 
-                  bankAccountName={formData.contactFullName || formData.orgName}
+                  bankAccountName={formData.accountHolderName || formData.orgName}
                   bankName={formData.bankName}                   // Must match state
-                  bankAccountNumber={formData.accountNumber}       // Must match state
+                  bankAccountNumber={formData.accountNumber}
+                  accountType={formData.accountType}             // <--- Added missing prop
+                 accountHolderName={formData.accountHolderName}
                   bankIfsc={formData.bankIfsc}
                   signatoryEmail={formData.contactEmail}
                   signedDateTime={signedTimestamp}
@@ -1327,7 +1331,7 @@ const handleProceed = async () => {
 
         {/* OTP Input Field */}
         <div className="space-y-1.5">
-          <label className="text-[11px] font-bold text-slate-600 block text-center uppercase tracking-wider">Enter 4-Digit OTP</label>
+          <label className="text-[11px] font-bold text-slate-600 block text-center uppercase tracking-wider">Enter 6-Digit OTP</label>
           <input
             type="text"
             maxLength="6"
