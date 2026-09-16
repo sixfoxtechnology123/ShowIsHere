@@ -2,6 +2,25 @@ const EventOrgAccount = require('../models/eventOrgAccountModel.js');
 const jwt = require('jsonwebtoken');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+
+const nodemailer = require('nodemailer');
+const { getOtpEmailTemplate } = require('../utils/EmailTemplates');
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// Simple memory store for OTPs
+const emailOtpStore = {};
+
+
 const getClientIp = (req) => {
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) {
@@ -471,9 +490,63 @@ const saveOrgStep = async (req, res) => {
 };
 
 
+
+const sendEmailOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    emailOtpStore[email] = { otp, expiresAt: Date.now() + 10 * 60 * 1000 };
+
+    const template = getOtpEmailTemplate(otp);
+
+    // 🚀 SPEED FIX: Respond to frontend immediately, send email in background
+    res.status(200).json({ 
+      success: true, 
+      message: 'OTP sent successfully to your email!' 
+    });
+
+    // Send email asynchronously in the background so the UI doesn't hang
+    transporter.sendMail({
+      from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: template.subject,
+      html: template.html,
+    }).catch(err => {
+      console.error('Background Email Sending Error:', err);
+    });
+
+  } catch (error) {
+    console.error('Send Email OTP Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to send email OTP.' });
+  }
+};
+
+// 3. Function to handle verifying the user's entered OTP
+const verifyEmailOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const record = emailOtpStore[email];
+
+    if (!record || record.otp !== otp || Date.now() > record.expiresAt) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
+    }
+
+    // Clear record on successful match
+    delete emailOtpStore[email];
+    return res.status(200).json({ success: true, message: 'Email verified successfully!' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server Error while verifying OTP' });
+  }
+};
 module.exports = {
   registerOrgAccount,
   getOrgAccount,
   saveOrgStep,
   verifyPanDocument,
+  sendEmailOtp,
+  verifyEmailOtp,
 };
