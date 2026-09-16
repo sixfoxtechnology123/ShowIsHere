@@ -217,15 +217,24 @@ const filteredMasterArtists = masterArtists.filter((artist) => {
 
 
 
-const selectedMasterCat = eventCategoryTrees.find(
-  (cat) => cat.categoryId === formData.eventCategory || cat.categoryName?.trim().toLowerCase() === formData.eventCategory?.trim().toLowerCase()
+// Find the clicked master category name from masterCategories using formData.eventCategory
+const selectedMasterCardObj = masterCategories.find(
+  (mc) => mc.categoryId === formData.eventCategory || mc._id === formData.eventCategory || mc.categoryName === formData.eventCategory
 );
-  const availableSubCategories = selectedMasterCat ? (selectedMasterCat.subCategories || []).filter((sub) => sub.isActive !== false) : [];
 
-  const selectedSubCatObj = availableSubCategories.find(
-    (sub) => sub.subCategoryName?.trim().toLowerCase() === formData.eventSubCategory?.trim().toLowerCase()
-  );
-  const availableEventTypes = selectedSubCatObj ? (selectedSubCatObj.eventTypes || []).filter((type) => type.isActive !== false) : [];
+const selectedMasterCat = eventCategoryTrees.find((cat) => {
+  const targetName = selectedMasterCardObj?.categoryName?.trim().toLowerCase() || formData.eventCategory?.trim().toLowerCase();
+  return cat.categoryName?.trim().toLowerCase() === targetName;
+});
+
+// Fix filter to check isActive instead of status === 'ACTIVE'
+const availableSubCategories = selectedMasterCat ? (selectedMasterCat.subCategories || []).filter((sub) => sub.isActive !== false) : [];
+
+const selectedSubCatObj = availableSubCategories.find(
+  (sub) => sub.subCategoryName?.trim().toLowerCase() === formData.eventSubCategory?.trim().toLowerCase()
+);
+
+const availableEventTypes = selectedSubCatObj ? (selectedSubCatObj.eventTypes || []).filter((type) => type.isActive !== false) : [];
 
 const handleLanguageSelect = (e) => {
   const lang = e.target.value;
@@ -460,10 +469,10 @@ const handleDragOver = (e) => {
                   return (
                     <div
                       key={cat.categoryId}
-                      onClick={() => {
+                     onClick={() => {
                         setFormData({ 
                           ...formData, 
-                          eventCategory: cat.categoryId,
+                          eventCategory: cat.categoryId || cat.categoryName, 
                           eventSubCategory: '', 
                           eventType: '' 
                         });
@@ -497,7 +506,7 @@ const handleDragOver = (e) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <label className={accountLabelStyle}>Event Sub-Category</label>
-                <select
+               <select
                   name="eventSubCategory"
                   value={formData.eventSubCategory}
                   onChange={(e) => {
@@ -508,7 +517,7 @@ const handleDragOver = (e) => {
                   className={`${inputFieldStyle} border-2 ${!formData.eventCategory ? 'bg-slate-100 cursor-not-allowed opacity-60' : ''}`}
                 >
                   <option value="">{!formData.eventCategory ? 'First select an event category' : 'Select sub-category'}</option>
-                 {availableSubCategories.filter(sub => sub.status === 'ACTIVE').map((sub) => (
+                  {availableSubCategories.filter(sub => sub.isActive !== false).map((sub) => (
                     <option key={sub._id || sub.subCategoryName} value={sub.subCategoryName}>
                       {sub.subCategoryName}
                     </option>
@@ -526,7 +535,7 @@ const handleDragOver = (e) => {
                   className={`${inputFieldStyle} border-2 ${!formData.eventSubCategory ? 'bg-slate-100 cursor-not-allowed opacity-60' : ''}`}
                 >
                   <option value="">{!formData.eventSubCategory ? 'First select a sub-category' : 'Select event type'}</option>
-                  {availableEventTypes.filter(type => type.status === 'ACTIVE').map((type) => (
+                {availableEventTypes.filter(type => type.isActive !== false).map((type) => (
                     <option key={type._id || type.typeName} value={type.typeName}>
                       {type.typeName}
                     </option>
@@ -627,7 +636,7 @@ const handleDragOver = (e) => {
               </div>
               <textarea
                 name="fullDescription"
-                rows="4"
+                rows="8"
                 maxLength="2000"
                 placeholder="Describe your event..."
                 value={formData.fullDescription}
