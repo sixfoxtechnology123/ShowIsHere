@@ -17,7 +17,7 @@ const KYCDetails = () => {
   const [docPreview, setDocPreview] = useState(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-  // Form state initialized for database mapping
+  // Form state mapped to database attributes
   const [formData, setFormData] = useState({
     id: '',
     orgId: '',
@@ -31,7 +31,7 @@ const KYCDetails = () => {
     gstNumber: ''
   });
 
-  // Fetch real database profile data on component load
+  // Fetch live database profile data on component load
   useEffect(() => {
     const fetchKycData = async () => {
       try {
@@ -42,7 +42,6 @@ const KYCDetails = () => {
           savedUser = {};
         }
 
-        // Check every possible identifier available in localStorage
         const orgId = savedUser.orgId || localStorage.getItem('orgId');
         const userId = savedUser._id || savedUser.id;
         const tenantKey = savedUser.tenantKey;
@@ -51,7 +50,6 @@ const KYCDetails = () => {
                        localStorage.getItem('loginMobileNumber');
         const email = savedUser.contactEmail || savedUser.email;
 
-        // Build query string based on what is available
         const params = new URLSearchParams();
         if (orgId) params.append('orgId', orgId);
         else if (userId) params.append('id', userId);
@@ -60,14 +58,11 @@ const KYCDetails = () => {
         else if (email) params.append('contactEmail', email);
 
         if (!params.toString()) {
-          console.warn('No user identifier found in localStorage to fetch KYC data.');
           setLoading(false);
           return;
         }
 
         const response = await API.get(`/org/get-profile?${params.toString()}`);
-        
-        // Safely extract the data payload regardless of api.js return structure
         const userData = response?.data?.data || response?.data || response;
 
         if (userData && (userData._id || userData.orgId || userData.contactEmail)) {
@@ -84,10 +79,11 @@ const KYCDetails = () => {
             gstNumber: userData.gstinNumber || userData.gstNumber || ''
           });
 
-          if (userData.panCardDocument) {
-            const previewUrl = typeof userData.panCardDocument === 'object' 
-              ? userData.panCardDocument.base64Data 
-              : userData.panCardDocument;
+          const rawDoc = userData.panCardDocument || userData.panImage || userData.panDoc;
+          if (rawDoc) {
+            const previewUrl = typeof rawDoc === 'object' && rawDoc !== null
+              ? (rawDoc.base64Data || rawDoc.url || '') 
+              : rawDoc;
             setDocPreview(previewUrl);
           }
         }
@@ -106,7 +102,7 @@ const KYCDetails = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSaveChanges = async () => {
+const handleSaveChanges = async () => {
     try {
       const payload = {
         id: formData.id,
@@ -121,18 +117,21 @@ const KYCDetails = () => {
       };
 
       const response = await API.put('/org/update-kyc', payload);
-      const isSuccess = response?.success ?? response?.data?.success;
+      
+      // 🛡️ Safe unwrapping: handles both axios response wrappers and direct returns
+      const resData = response?.data?.success !== undefined ? response.data : response;
 
-      if (isSuccess) {
+      if (resData && resData.success) {
         toast.success('KYC details updated successfully!');
         setIsEditing(false);
       } else {
-        const msg = response?.message || response?.data?.message || 'Failed to update KYC details.';
-        toast.error(msg);
+        // Fallback if success is false or missing
+        toast.error(resData?.message || 'Failed to update KYC details.');
       }
     } catch (error) {
       console.error('Update KYC error:', error);
-      toast.error('Server error while updating KYC details.');
+      const errorMsg = error.response?.data?.message || error.message || 'Server error while updating KYC details.';
+      toast.error(errorMsg);
     }
   };
 
@@ -254,7 +253,7 @@ const KYCDetails = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
                   <div>
                     <h1 className="text-xl font-bold text-slate-900">Edit KYC Info</h1>
-                    <p className="text-xs text-slate-500 mt-1">Update your verified banking and tax information.</p>
+                    <p className="text-xs text-slate-500 mt-1">Update your verified banking information.</p>
                   </div>
                 </div>
 
@@ -327,8 +326,9 @@ const KYCDetails = () => {
                     />
                   </div>
 
+                  {/* 🔒 PAN Number (Locked) */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1.5">PAN Number *</label>
+                    <label className="block font-semibold text-slate-400 mb-1.5">PAN Number (Locked)</label>
                     <input 
                       type="text" 
                       name="panNumber"
@@ -338,18 +338,40 @@ const KYCDetails = () => {
                     />
                   </div>
 
+                  {/* 🔒 GST Number (Locked) */}
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1.5">GST Number</label>
+                    <label className="block font-semibold text-slate-400 mb-1.5">GST Number (Locked)</label>
                     <input 
                       type="text" 
                       name="gstNumber"
                       value={formData.gstNumber}
-                      onChange={handleChange}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled
+                      className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-500 cursor-not-allowed"
                     />
                   </div>
                 </div>
 
+                {/* Compact PAN Document Thumbnail (Bottom Left) */}
+                <div className="pt-4">
+                  {docPreview ? (
+                    <div 
+                      onClick={() => setIsImageModalOpen(true)}
+                      className="w-24 border border-slate-200 rounded-lg p-1.5 bg-white shadow-xs cursor-pointer hover:border-blue-400 transition text-center"
+                    >
+                      <img src={docPreview} alt="PAN Card" className="h-12 w-full object-cover rounded mb-1" />
+                      <span className="text-[10px] text-slate-700 font-medium">PAN Document</span>
+                    </div>
+                  ) : (
+                    <div className="w-20 border border-slate-200 rounded-lg p-1.5 bg-white shadow-xs text-center">
+                      <div className="h-12 bg-slate-100 rounded flex items-center justify-center text-[10px] text-slate-400 font-bold mb-1">
+                        No Doc
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium">Not Uploaded</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Save / Cancel Action Buttons */}
                 <div className="pt-6 flex items-center justify-end space-x-3 border-t border-slate-100">
                   <button
                     type="button"
@@ -368,6 +390,7 @@ const KYCDetails = () => {
                 </div>
               </div>
             )}
+
           </div>
         </main>
       </div>

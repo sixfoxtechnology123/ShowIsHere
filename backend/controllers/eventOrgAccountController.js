@@ -678,16 +678,16 @@ const updateKycDetails = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Organization ID is required.' });
     }
 
+    // Block sensitive identifiers (PAN and GSTIN) from being overwritten via this specific route
     const allowedData = cleanUpdatePayload(updateData, ['panNumber', 'gstinNumber', 'panCardDocument']);
     allowedData.approvalStatus = 'pending';
     allowedData.rejectionReason = '';
-    allowedData.$push = undefined;
 
     const updatedAccount = await EventOrgAccount.findByIdAndUpdate(
       id,
       {
         $set: allowedData,
-        $push: { approvalHistory: { status: 'pending', reason: 'KYC details updated by organizer' } }
+        $push: { approvalHistory: { status: 'pending', reason: 'KYC banking details updated by organizer' } }
       },
       { new: true }
     );
@@ -698,7 +698,7 @@ const updateKycDetails = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'KYC details updated and sent for approval.',
+      message: 'KYC details updated and saved to database successfully!',
       data: updatedAccount
     });
   } catch (error) {
@@ -706,7 +706,6 @@ const updateKycDetails = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error while updating KYC.' });
   }
 };
-
 const getPasswordStatus = async (req, res) => {
   try {
     const org = await findOrgByIdentity(req.query);
