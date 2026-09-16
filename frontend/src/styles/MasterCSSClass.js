@@ -47,7 +47,7 @@ export const searchIcon = "text-rose-500 mr-3 text-lg";
 export const searchInputClean = "w-full focus:outline-none text-slate-800 text-sm bg-transparent placeholder-slate-400";
 export const detectIconBtn = "text-rose-500 hover:text-rose-600 pl-3 border-l border-slate-200 ml-2 cursor-pointer flex items-center";
 export const modalBodyCompact = "px-8 py-1 overflow-y-auto space-y-1";
-export const popularTitle = "text-center text-sm font-bold text-slate-400 tracking-wider mb-4";
+export const popularTitle = "text-center text-sm  text-black tracking-wider mb-4";
 export const popularGridCompact = "grid grid-cols-4 sm:grid-cols-8 gap-3 text-center justify-items-between w-full";
 export const cityCardCompact = "flex flex-col items-center p-1 rounded-2xl hover:bg-[#F8FAFC] transition cursor-pointer hover:border-slate-100 bg-white shadow-xs";
 export const cityIconCircle = "w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-xl mb-1 border border-slate-100";
@@ -237,7 +237,7 @@ export const accountLogoImg = "w-8 h-8 object-cover rounded-lg";
 export const accountBrandText = "font-extrabold text-blue-900 text-base tracking-tight";
 export const accountStepsBar = "hidden md:flex items-center space-x-20";
 
-export const accountStepItemActive = "flex items-center space-x-2 px-5 py-1 rounded-md bg-[#f0f4ff] border border-blue-100/60 shadow-xs relative text-blue-700 font-bold text-sm cursor-pointer overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[1px]";
+export const accountStepItemActive = "flex items-center space-x-2 px-5 py-1 rounded-md bg-[#EAF0FE] border border-blue-100/60 shadow-xs relative text-blue-700 font-bold text-sm cursor-pointer overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[1px]";
 export const accountStepItemInactive = "flex items-center space-x-3 px-5 py-2 rounded-md text-sm font-semibold text-slate-400 cursor-pointer hover:text-slate-600 transition";
 
 export const accountStepBadgeActive = "w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-bold shadow-xs";

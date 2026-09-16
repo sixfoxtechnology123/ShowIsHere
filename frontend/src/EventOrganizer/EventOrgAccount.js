@@ -558,18 +558,19 @@ const saveToDatabase = async () => {
   try {
     const payload = {
       ...formData,
-      loginMobileNumber: formData.contactMobile, // <--- Explicitly send mobile number
-      verifiedEmail: isEmailVerified,
+      loginMobileNumber: formData.contactMobile, // Explicitly send mobile number
+      verifiedEmail: isEmailVerified,            // Explicitly send email verification status
       panNumber: formData.panNumber,
       panCardDocument: panCardBase64,
       signatureImage: signatureImage,
-      signinAgreement: false // <--- Ensures this is a draft save, not final submit
+      signinAgreement: false                     // Ensures this is a draft save, not final submit
     };
 
     const response = await API.post('/org/save-step', payload);
     setIsSaving(false);
 
     const resData = response.data || response;
+    
     if (resData && resData.success === false) {
       toast.dismiss();
       toast.error(resData.message || 'Failed to save data.', { id: 'unique-save-toast' });
@@ -584,7 +585,11 @@ const saveToDatabase = async () => {
   } catch (error) {
     setIsSaving(false);
     toast.dismiss();
-    toast.error('Server Error while saving progress', { id: 'unique-save-toast' });
+    
+    // This safely extracts the exact error message from your backend response
+    const errorMessage = error.response?.data?.message || error.message || 'Server Error while saving progress';
+    
+    toast.error(errorMessage, { id: 'unique-save-toast' });
     return false;
   }
 };
@@ -665,7 +670,7 @@ const handleProceed = async () => {
               return (
                 <div
                   key={step.id}
-                  onClick={() => setActiveStep(step.id)}
+                  // onClick={() => setActiveStep(step.id)}
                   className={isActive ? accountStepItemActive : accountStepItemInactive}
                 >
                   <span className={isActive ? accountStepBadgeActive : accountStepBadgeInactive}>
@@ -1135,6 +1140,8 @@ const handleProceed = async () => {
                  accountHolderName={formData.accountHolderName}
                   bankIfsc={formData.bankIfsc}
                   signatoryEmail={formData.contactEmail}
+                  contactMobile={formData.contactMobile}
+                  contactPersonName={formData.contactFullName}
                   signedDateTime={signedTimestamp}
                   signedIp={signedIpAddress}
                   signatureImage={signatureImage}
@@ -1435,7 +1442,10 @@ const handleProceed = async () => {
                 <button
                   type="button"
                   onClick={clearSignature}
-                  className={sigClearBtn}
+                  disabled={!hasSigned}
+                  className={`${sigClearBtn} ${
+                    !hasSigned ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400 hover:bg-slate-100' : ''
+                  }`}
                 >
                   Clear
                 </button>

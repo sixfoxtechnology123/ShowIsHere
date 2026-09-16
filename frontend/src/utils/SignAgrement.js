@@ -27,6 +27,8 @@ const SignAgrement = ({
   bankName = "",
   bankAccountNumber = "",
   accountHolderName="",
+  contactPersonName="",
+  contactMobile="",
   accountType="",
   bankIfsc = "",
   signatoryEmail = "",
@@ -54,7 +56,7 @@ const SignAgrement = ({
         <p>And</p>
 
     <p>
-          <span className="font-semibold text-slate-900">{organizerName || 'Event Org'}</span>, {isPanLinkedWithAadhaar?.toUpperCase() === 'YES' ? 'an individual' : 'a Company incorporated under the Companies Act 2013'} having its registered office located at {organizerLocation || 'Address'} PAN: {organizerPan || 'ABCD123F'} GST: {organizerGst || 'N/A'} (hereinafter referred to as <span className="font-semibold text-slate-900">&apos;Event Organizer&apos;</span> which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
+          <span className="font-semibold text-slate-900">{organizerName || 'Event Org'}</span>, {isPanLinkedWithAadhaar?.toUpperCase() === 'YES' ? 'an individual' : 'a Company/Organisation'} having its registered office located at {organizerLocation || 'Address'} PAN: {organizerPan || 'ABCD123F'} GST: {organizerGst || 'N/A'} (hereinafter referred to as <span className="font-semibold text-slate-900">&apos;Event Organizer&apos;</span> which expression shall unless repugnant to the context or meaning thereof be deemed to include a reference to its successors and permitted assigns);
       </p>
 
         <p>
@@ -505,9 +507,16 @@ const SignAgrement = ({
          {/* Left-aligned content with dynamic variables */}
           <div className="space-y-1 text-[13px] text-slate-800">
             <p>a. Name of company/proprietor/individual: {organizerName || 'N/A'}</p>
-            <p>b. Type of company: {isPanLinkedWithAadhaar?.toUpperCase() === 'YES' ? 'Individual' : 'Company'}</p>
+            <p>b. Type of Entity/Business: {isPanLinkedWithAadhaar?.toUpperCase() === 'YES' ? 'Individual' : 'Company'}</p>
             <p>c. Registered office address: {organizerLocation || 'N/A'}</p>
-            <p>d. Name of the authorized signatory: {organizerName || 'N/A'}</p>
+           <p>
+              d. Name of the authorized signatory:{' '}
+              <span >
+                {isPanLinkedWithAadhaar?.toUpperCase() === 'YES' 
+                  ? (organizerName || 'N/A') 
+                  : (contactPersonName || 'N/A')}
+              </span>
+            </p>
             <p>e. GST number: {organizerGst || 'N/A'}</p>
             <p>f. PAN Number: {organizerPan || 'N/A'}</p>
            <p>
