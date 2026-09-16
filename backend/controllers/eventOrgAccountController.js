@@ -5,7 +5,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 
 const nodemailer = require('nodemailer');
-const { getOtpEmailTemplate } = require('../utils/EmailTemplates');
+const { getOtpEmailTemplate,getKycUnderProcessEmailTemplate } = require('../utils/EmailTemplates');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -489,8 +489,6 @@ const saveOrgStep = async (req, res) => {
   }
 };
 
-
-
 const sendEmailOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -542,6 +540,56 @@ const verifyEmailOtp = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server Error while verifying OTP' });
   }
 };
+
+const submitAgreement = async (req, res) => {
+  try {
+    const { email, userName, signature } = req.body;
+    
+    if (!email || !signature) {
+      return res.status(400).json({ success: false, message: 'Email and signature are required.' });
+    }
+
+    //  ADD THIS: Update database record by contactEmail
+    const updatedOrg = await EventOrgAccount.findOneAndUpdate(
+      { contactEmail: email },
+      { 
+        signatureImage: signature,
+        signinAgreement: true,     // <--- CHANGES FLAG FROM FALSE TO TRUE
+        kycStatus: 'Under Process',
+        signingAt: new Date(),
+        signingIp: getClientIp(req),
+        ...(userName && { contactFullName: userName })
+      },
+      { new: true }
+    );
+
+    if (!updatedOrg) {
+      return res.status(404).json({ success: false, message: 'Organization account not found for this email.' });
+    }
+
+    const template = getKycUnderProcessEmailTemplate(userName || updatedOrg.contactFullName || 'User');
+
+    // 🚀 SPEED FIX: Respond to frontend immediately, send email in background
+    res.status(200).json({ 
+      success: true, 
+      message: 'Agreement submitted successfully!' 
+    });
+
+    // Send email asynchronously in the background so the UI doesn't hang
+    transporter.sendMail({
+      from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: template.subject,
+      html: template.html,
+    }).catch(err => {
+      console.error('Background KYC Email Sending Error:', err);
+    });
+
+  } catch (error) {
+    console.error('Submit Agreement Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit agreement.' });
+  }
+};
 module.exports = {
   registerOrgAccount,
   getOrgAccount,
@@ -549,4 +597,5 @@ module.exports = {
   verifyPanDocument,
   sendEmailOtp,
   verifyEmailOtp,
+  submitAgreement,
 };

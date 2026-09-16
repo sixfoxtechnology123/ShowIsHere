@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import GSTDeclaration from '../utils/GSTDeclaration';
 import SignAgrement from '../utils/SignAgrement';
@@ -80,6 +80,7 @@ import {
 } from '../styles/MasterCSSClass';
 
 const EventOrgAccount = () => {
+  const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(1);
   const [isStateOpen, setIsStateOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -99,13 +100,18 @@ const [showPopup, setShowPopup] = useState(true);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isVerifyingPan, setIsVerifyingPan] = useState(false);
 const [isPanVerified, setIsPanVerified] = useState(false);
-  // History states for keyboard Undo/Redo tracking
+ // Add this with your other state declarations (e.g., near activeStep, isDataSaved, etc.)
+const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
 const [isDataSaved, setIsDataSaved] = useState(false);
 const [isSaving, setIsSaving] = useState(false);
 const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-
+const [isEmailVerified, setIsEmailVerified] = useState(false);
+const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+const [enteredOtp, setEnteredOtp] = useState('');
+const [hasSigned, setHasSigned] = useState(false);
   // Form Data State initialized completely blank with default empty values
   const [formData, setFormData] = useState({
     orgId: '',       // <--- ADD THIS
@@ -136,8 +142,61 @@ const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     ctx.beginPath();
     ctx.moveTo(x, y);
     setIsDrawing(true);
+    setHasSigned(true);
   };
 
+const handleSendEmailOtp = async () => {
+    if (!formData.contactEmail.trim()) {
+      toast.error('Please enter an email address first.', { id: 'email-error-toast' });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.contactEmail)) {
+      toast.error('Please enter a valid email address.', { id: 'email-error-toast' });
+      return;
+    }
+
+    try {
+      setIsVerifyingEmail(true);
+      await API.post('/org/send-email-otp', { email: formData.contactEmail });
+      setIsVerifyingEmail(false);
+      setIsOtpModalOpen(true);
+      toast.success('OTP sent to your email.', { id: 'email-success-toast' });
+    } catch (error) {
+      setIsVerifyingEmail(false);
+      const errorMsg = error.response?.data?.message || 'Failed to send OTP email. Please try again.';
+      toast.error(errorMsg, { id: 'email-error-toast' });
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (!enteredOtp || enteredOtp.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP.', { id: 'otp-error-toast' });
+      return;
+    }
+
+    try {
+      // 🚀 Calls your backend to check if the OTP matches the real email code
+      const response = await API.post('/org/verify-email-otp', {
+        email: formData.contactEmail,
+        otp: enteredOtp
+      });
+
+      const resData = response.data || response;
+
+      if (resData && resData.success) {
+        setIsEmailVerified(true);
+        setIsOtpModalOpen(false);
+        setEnteredOtp('');
+        toast.success('Email verified successfully!', { id: 'otp-success-toast' });
+      } else {
+        toast.error(resData.message || 'Invalid OTP code. Please try again.', { id: 'otp-error-toast' });
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Invalid OTP code. Please try again.';
+      toast.error(errorMsg, { id: 'otp-error-toast' });
+    }
+  };
 const draw = (e) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
@@ -206,19 +265,26 @@ const draw = (e) => {
     }
   };
 
-const handleSecondaryAction = () => {
-    if (activeStep > 1) {
-      setActiveStep(activeStep - 1);
-      setIsDataSaved(false); // <--- LOCKS BOTH BUTTONS WHEN COMING BACK TO STEP 1
-    } else {
-      handleSaveDetails();
-    }
-  };
+const handleSecondaryAction = async (e) => {
+  if (e && typeof e.preventDefault === 'function') {
+    e.preventDefault();
+  }
+
+  // Normal draft save only
+  const saved = await saveToDatabase();
+  if (saved) {
+    setIsDataSaved(true);
+    toast.dismiss();
+    toast.success('Details saved successfully as draft!', { id: 'save-draft' });
+  }
+};
+
 const clearSignature = () => {
   const canvas = canvasRef.current;
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  setHasSigned(false);
 };
 
 const saveSignature = () => {
@@ -252,7 +318,9 @@ const saveSignature = () => {
       setHasScrolledToBottom(true);
     }
   };
-
+const handleBackStep = () => {
+  setActiveStep((prev) => Math.max(prev - 1, 1));
+};
   const handleConfirmGstModal = () => {
     setFormData({ ...formData, gstDeclaration: true });
     setIsGstModalOpen(false);
@@ -484,72 +552,40 @@ const validateStep1 = () => {
   ];
 
 const saveToDatabase = async () => {
-    if (isSaving) return false;
-    setIsSaving(true);
-    
-    try {
-      const payload = {
-        ...formData,
-        panNumber: formData.panNumber,
-        panCardDocument: panCardBase64,
-        signatureImage: signatureImage,
-        signinAgreement: activeStep === 3
-      };
+  if (isSaving) return false;
+  setIsSaving(true);
+  
+  try {
+    const payload = {
+      ...formData,
+      panNumber: formData.panNumber,
+      panCardDocument: panCardBase64,
+      signatureImage: signatureImage,
+      signinAgreement: false // <--- Ensures this is a draft save, not final submit
+    };
 
-      const response = await API.post('/org/save-step', payload);
-      setIsSaving(false);
+    const response = await API.post('/org/save-step', payload);
+    setIsSaving(false);
 
-      // Check if response indicates failure (supports both direct response and axios response.data)
-      const resData = response.data || response;
-      if (resData && resData.success === false) {
-        toast.dismiss();
-        toast.error(resData.message || 'Failed to save data.', { id: 'unique-save-toast' });
-        return false;
-      }
-
-      setIsDataSaved(true);
-      
-      if (activeStep === 3) {
-        setFormData({
-          orgName: '',
-          orgAddress: '',
-          panLinkedAadhaar: '',
-          panNumber: '',
-          gstinNumber: '',
-          gstDeclaration: false,
-          state: '',
-          contactFullName: '',
-          contactEmail: '',
-          contactMobile: '',
-          accountNumber: '',
-          bankIfsc: '',
-          bankName: ''
-        });
-        setUploadedDoc(null);
-        setDocPreview(null);
-        setPanCardBase64(null);
-        setSignatureImage(null);
-        setSignedTimestamp('');
-        setIsDataSaved(false);
-        setActiveStep(1);
-      }
-
+    const resData = response.data || response;
+    if (resData && resData.success === false) {
       toast.dismiss();
-      toast.success(activeStep === 3 ? 'Agreement signed successfully! Form reset.' : 'Successfully Saved !', { id: 'unique-save-toast' });
-      return true;
-
-    } catch (error) {
-      setIsSaving(false);
-      console.error('Submission Error:', error);
-      
-      // Extract the backend error message properly from Axios error response
-      const serverMsg = error.response?.data?.message || error.message;
-      
-      toast.dismiss();
-      toast.error(serverMsg || 'Server Error while saving progress', { id: 'unique-save-toast' });
+      toast.error(resData.message || 'Failed to save data.', { id: 'unique-save-toast' });
       return false;
     }
-  };
+
+    setIsDataSaved(true);
+    toast.dismiss();
+    toast.success('Successfully Saved !', { id: 'unique-save-toast' });
+    return true;
+
+  } catch (error) {
+    setIsSaving(false);
+    toast.dismiss();
+    toast.error('Server Error while saving progress', { id: 'unique-save-toast' });
+    return false;
+  }
+};
 
 const handleSaveDetails = async () => {
     if (activeStep === 1) {
@@ -561,35 +597,54 @@ const handleSaveDetails = async () => {
     }
   };
 const handleProceed = async () => {
-    if (activeStep === 1) {
-      if (!validateStep1()) return;
-    }
+  if (activeStep === 1) {
+    if (!validateStep1()) return;
+  }
 
-    if (activeStep === 2) {
-      if (!uploadedDoc) {
-        toast.error('Please upload your PAN card document.', { id: 'pan-error' });
-        return;
-      }
+  if (activeStep === 2) {
+    if (!uploadedDoc || !isPanVerified) {
+      toast.error('Please ensure your PAN card is uploaded and verified successfully.', { id: 'pan-error' });
+      return;
     }
+  }
 
+  // For steps 1 & 2, proceed normally
+  if (activeStep < 3) {
     const saved = await saveToDatabase();
     if (!saved) return; 
 
-    if (activeStep < 3) {
-      setActiveStep(activeStep + 1);
-      setIsDataSaved(false); // <--- LOCKS PROCEED UNTIL NEXT SAVE/EDIT CYCLE
+    setActiveStep(activeStep + 1);
+    setIsDataSaved(false);
+    toast.dismiss();
+    toast.success('Successfully Saved !', { id: 'proceed-success' });
+  } 
+  
+  // For Step 3: FINAL SUBMIT ("Sign Agreement")
+  else {
+    if (!signatureImage) {
       toast.dismiss();
-      toast.success('Successfully Saved !', { id: 'proceed-success' });
-    } else {
-      if (!signatureImage) {
-        toast.dismiss();
-        toast.error('Please create and apply your signature before signing the agreement.', { id: 'sig-error' });
-        return;
-      }
-      toast.dismiss();
-      toast.success('Registration completed and agreement signed successfully!', { id: 'complete-success' });
+      toast.error('Please create and apply your signature before signing the agreement.', { id: 'sig-error' });
+      return;
     }
-  };
+    
+    try {
+      // 🚀 Final submit + triggers email on backend
+      await API.post('/org/submit-agreement', { 
+        email: formData.contactEmail,     
+        userName: formData.contactFullName,   
+        signature: signatureImage 
+      });
+      
+      toast.dismiss();
+      
+      // 🌟 Opens the success popup
+      setIsSuccessModalOpen(true);
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to submit agreement. Please try again.', { id: 'submit-error' });
+    }
+  }
+};
 
   return (
     <div className={mainContainer}>
@@ -815,17 +870,38 @@ const handleProceed = async () => {
                       className={inputFieldStyle}
                     />
                   </div>
-                  <div>
-                    <label className={accountLabelStyle}>Email address</label>
-                    <input
-                      type="email"
-                      name="contactEmail"
-                      placeholder="Enter email address"
-                      value={formData.contactEmail}
-                      onChange={handleInputChange}
-                      className={inputFieldStyle}
-                    />
-                  </div>
+             <div>
+            
+              <div className="flex items-center justify-between ">
+                <label className={`${accountLabelStyle}`}>Email address</label>
+                {isEmailVerified ? (
+                  <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                    ✓ Verified
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSendEmailOtp}
+                    disabled={isVerifyingEmail}
+                    className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer underline bg-transparent shrink-0"
+                  >
+                    {isVerifyingEmail ? 'Sending...' : 'Verify Email'}
+                  </button>
+                )}
+              </div>
+              <input
+                type="email"
+                name="contactEmail"
+                placeholder="Enter email address"
+                value={formData.contactEmail}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  setIsEmailVerified(false);
+                }}
+                disabled={isEmailVerified}
+                className={`${inputFieldStyle} ${isEmailVerified ? 'bg-slate-100 text-slate-500' : ''}`}
+              />
+            </div>
                   <div>
                     <label className={accountLabelStyle}>Mobile Number</label>
                     <input
@@ -1071,43 +1147,77 @@ const handleProceed = async () => {
         </div>
       </main>
 <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
-  <div className={accountFooterInner}>
-    <button
-      type="button"
-      onClick={handleSecondaryAction}
-      disabled={
-        (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || 
-        (activeStep === 1 && isDataSaved)
-      }
-      className={`${accountSecondaryBtn} ${
-        ((activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || 
-         (activeStep === 1 && isDataSaved)) 
-          ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400' 
-          : ''
-      }`}
-    >
-      {activeStep > 1 ? 'Back' : (isDataSaved ? 'Saved' : 'Save details')}
-    </button>
+  <div className={`${accountFooterInner} flex items-center justify-between w-full px-6`}>
+    
+    {/* Far Left: Back Button (Only shows when step > 1) */}
+    <div className="flex items-center w-28">
+      {activeStep > 1 && (
+        <button
+          type="button"
+          onClick={handleBackStep}
+          className={accountSecondaryBtn}
+        >
+          Back
+        </button>
+      )}
+    </div>
 
+    {/* Middle: Both Save Details and Proceed Buttons Grouped Together */}
+    <div className="flex items-center space-x-3 justify-center flex-1">
+      
+    {/* Save Details Button */}
 <button
-      type="button"
-      onClick={handleProceed}
-      disabled={
-        (activeStep === 1 && (!isDataSaved || !Object.values(formData).some(val => val && val.toString().trim() !== ''))) ||
-        (activeStep === 2 && !uploadedDoc) ||
-        (activeStep === 3 && !signatureImage)
-      }
-      className={`${accountPrimaryBtn} ${
-        ((activeStep === 1 && (!isDataSaved || !Object.values(formData).some(val => val && val.toString().trim() !== ''))) ||
-         (activeStep === 2 && !uploadedDoc) ||
-         (activeStep === 3 && !signatureImage)) 
-          ? 'bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed shadow-none hover:bg-slate-300' 
-          : ''
-      }`}
-    >
-      <span>{activeStep === 3 ? "Sign Agreement" : "Proceed"}</span>
-    </button>
+  type="button"
+  onClick={handleSecondaryAction}
+  disabled={
+    (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || 
+    (activeStep === 2 && (!uploadedDoc || !isPanVerified)) || // <--- Added PAN verification check
+    (activeStep === 3 && !signatureImage) ||
+    isDataSaved
+  }
+  className={`${accountSecondaryBtn} ${
+    (
+      (activeStep === 1 && !Object.values(formData).some(val => val && val.toString().trim() !== '')) || 
+      (activeStep === 2 && (!uploadedDoc || !isPanVerified)) || 
+      (activeStep === 3 && !signatureImage) ||
+      isDataSaved
+    ) 
+      ? 'opacity-50 cursor-not-allowed bg-slate-100 text-slate-400' 
+      : ''
+  }`}
+>
+  {isDataSaved ? 'Saved' : 'Save details'}
+</button>
+
+{/* Proceed / Sign Agreement Button */}
+<button
+  type="button"
+  onClick={handleProceed}
+  disabled={
+    (activeStep === 1 && (!isDataSaved || !Object.values(formData).some(val => val && val.toString().trim() !== ''))) ||
+    (activeStep === 2 && (!isDataSaved || !uploadedDoc || !isPanVerified)) || // <--- Added PAN verification check
+    (activeStep === 3 && !signatureImage)
+  }
+  className={`${accountPrimaryBtn} ${
+    (
+      (activeStep === 1 && (!isDataSaved || !Object.values(formData).some(val => val && val.toString().trim() !== ''))) ||
+      (activeStep === 2 && (!isDataSaved || !uploadedDoc || !isPanVerified)) ||
+      (activeStep === 3 && !signatureImage)
+    ) 
+      ? 'bg-slate-300 text-slate-500 border-slate-300 cursor-not-allowed shadow-none hover:bg-slate-300' 
+      : ''
+  }`}
+>
+  <span>{activeStep === 3 ? "Sign Agreement" : "Proceed"}</span>
+</button>
+
+    </div>
+
+    {/* Right Side Spacer: Balances the left side so the middle buttons stay perfectly centered */}
+    <div className="w-28" />
+
   </div>
+
   {activeStep === 3 && (
     <div className="absolute right-6 text-xs text-slate-500 font-normal">
       ShowIsHere © 2026 — All rights reserved
@@ -1188,6 +1298,94 @@ const handleProceed = async () => {
         </div>
       )}
 
+{isOtpModalOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
+    <div className="w-full max-w-xs bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all scale-100">
+      
+      {/* Modal Header */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
+        <div>
+          <h3 className="text-sm font-bold text-slate-800">Verify Email Address</h3>
+          <p className="text-[11px] text-slate-500 mt-0.5">Enter the security code sent to your inbox</p>
+        </div>
+        <button 
+          type="button"
+          onClick={() => setIsOtpModalOpen(false)}
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition cursor-pointer text-xs font-bold"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Modal Body */}
+      <div className="p-5 space-y-4">
+        <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3 text-center">
+          <p className="text-xs text-slate-600">
+            OTP sent to: <span className="font-bold text-blue-600 block truncate mt-0.5">{formData.contactEmail}</span>
+          </p>
+        </div>
+
+        {/* OTP Input Field */}
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-bold text-slate-600 block text-center uppercase tracking-wider">Enter 4-Digit OTP</label>
+          <input
+            type="text"
+            maxLength="6"
+            placeholder="••••••"
+            value={enteredOtp}
+            onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
+            autoFocus
+            className={`${inputFieldStyle} text-center tracking-[0.75em] font-extrabold text-lg py-2.5 rounded-xl border-slate-200 focus:border-blue-500`}
+          />
+    
+        </div>
+
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={handleVerifyEmailOtp}
+          className={`${gstModalProceedBtn} w-full py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:shadow-lg transition-all cursor-pointer`}
+        >
+          Confirm & Verify
+        </button>
+      </div>
+      
+    </div>
+  </div>
+)}
+
+{isSuccessModalOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+    <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 text-center space-y-4 shadow-2xl border border-slate-100">
+      
+      {/* Success Icon / Graphic */}
+      <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+        ✓
+      </div>
+
+      <div className="space-y-1">
+        <h3 className="text-lg font-bold text-slate-800">Agreement Submitted!</h3>
+        <p className="text-sm text-slate-700 leading-relaxed">
+          Your agreement has been successfully submitted and your application is currently under process.
+        </p>
+      </div>
+
+      {/* OK Button with Profile Redirect */}
+      <button
+        type="button"
+        onClick={() => {
+          setIsSuccessModalOpen(false);
+          navigate('/profile'); // <--- Redirects to your profile route
+        }}
+        className="w-full py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200"
+      >
+        OK
+      </button>
+
+    </div>
+  </div>
+)}
+
       {isSigModalOpen && (
         <div className={sigModalOverlay}>
           <div className={sigModalCard}>
@@ -1237,10 +1435,13 @@ const handleProceed = async () => {
                 >
                   Clear
                 </button>
-                <button
+               <button
                   type="button"
                   onClick={saveSignature}
-                  className={sigSaveBtn}
+                  disabled={!hasSigned}
+                  className={`${sigSaveBtn} ${
+                    !hasSigned ? 'opacity-50 cursor-not-allowed bg-slate-300 text-slate-500 hover:bg-slate-300' : ''
+                  }`}
                 >
                   Save and Apply
                 </button>
