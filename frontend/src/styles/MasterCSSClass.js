@@ -252,7 +252,7 @@ export const accountTitleSection = "text-center max-w-2xl mx-auto  ";
 export const accountMainTitle = "text-2xl sm:text-3xl font-bold text-slate-700 tracking-tight";
 export const accountMainSubTitle = "text-sm sm:text-sm text-slate-500 font-medium leading-relaxed";
 
-export const accountFormCard = "bg-white min-h-screen p-6 sm:px-40 shadow-sm w-full max-w-5xl mx-auto my-auto overflow-hidden";
+export const accountFormCard = "bg-white pb-24 min-h-screen p-6 sm:px-40 shadow-sm w-full max-w-5xl mx-auto my-auto overflow-hidden";
 export const accountFormCardtext = "bg-white  shadow-sm w-full overflow-hidden";
 export const accountSectionHeading = "flex items-center space-x-3 py-1.5 px-4 sm:px-6 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 bg-[#f0f4ff] text-sm font-black text-blue-900 tracking-wide relative overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[4px]";
 export const accountThreeColGrid = "grid grid-cols-1 sm:grid-cols-3 gap-4";
@@ -332,7 +332,7 @@ export const sigLabelText = "text-sm font-semibold text-slate-800";
 export const sigDeleteButtonStyled = "px-3 py-1 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg transition shadow-sm cursor-pointer";
 
 // Add these to your existing MasterCSSClass.js exports:
-export const agreementContainer = "space-y-4  px-32 pt-24 pb-64 text-sm sm:text-sm font-sans text-slate-800 leading-relaxed font-normal";
+export const agreementContainer = "space-y-4   pt-12 pb-64 text-sm sm:text-sm font-sans text-slate-800 leading-relaxed font-normal";
 export const agreementContainer1 = "space-y-4 text-sm pb-4 text-sm sm:text-sm font-sans text-slate-800 leading-relaxed font-normal text-justify";
 export const agreementHeader = "text-center font-medium text-sm tracking-wide text-slate-900 pb-6";
 export const agreementSectionTitle = "font-medium text-slate-800 pt-2";
@@ -491,7 +491,7 @@ export const dashNavList = "space-y-1";
 export const dashNavItemActive = "flex items-center space-x-3 px-3 py-2 rounded-md bg-blue-50 text-blue-600 font-medium text-sm transition";
 export const dashNavItemInactive = "flex items-center space-x-3 px-3 py-2.5 rounded-md text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-medium text-sm transition cursor-pointer";
 export const dashSidebarHeaderBox = "p-3 border-b border-slate-100";
-export const dashSidebarHeaderTitle = "font-semibold text-slate-900 text-lg";
+export const dashSidebarHeaderTitle = "font-semibold text-slate-900 text-xl";
 export const dashSidebarDateRow = "flex items-center space-x-1.5 text-xs text-slate-400 mt-1";
 export const dashSidebarTimeSubText = "text-sm text-slate-400 mt-0.5 ml-5";
 export const dashSidebarBottom = "border-t border-slate-100 pt-4";

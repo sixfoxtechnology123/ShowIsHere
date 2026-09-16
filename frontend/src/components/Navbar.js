@@ -16,7 +16,7 @@ import {
   dashBrandTitle
 } from '../styles/MasterCSSClass';
 
-const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
+const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }) => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -72,9 +72,9 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome }) => {
           <span className="text-[10px] font-bold ml-1">▼</span>
         </button>
 
-        <button className={signInButton}>
-          Sign in
-        </button>
+      <button onClick={onSignInClick} className={signInButton}>
+        Sign in
+      </button>
 
         {/* 3-Line Menu Button with Master Options Dropdown & Outside Click Ref */}
         <div className="relative" ref={menuRef}>

@@ -11,6 +11,7 @@ import { mainContainer } from './styles/MasterCSSClass';
 import Footer from './components/Footer';
 import AboutPage from './components/AboutPage';
 import SeatMap from './components/SeatMap';
+import SigninDashboard from './components/SigninDashboard';
 import ArtistMaster from './Master/ArtistMaster';
 import EventOrgAccount from './EventOrganizer/EventOrgAccount';
 import TermsOfUse from './components/TermsOfUse'; 
@@ -59,6 +60,8 @@ const AppContent = () => {
   const iskyc = routerLocation.pathname === '/profile/kyc';
   const isprofilesettings = routerLocation.pathname === '/profile/settings';
   const isEventDashboard = routerLocation.pathname === '/event-dashboard';
+  const isSigninDashboard = routerLocation.pathname === '/signinDashboard';
+
 
   
   
@@ -179,12 +182,13 @@ const AppContent = () => {
       />
 
       {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
-      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && (
+      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isSigninDashboard && (
         <>
           <Navbar 
             location={location} 
             onDetectLocation={detectLocation} 
             onOpenLocationModal={() => setIsLocationModalOpen(true)} 
+            onSignInClick={() => navigate('/signinDashboard')}
           />
           <SubNavbar />
         </>
@@ -216,6 +220,7 @@ const AppContent = () => {
         <Route path="/question-databse-master" element={<QuestionDatabseMaster />} />
         <Route path="/question-database-master" element={<QuestionDatabseMaster />} />
         <Route path="/event-question-master" element={<EventQuestion />} />
+        <Route path="/signinDashboard" element={<SigninDashboard />} />
 
 
         <Route path="/profile" element={<Profile />} />

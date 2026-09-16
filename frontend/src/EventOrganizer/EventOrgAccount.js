@@ -24,7 +24,7 @@ import {
   accountMainTitle,
   accountMainSubTitle,
   accountFormCard,
-  accountSectionHeading,
+  dashSidebarHeaderTitle,
   accountThreeColGrid,
   accountLabelStyle,
   accountRadioGroup,
@@ -627,20 +627,20 @@ const handleProceed = async () => {
       </header>
 
       <main className={accountMainContainer}>
-        {activeStep !== 3 && (
-          <div className={accountTitleSection}>
-            <h1 className={accountMainTitle}>Account Setup</h1>
-            <p className={accountMainSubTitle}>
-              Please fill in the below details so that we can setup an account for your organisation in our system and give you access to the Do-It-Yourself portal for listing your event.
-            </p>
-          </div>
+        {activeStep == 1 && (
+         <div className={`${accountTitleSection} py-4`}>
+          <h1 className={accountMainTitle}>Account Setup</h1>
+          <p className={accountMainSubTitle}>
+            Please fill in the below details so that we can setup an account for your organisation in our system and give you access to the Do-It-Yourself portal for listing your event.
+          </p>
+        </div>
         )}
 
         <div className={accountFormCard}>
           {activeStep === 1 && (
             <div className="space-y-4">
               <div>
-                <h3 className={accountSectionHeading}>Organisation Details</h3>
+                <h3 className={dashSidebarHeaderTitle}>Organisation Details</h3>
                 
                 <div className="space-y-5  pt-2">
                   <div>
@@ -669,10 +669,10 @@ const handleProceed = async () => {
 
                   <div>
                     <label className={accountLabelStyle}>
-                      If you are an Individual PAN holder, please specify whether your PAN is linked with Aadhaar?
+                      If you are an Individual PAN holder 
                     </label>
                     <div className={accountRadioGroup}>
-                      {['Yes', 'No', 'NA'].map((option) => (
+                      {['Yes', 'No'].map((option) => (
                         <label key={option} className={accountRadioLabel}>
                           <input
                             type="radio"
@@ -802,7 +802,7 @@ const handleProceed = async () => {
               </div>
 
               <div className="pt-6 border-t border-slate-100">
-                <h3 className={accountSectionHeading}>Contact Person Details</h3>
+                <h3 className={dashSidebarHeaderTitle}>Contact Person Details</h3>
                 <div className={accountThreeColGrid + " pt-4"}>
                   <div>
                     <label className={accountLabelStyle}>Full Name</label>
@@ -847,7 +847,7 @@ const handleProceed = async () => {
               </div>
 
               <div className="pt-6 border-t border-slate-100">
-                <h3 className={accountSectionHeading}>Bank details</h3>
+                <h3 className={dashSidebarHeaderTitle}>Bank details</h3>
                 <div className={accountThreeColGrid + " pt-4"}>
                   <div>
                     <label className={accountLabelStyle}>Account Holder Name</label>
@@ -920,7 +920,7 @@ const handleProceed = async () => {
 
     {activeStep === 2 && (
             <div className={accountUploadStepWrapper}>
-              <h3 className={accountSectionHeading}>
+              <h3 className={dashSidebarHeaderTitle}>
                 Upload PAN card {formData.panNumber ? `(${formData.panNumber})` : ''}
               </h3>
  
