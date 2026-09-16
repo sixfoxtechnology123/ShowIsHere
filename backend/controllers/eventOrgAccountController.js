@@ -439,16 +439,9 @@ const saveOrgStep = async (req, res) => {
       }
     }
 
-    // 3. Update or Create
+// 3. Update or Create
     if (org) {
-      if (org.signinAgreement === true) {
-        return res.status(400).json({
-          success: false,
-          message: 'Account is already signed and locked. Changes are no longer allowed.'
-        });
-      }
-
-      Object.assign(org, stepData, { contactEmail,loginMobileNumber, contactMobile, accountNumber, accountHolderName, accountType });
+      Object.assign(org, stepData, { contactEmail, loginMobileNumber, contactMobile, accountNumber, accountHolderName, accountType });
       if (loginMobileNumber !== undefined) org.loginMobileNumber = loginMobileNumber;
       if (panLinkedAadhaar !== undefined) org.panLinkedAadhaar = panLinkedAadhaar;
       if (accountHolderName !== undefined) org.accountHolderName = accountHolderName;
@@ -476,7 +469,7 @@ const saveOrgStep = async (req, res) => {
         panNumber: panNumber ? panNumber.toUpperCase() : 'TEMP_PAN',
         contactEmail,
         contactMobile,
-        loginMobileNumber: loginMobileNumber || contactMobile, // <--- Save mobile here
+        loginMobileNumber: loginMobileNumber || contactMobile,
         verifiedEmail: verifiedEmail || false,
         accountNumber,
         accountHolderName, 
@@ -487,7 +480,6 @@ const saveOrgStep = async (req, res) => {
         ...stepData
       });
     }
-
     return res.status(200).json({
       success: true,
       message: 'Progress saved to database successfully!',

@@ -50,8 +50,10 @@ const LoginPage = () => {
             localStorage.setItem('orgUserData', JSON.stringify(response.data));
           }
           navigate('/profile'); 
-        } else {
+      } else {
           toast.success('New user! Please complete your registration.', { id: 'signin-toast' });
+          // Save mobile number to localStorage so EventOrgAccount can read it
+          localStorage.setItem('loginMobileNumber', mobileNumber);
           navigate('/event-org-account', { state: { prefilledMobile: mobileNumber } });
         }
       } else {

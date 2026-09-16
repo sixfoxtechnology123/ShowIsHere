@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { Link,useNavigate } from 'react-router-dom';
+import { Link,useNavigate ,useLocation} from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import GSTDeclaration from '../utils/GSTDeclaration';
 import SignAgrement from '../utils/SignAgrement';
@@ -81,6 +81,7 @@ import {
 
 const EventOrgAccount = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeStep, setActiveStep] = useState(1);
   const [isStateOpen, setIsStateOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -112,6 +113,11 @@ const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
 const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
 const [enteredOtp, setEnteredOtp] = useState('');
 const [hasSigned, setHasSigned] = useState(false);
+const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+const initialMobile = location.state?.prefilledMobile || 
+                        JSON.parse(localStorage.getItem('orgUserData') || '{}').loginMobileNumber || 
+                        JSON.parse(localStorage.getItem('orgUserData') || '{}').contactMobile || 
+                        localStorage.getItem('loginMobileNumber') || '';
   // Form Data State initialized completely blank with default empty values
   const [formData, setFormData] = useState({
     orgId: '',       // <--- ADD THIS
@@ -125,7 +131,7 @@ const [hasSigned, setHasSigned] = useState(false);
     state: '',
     contactFullName: '',
     contactEmail: '',
-    contactMobile: '',
+   contactMobile: initialMobile,
     accountNumber: '',
     bankIfsc: '',
     bankName: ''
@@ -594,6 +600,55 @@ const saveToDatabase = async () => {
   }
 };
 
+useEffect(() => {
+    const fetchDraftData = async () => {
+      try {
+        const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+        const userId = savedUser._id || savedUser.id;
+        const mobile = savedUser.loginMobileNumber || savedUser.contactMobile;
+        
+        if (!userId && !mobile) return;
+
+        const query = userId ? `id=${userId}` : `loginMobileNumber=${mobile}`;
+        const response = await API.get(`/org/get-profile?${query}`);
+        const resData = response.data || response;
+
+        if (resData.success && resData.data) {
+          const u = resData.data;
+          setFormData((prev) => ({
+            ...prev,
+            orgId: u.orgId || '',
+            tenantKey: u.tenantKey || '',
+            orgName: u.orgName || '',
+            orgAddress: u.orgAddress || u.address1 || '',
+            panLinkedAadhaar: u.panLinkedAadhaar || '',
+            panNumber: u.panNumber || '',
+            gstinNumber: u.gstinNumber || '',
+            gstDeclaration: Boolean(u.gstDeclaration),
+            state: u.state || '',
+            contactFullName: u.contactFullName || '',
+            contactEmail: u.contactEmail || '',
+            contactMobile: u.loginMobileNumber || u.contactMobile || mobile || '',
+            accountNumber: u.accountNumber || '',
+            bankIfsc: u.bankIfsc || '',
+            bankName: u.bankName || '',
+            accountHolderName: u.accountHolderName || '',
+            accountType: u.accountType || ''
+          }));
+          if (u.verifiedEmail) {
+            setIsEmailVerified(true);
+          }
+        } else if (mobile) {
+          setFormData((prev) => ({ ...prev, contactMobile: mobile }));
+        }
+      } catch (err) {
+        console.error('Error fetching draft:', err);
+      }
+    };
+
+    fetchDraftData();
+  }, []);
+
 const handleSaveDetails = async () => {
     if (activeStep === 1) {
       if (!validateStep1()) return;
@@ -909,21 +964,14 @@ const handleProceed = async () => {
                 className={`${inputFieldStyle} ${isEmailVerified ? 'bg-slate-100 text-slate-500' : ''}`}
               />
             </div>
-                  <div>
+                 <div>
                     <label className={accountLabelStyle}>Mobile Number</label>
                     <input
                       type="text"
                       name="contactMobile"
-                      maxLength="10"
-                      placeholder="10-digit mobile number"
                       value={formData.contactMobile}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, ''); // Allow numbers only
-                        if (val.length <= 10) {
-                          setFormData({ ...formData, contactMobile: val });
-                        }
-                      }}
-                      className={inputFieldStyle}
+                      disabled={true}
+                      className={`${inputFieldStyle} bg-slate-100 text-slate-500 cursor-not-allowed`}
                     />
                   </div>
                 </div>
@@ -1327,7 +1375,7 @@ const handleProceed = async () => {
           ✕
         </button>
       </div>
-
+ 
       {/* Modal Body */}
       <div className="p-5 space-y-4">
         <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3 text-center">
