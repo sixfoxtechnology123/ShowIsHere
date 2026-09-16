@@ -3,7 +3,8 @@ const API_BASE_URL = window.location.hostname === 'localhost'
   : (process.env.REACT_APP_API_BASE_URL || '/api');
 
 const request = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('token');
+  // 🔍 Fix: Check 'orgToken' first (since your app saves it there), fallback to 'token'
+  const token = localStorage.getItem('orgToken') || localStorage.getItem('token');
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
