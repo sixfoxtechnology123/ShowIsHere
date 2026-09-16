@@ -1570,111 +1570,217 @@ const handleDragOver = (e) => {
     </div>
 
   {/* VENUE DETAILS SECTION */}
-  <div className="pt-6 border-t border-slate-100 space-y-4 w-full">
-    <h3 className="font-semibold text-base">Venue Details</h3>
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
-      
-      {/* Interactive Map Preview Area */}
-      <div className="lg:col-span-6 border-2 border-slate-200 rounded-2xl h-80 bg-slate-100 flex items-center justify-center text-center relative overflow-hidden shadow-xs">
-        {formData.venueAddress || formData.venueCity || formData.venueGoogleMapLink ? (
-          <iframe
-            title="Venue Location Map"
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            loading="lazy"
-            src={`https://maps.google.com/maps?q=${encodeURIComponent(
-              formData.venueGoogleMapLink && !formData.venueGoogleMapLink.includes('app.goo.gl') 
-                ? formData.venueGoogleMapLink 
-                : `${formData.venueAddress || ''}, ${formData.venueCity || ''}`
-            )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-          ></iframe>
+{/* VENUE DETAILS SECTION */}
+<div className="pt-6 border-t border-slate-100 space-y-4 w-full">
+  <h3 className="font-semibold text-base">Venue Details</h3>
+  <div className="flex flex-col gap-6 w-full">
+    
+    {/* Venue Form Inputs */}
+    <div className="space-y-4 w-full">
+      <div>
+        <label className={accountLabelStyle}>Venue Name <span className="text-red-500">*</span></label>
+        <input 
+          type="text" 
+          name="venueName" 
+          placeholder="e.g. Mahajati Sadan" 
+          value={formData.venueName || ''} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`} 
+        />
+      </div>
+
+      <div>
+        <label className={accountLabelStyle}>Address <span className="text-red-500">*</span></label>
+        <input 
+          type="text" 
+          name="venueAddress" 
+          placeholder="e.g. 13B, Chittaranjan Ave" 
+          value={formData.venueAddress || ''} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`} 
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={accountLabelStyle}>City <span className="text-red-500">*</span></label>
+          <input 
+            type="text" 
+            name="venueCity" 
+            placeholder="Type city manually" 
+            value={formData.venueCity || ''} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyle} border-2 w-full`} 
+          />
+        </div>
+        <div>
+          <label className={accountLabelStyle}>PIN Code</label>
+          <input 
+            type="text" 
+            name="venuePinCode" 
+            placeholder="e.g. 700007" 
+            value={formData.venuePinCode || ''} 
+            onChange={handleInputChange} 
+            className={`${inputFieldStyle} border-2 w-full`} 
+          />
+        </div>
+      </div>
+
+      <div className="relative flex py-2 items-center">
+        <div className="flex-grow border-t border-slate-200"></div>
+        <span className="flex-shrink mx-4 text-slate-400 text-xs font-semibold">or</span>
+        <div className="flex-grow border-t border-slate-200"></div>
+      </div>
+
+      <div>
+        <label className={accountLabelStyle}>Google map link</label>
+        <input 
+          type="text" 
+          name="venueGoogleMapLink" 
+          placeholder="https://maps.google.com/..." 
+          value={formData.venueGoogleMapLink || ''} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`} 
+        />
+      </div>
+    </div>
+
+    {/* Reset Location Action */}
+    <div>
+      <button
+        type="button"
+        onClick={() => {
+          setFormData(prev => ({
+            ...prev,
+            venueName: '',
+            venueAddress: '',
+            venueCity: '',
+            venuePinCode: '',
+            venueGoogleMapLink: ''
+          }));
+          toast.success('Location reset successfully!', { id: 'reset-location-toast' });
+        }}
+        className="text-xs font-bold text-slate-700 hover:text-blue-600 flex items-center gap-1.5 transition cursor-pointer"
+      >
+        <span>↺</span> Reset Location
+      </button>
+    </div>
+
+    {/* Location Map Container with Silent Instant GPS Jump */}
+    <div className="space-y-2 w-full">
+      <label className={accountLabelStyle}>Location Map</label>
+      <div className="border-2 border-slate-200 rounded-2xl h-80 bg-slate-100 flex items-center justify-center text-center relative overflow-hidden shadow-xs w-full">
+        {formData.venueName || formData.venueAddress || formData.venueCity || formData.venuePinCode || formData.venueGoogleMapLink ? (
+          <>
+            <iframe
+              title="Venue Location Map"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                formData.venueGoogleMapLink && !formData.venueGoogleMapLink.includes('app.goo.gl') 
+                  ? formData.venueGoogleMapLink 
+                  : [
+                      formData.venueName, 
+                      formData.venueAddress, 
+                      formData.venueCity, 
+                      formData.venuePinCode
+                    ].filter(Boolean).join(', ')
+              )}&t=&z=17&ie=UTF8&iwloc=&output=embed`}
+            ></iframe>
+
+            {/* Floating Controller with Silent Instant GPS Jump */}
+            <div className="absolute right-3 top-3 flex flex-col shadow-md rounded-xl overflow-hidden z-20 bg-white border border-slate-200">
+              
+              {/* Silent Instant GPS Location Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        setFormData(prev => ({
+                          ...prev,
+                          venueGoogleMapLink: `${lat},${lng}`
+                        }));
+                      },
+                      null,
+                      { timeout: 7000, maximumAge: 0 }
+                    );
+                  }
+                }}
+                className="w-10 h-10 bg-white hover:bg-slate-50 flex items-center justify-center text-blue-600 border-b border-slate-100 cursor-pointer transition"
+                title="Move to my current location instantly"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8.009 8.009 0 0 1-8 8Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+
+              {/* Zoom In Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const iframe = document.querySelector('iframe[title="Venue Location Map"]');
+                  if (iframe) {
+                    let src = iframe.src;
+                    if (src.includes('&z=')) {
+                      const match = src.match(/&z=(\d+)/);
+                      if (match) {
+                        const nextZoom = Math.min(21, parseInt(match[1], 10) + 1);
+                        iframe.src = src.replace(`&z=${match[1]}`, `&z=${nextZoom}`);
+                      }
+                    }
+                  }
+                }}
+                className="w-10 h-9 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-800 font-bold text-lg border-b border-slate-100 cursor-pointer transition"
+                title="Zoom in"
+              >
+                +
+              </button>
+
+              {/* Zoom Out Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const iframe = document.querySelector('iframe[title="Venue Location Map"]');
+                  if (iframe) {
+                    let src = iframe.src;
+                    if (src.includes('&z=')) {
+                      const match = src.match(/&z=(\d+)/);
+                      if (match) {
+                        const prevZoom = Math.max(1, parseInt(match[1], 10) - 1);
+                        iframe.src = src.replace(`&z=${match[1]}`, `&z=${prevZoom}`);
+                      }
+                    }
+                  }
+                }}
+                className="w-10 h-9 bg-white hover:bg-slate-50 flex items-center justify-center text-slate-800 font-bold text-lg cursor-pointer transition"
+                title="Zoom out"
+              >
+                −
+              </button>
+            </div>
+          </>
         ) : (
           <div className="space-y-1 p-4">
             <p className="text-xl">📍</p>
             <p className="text-xs font-bold text-slate-800">Interactive Map Preview</p>
-            <p className="text-[11px] text-slate-400">Enter address or map details to load location</p>
+            <p className="text-[11px] text-slate-400">Fill in venue details above or click the target icon for your live location</p>
           </div>
         )}
       </div>
+      <p className="text-[11px] text-slate-400 flex items-center gap-1 pt-0.5">
+        📍 Click the target icon to instantly jump to your current GPS position.
+      </p>
+    </div>
 
-      {/* Venue Form Inputs */}
-      <div className="lg:col-span-6 space-y-4">
-        <div>
-          <label className={accountLabelStyle}>Venue Name <span className="text-red-500">*</span></label>
-          <input 
-            type="text" 
-            name="venueName" 
-            placeholder="Enter venue name" 
-            value={formData.venueName || ''} 
-            onChange={handleInputChange} 
-            className={`${inputFieldStyle} border-2 w-full`} 
-          />
-        </div>
-
-        <div>
-          <label className={accountLabelStyle}>Address <span className="text-red-500">*</span></label>
-          <input 
-            type="text" 
-            name="venueAddress" 
-            placeholder="Enter address" 
-            value={formData.venueAddress || ''} 
-            onChange={handleInputChange} 
-            className={`${inputFieldStyle} border-2 w-full`} 
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={accountLabelStyle}>City <span className="text-red-500">*</span></label>
-            <select 
-              name="venueCity" 
-              value={formData.venueCity || ''} 
-              onChange={handleInputChange} 
-              className={`${inputFieldStyle} border-2 w-full`}
-            >
-              <option value="">Select city</option>
-              {indianCities.map((city, idx) => (
-                <option key={idx} value={typeof city === 'string' ? city : city.name}>
-                  {typeof city === 'string' ? city : city.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={accountLabelStyle}>PIN Code</label>
-            <input 
-              type="text" 
-              name="venuePinCode" 
-              placeholder="PIN code" 
-              value={formData.venuePinCode || ''} 
-              onChange={handleInputChange} 
-              className={`${inputFieldStyle} border-2 w-full`} 
-            />
-          </div>
-        </div>
-
-        <div className="relative flex py-2 items-center">
-          <div className="flex-grow border-t border-slate-200"></div>
-          <span className="flex-shrink mx-4 text-slate-400 text-xs font-semibold">or</span>
-          <div className="flex-grow border-t border-slate-200"></div>
-        </div>
-
-        <div>
-          <label className={accountLabelStyle}>Google map link</label>
-          <input 
-            type="text" 
-            name="venueGoogleMapLink" 
-            placeholder="https://maps.google.com/..." 
-            value={formData.venueGoogleMapLink || ''} 
-            onChange={handleInputChange} 
-            className={`${inputFieldStyle} border-2 w-full`} 
-          />
-        </div>
-      </div>
-
-        </div>
-      </div>
+  </div>
+</div>
         </div>
       )}
 
