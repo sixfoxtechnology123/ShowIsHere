@@ -597,6 +597,53 @@ const submitAgreement = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to submit agreement.' });
   }
 };
+
+const getProfile = async (req, res) => {
+  try {
+    const orgId = req.query.id;
+    if (!orgId) {
+      return res.status(400).json({ success: false, message: 'Organization ID is required.' });
+    }
+
+    const orgAccount = await EventOrgAccount.findById(orgId);
+    if (!orgAccount) {
+      return res.status(404).json({ success: false, message: 'Profile not found.' });
+    }
+
+    return res.status(200).json({ success: true, data: orgAccount });
+  } catch (error) {
+    console.error('Fetch Profile Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while fetching profile.' });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const { id, ...updateData } = req.body;
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Organization ID is required for update.' });
+    }
+
+    const updatedAccount = await EventOrgAccount.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!updatedAccount) {
+      return res.status(404).json({ success: false, message: 'Profile not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully!',
+      data: updatedAccount
+    });
+  } catch (error) {
+    console.error('Update Profile Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while updating profile.' });
+  }
+};
 module.exports = {
   registerOrgAccount,
   getOrgAccount,
@@ -605,4 +652,6 @@ module.exports = {
   sendEmailOtp,
   verifyEmailOtp,
   submitAgreement,
+  updateProfile,
+  getProfile
 };

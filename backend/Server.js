@@ -14,6 +14,7 @@ const eventCategoryRoutes = require('./routes/eventCategoryRoutes');
 const categoryMasterRoutes = require('./routes/categoryMasterRoutes');
 const questionDatabaseRoutes = require('./routes/questionDatabaseRoutes');
 const eventQuestionRoutes = require('./routes/EventQuestionRoutes');
+const loginRoutes = require('./routes/loginRoutes');
 
 // Register Artist Routes
 app.use('/artists', artistRoutes);
@@ -22,6 +23,7 @@ app.use('/event-categories', eventCategoryRoutes);
 app.use('/categories', categoryMasterRoutes);
 app.use('/question-database', questionDatabaseRoutes);
 app.use('/event-questions', eventQuestionRoutes);
+app.use('/login-page', loginRoutes);
 
 const startServer = async () => {
   try {

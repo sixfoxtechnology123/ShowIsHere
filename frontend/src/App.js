@@ -11,7 +11,7 @@ import { mainContainer } from './styles/MasterCSSClass';
 import Footer from './components/Footer';
 import AboutPage from './components/AboutPage';
 import SeatMap from './components/SeatMap';
-import SigninDashboard from './components/SigninDashboard';
+import LoginPage from './components/LoginPage';
 import ArtistMaster from './Master/ArtistMaster';
 import EventOrgAccount from './EventOrganizer/EventOrgAccount';
 import TermsOfUse from './components/TermsOfUse'; 
@@ -67,7 +67,7 @@ const AppContent = () => {
   const iskyc = routerLocation.pathname === '/profile/kyc';
   const isprofilesettings = routerLocation.pathname === '/profile/settings';
   const isEventDashboard = routerLocation.pathname === '/event-dashboard';
-  const isSigninDashboard = routerLocation.pathname === '/signinDashboard';
+  const isLoginPage = routerLocation.pathname === '/signinDashboard';
 
 
   useEffect(() => {
@@ -86,6 +86,7 @@ const AppContent = () => {
       setLoading(false);
     }
   };
+
 
   const detectLocation = () => {
     if (navigator.geolocation) {
@@ -190,7 +191,7 @@ const AppContent = () => {
       />
 
       {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
-      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isSigninDashboard && (
+      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isLoginPage && (
         <>
           <Navbar 
             location={location} 
@@ -228,7 +229,7 @@ const AppContent = () => {
         <Route path="/question-databse-master" element={<QuestionDatabseMaster />} />
         <Route path="/question-database-master" element={<QuestionDatabseMaster />} />
         <Route path="/event-question-master" element={<EventQuestion />} />
-        <Route path="/signinDashboard" element={<SigninDashboard />} />
+        <Route path="/signinDashboard" element={<LoginPage />} />
 
 
         <Route path="/profile" element={<Profile />} />

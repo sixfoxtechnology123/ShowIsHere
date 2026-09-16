@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation,useNavigate } from 'react-router-dom';
 import {
   dashSidebarContainer,
   dashSidebarBlueStrip,
@@ -18,7 +18,7 @@ import {
 
 const EventOrgLefSidebar = () => {
   const location = useLocation();
-
+  const navigate = useNavigate();
   // Determine if we are currently looking at a profile page route
   const isProfileRoute = location.pathname.startsWith('/profile');
 
@@ -32,6 +32,12 @@ const EventOrgLefSidebar = () => {
   const isPersonalDetailsActive = location.pathname === '/profile' || location.pathname === '/profile/personal-details';
   const isKycActive = location.pathname === '/profile/kyc';
   const isSettingActive = location.pathname === '/profile/settings';
+
+const handleLogout = () => {
+  localStorage.removeItem('orgToken');
+  localStorage.removeItem('orgUserData');
+  navigate('/');
+};
 
   return (
     <aside className={dashSidebarContainer}>
@@ -69,9 +75,9 @@ const EventOrgLefSidebar = () => {
         </div>
 
         <div className={dashSidebarBlueIconsBottom}>
-          <button type="button" className={dashBlueIconButton} title="Logout">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          </button>
+         <button type="button" onClick={handleLogout} className={dashBlueIconButton} title="Logout">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+        </button>
         </div>
       </div>
 

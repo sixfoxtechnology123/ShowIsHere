@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import API from '../utils/api';
 import EventOrgHeader from './EventOrgHeader';
 import EventOrgFooter from './EventOrgFooter';
 import EventOrgLefSidebar from './EventOrgLefSidebar';
@@ -15,17 +17,18 @@ const Profile = () => {
   const [showPopup, setShowPopup] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Form state tracking all fields for the edit view
+  // Initialize state with data from localStorage or API
   const [formData, setFormData] = useState({
-    orgName: "Suvo Roy's organization",
-    websiteUrl: 'https://yourorganization.com',
+    id: '',
+    orgName: '',
+    websiteUrl: '',
     address1: '',
     address2: '',
     country: '',
     state: '',
     city: '',
-    contactNumber: '+91 92466 80015',
-    email: 'sbrta.roy@gmail.com',
+    contactNumber: '',
+    email: '',
     about: '',
     instagram: '',
     facebook: '',
@@ -33,8 +36,67 @@ const Profile = () => {
     linkedin: ''
   });
 
+  // Fetch live profile data from backend on load
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+        const userId = savedUser._id || savedUser.id;
+
+        if (!userId) return;
+
+        const response = await API.get(`/api/profile/get-profile?id=${userId}`);
+        const resData = response.data || response;
+
+        if (resData.success && resData.data) {
+          const u = resData.data;
+          setFormData({
+            id: u._id || u.id || '',
+            orgName: u.orgName || u.name || '',
+            websiteUrl: u.websiteUrl || '',
+            address1: u.address1 || '',
+            address2: u.address2 || '',
+            country: u.country || '',
+            state: u.state || '',
+            city: u.city || '',
+            contactNumber: u.contactMobile || u.loginMobileNumber || '',
+            email: u.contactEmail || u.email || '',
+            about: u.about || '',
+            instagram: u.instagram || '',
+            facebook: u.facebook || '',
+            twitter: u.twitter || '',
+            linkedin: u.linkedin || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Handle saving updates to database
+  const handleSaveProfile = async () => {
+    try {
+      const response = await API.put('/api/profile/update-profile', formData);
+      const resData = response.data || response;
+
+      if (resData.success) {
+        toast.success('Profile updated successfully!', { id: 'profile-toast' });
+        localStorage.setItem('orgUserData', JSON.stringify(resData.data));
+        setIsEditing(false);
+      } else {
+        toast.error(resData.message || 'Update failed.', { id: 'profile-toast' });
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Server error while saving profile.', { id: 'profile-toast' });
+    }
   };
 
   return (
@@ -62,7 +124,7 @@ const Profile = () => {
                     {profileImage ? (
                       <img
                         src={profileImage}
-                        alt="Alexa Rawles"
+                        alt="Organization Logo"
                         className="w-20 h-20 rounded-full object-cover"
                         onError={(e) => {
                           e.target.style.display = 'none';
@@ -70,7 +132,7 @@ const Profile = () => {
                       />
                     ) : (
                       <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xl">
-                        AR
+                        ORG
                       </div>
                     )}
                   </div>
@@ -78,9 +140,9 @@ const Profile = () => {
                   <div className="flex-1 w-full space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2">
                       <div>
-                        <h1 className="text-xl font-bold text-slate-950">Alexa Rawles</h1>
+                        <h1 className="text-xl font-bold text-slate-950">{formData.orgName || 'Organization Name'}</h1>
                         <p className="text-sm text-slate-500 mt-1">
-                          alexarawles@gmail.com <span className="mx-2">•</span> +91 92466 80015
+                          {formData.email || 'No email'} <span className="mx-2">•</span> {formData.contactNumber || 'No mobile'}
                         </p>
                       </div>
 
@@ -277,8 +339,6 @@ const Profile = () => {
                       <option value="United States">United States</option>
                     </select>
                   </div>
-                 
-                 
                 </div>
 
                 {/* Row 4: Contact Number & Email Address */}
@@ -300,18 +360,18 @@ const Profile = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5  items-center">
-                          <span>Email Address *</span>
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            strokeWidth="1.5" 
-                            stroke="currentColor" 
-                            className="w-3.5 h-3.5 ml-1.5 text-slate-500 inline-block"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                          </svg>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 items-center">
+                        <span>Email Address *</span>
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          strokeWidth="1.5" 
+                          stroke="currentColor" 
+                          className="w-3.5 h-3.5 ml-1.5 text-slate-500 inline-block"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                        </svg>
                         </label>
                     <div className="flex items-center space-x-2">
                       <input 
@@ -410,11 +470,11 @@ const Profile = () => {
                       onClick={() => setIsEditing(false)}
                       className="px-5 py-2 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-100 transition cursor-pointer"
                     >
-                      Cancle
+                      Cancel
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsEditing(false)}
+                      onClick={handleSaveProfile}
                       className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer"
                     >
                       Save Change

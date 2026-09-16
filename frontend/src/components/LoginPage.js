@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
 import { 
   mainContainer, 
   inputFieldStyle 
 } from '../styles/MasterCSSClass';
 
-const SigninDashboard = () => {
+const LoginPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [mobileNumber, setMobileNumber] = useState('');
@@ -20,30 +21,50 @@ const SigninDashboard = () => {
       toast.error('Please enter a valid 10-digit mobile number.', { id: 'signin-toast' });
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setStep(2);
-      toast.success('Dummy OTP sent successfully! (Use: 1234)', { id: 'signin-toast' });
-    }, 800);
+    setStep(2);
+    toast.success('Dummy OTP sent successfully! (Use: 1234)', { id: 'signin-toast' });
   };
 
-  const handleVerifyOtp = (e) => {
+  const handleVerifyOtp = async (e) => {
     e.preventDefault();
     if (otp !== '1234') {
       toast.error('Invalid OTP. Use dummy OTP: 1234', { id: 'signin-toast' });
       return;
     }
+
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await API.post('/login-page/login-mobile', { 
+        loginMobileNumber: mobileNumber 
+      });
+
       setLoading(false);
-      toast.success('Successfully Signed In!', { id: 'signin-toast' });
-      navigate('/event-org-account');
-    }, 800);
+
+      if (response.success) {
+        if (response.exists) {
+          toast.success('Successfully Signed In!', { id: 'signin-toast' });
+          if (response.token) {
+            localStorage.setItem('orgToken', response.token);
+          }
+          if (response.data) {
+            localStorage.setItem('orgUserData', JSON.stringify(response.data));
+          }
+          navigate('/profile'); 
+        } else {
+          toast.success('New user! Please complete your registration.', { id: 'signin-toast' });
+          navigate('/event-org-account', { state: { prefilledMobile: mobileNumber } });
+        }
+      } else {
+        toast.error(response.message || 'Login failed.', { id: 'signin-toast' });
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error('Login check error:', error);
+      toast.error(error.message || 'Server error while checking account.', { id: 'signin-toast' });
+    }
   };
 
   return (
-    // FIX: Added 'flex flex-col lg:flex-row' to force side-by-side layout on desktop
     <div className={`${mainContainer} min-h-screen flex flex-col lg:flex-row bg-slate-50 w-full`}>
       
       {/* Left Side - Details & Benefits Panel */}
@@ -94,7 +115,7 @@ const SigninDashboard = () => {
 
       {/* Right Side - Mobile Login Interface Panel */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 bg-slate-50">
-        <div className="w-full max-w-sm  p-8 rounded-2xl shadow-sm space-y-6">
+        <div className="w-full max-w-sm p-8 rounded-2xl shadow-sm space-y-6">
           
           {/* Logo & Branding */}
           <div className="flex flex-col items-center space-y-2">
@@ -121,10 +142,9 @@ const SigninDashboard = () => {
 
               <button 
                 type="submit" 
-                disabled={loading}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:opacity-50"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm"
               >
-                {loading ? 'Sending OTP...' : 'Send OTP'}
+                Send OTP
               </button>
             </form>
           ) : (
@@ -171,10 +191,6 @@ const SigninDashboard = () => {
             <p className="text-xs text-slate-600">
               Already have an account? <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Sign in</span>
             </p>
-            <p className="text-[10px] text-slate-400">
-              Incase of any query, please write to<br />
-             
-            </p>
           </div>
 
         </div>
@@ -183,4 +199,4 @@ const SigninDashboard = () => {
   );
 };
 
-export default SigninDashboard;
+export default LoginPage;
