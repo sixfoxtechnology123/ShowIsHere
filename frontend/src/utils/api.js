@@ -1,6 +1,6 @@
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:5005' 
-  : '/api';
+const API_BASE_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:5005'
+  : (process.env.REACT_APP_API_BASE_URL || '/api');
 
 const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
