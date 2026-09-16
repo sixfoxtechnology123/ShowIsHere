@@ -151,7 +151,7 @@ const LoginPage = () => {
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="text-center">
                 <p className="text-xs text-slate-600">Enter dummy OTP sent to <span className="font-bold">+91 {mobileNumber}</span></p>
-                <p className="text-[10px] text-blue-600 mt-1">(Hint: Use 1234)</p>
+               
               </div>
 
               <div>

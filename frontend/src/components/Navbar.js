@@ -138,6 +138,13 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
               >
                 Event Question
               </Link>
+               <Link 
+                to="" 
+                onClick={() => setIsMenuOpen(false)}
+                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
+              >
+                Admin Aproval
+              </Link>
             </div>
           )}
         </div>

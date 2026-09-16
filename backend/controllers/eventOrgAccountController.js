@@ -1,5 +1,6 @@
 const EventOrgAccount = require('../models/eventOrgAccountModel.js');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -19,6 +20,37 @@ const transporter = nodemailer.createTransport({
 
 // Simple memory store for OTPs
 const emailOtpStore = {};
+
+const hashPassword = (password, salt = crypto.randomBytes(16).toString('hex')) => {
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return { salt, hash };
+};
+
+const verifyPassword = (password, salt, hash) => {
+  if (!password || !salt || !hash) return false;
+  const candidate = hashPassword(password, salt).hash;
+  return crypto.timingSafeEqual(Buffer.from(candidate, 'hex'), Buffer.from(hash, 'hex'));
+};
+
+const findOrgByIdentity = async ({ id, orgId, tenantKey, loginMobileNumber, contactEmail }) => {
+  if (id) return EventOrgAccount.findById(id);
+  if (orgId) return EventOrgAccount.findOne({ orgId });
+  if (tenantKey) return EventOrgAccount.findOne({ tenantKey });
+  if (loginMobileNumber) {
+    const mobile = loginMobileNumber.trim();
+    return EventOrgAccount.findOne({ $or: [{ loginMobileNumber: mobile }, { contactMobile: mobile }] });
+  }
+  if (contactEmail) return EventOrgAccount.findOne({ contactEmail });
+  return null;
+};
+
+const cleanUpdatePayload = (payload, blockedFields = []) => {
+  const blocked = new Set(['_id', 'id', 'orgId', 'tenantKey', 'createdAt', 'updatedAt', 'passwordHash', 'passwordSalt', ...blockedFields]);
+  return Object.keys(payload || {}).reduce((acc, key) => {
+    if (!blocked.has(key) && payload[key] !== undefined) acc[key] = payload[key];
+    return acc;
+  }, {});
+};
 
 
 const getClientIp = (req) => {
@@ -600,12 +632,7 @@ const submitAgreement = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    const orgId = req.query.id;
-    if (!orgId) {
-      return res.status(400).json({ success: false, message: 'Organization ID is required.' });
-    }
-
-    const orgAccount = await EventOrgAccount.findById(orgId);
+    const orgAccount = await findOrgByIdentity(req.query);
     if (!orgAccount) {
       return res.status(404).json({ success: false, message: 'Profile not found.' });
     }
@@ -619,10 +646,17 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { id, ...updateData } = req.body;
+    const { id, approvalStatus, contactEmail, verifiedEmail, ...body } = req.body;
     if (!id) {
       return res.status(400).json({ success: false, message: 'Organization ID is required for update.' });
     }
+
+    const updateData = cleanUpdatePayload(body, ['panNumber', 'gstinNumber', 'panCardDocument']);
+    if (updateData.contactNumber !== undefined) {
+      updateData.contactMobile = updateData.contactNumber;
+      delete updateData.contactNumber;
+    }
+    if (updateData.email !== undefined) delete updateData.email;
 
     const updatedAccount = await EventOrgAccount.findByIdAndUpdate(
       id,
@@ -644,6 +678,170 @@ const updateProfile = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error while updating profile.' });
   }
 };
+
+const updateKycDetails = async (req, res) => {
+  try {
+    const { id, ...updateData } = req.body;
+    if (!id) {
+      return res.status(400).json({ success: false, message: 'Organization ID is required.' });
+    }
+
+    const allowedData = cleanUpdatePayload(updateData, ['panNumber', 'gstinNumber', 'panCardDocument']);
+    allowedData.approvalStatus = 'pending';
+    allowedData.rejectionReason = '';
+    allowedData.$push = undefined;
+
+    const updatedAccount = await EventOrgAccount.findByIdAndUpdate(
+      id,
+      {
+        $set: allowedData,
+        $push: { approvalHistory: { status: 'pending', reason: 'KYC details updated by organizer' } }
+      },
+      { new: true }
+    );
+
+    if (!updatedAccount) {
+      return res.status(404).json({ success: false, message: 'Profile not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'KYC details updated and sent for approval.',
+      data: updatedAccount
+    });
+  } catch (error) {
+    console.error('Update KYC Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while updating KYC.' });
+  }
+};
+
+const getPasswordStatus = async (req, res) => {
+  try {
+    const org = await findOrgByIdentity(req.query);
+    if (!org) return res.status(404).json({ success: false, message: 'Account not found.' });
+    return res.status(200).json({ success: true, hasPassword: Boolean(org.passwordHash), email: org.contactEmail });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error while checking password.' });
+  }
+};
+
+const updatePassword = async (req, res) => {
+  try {
+    const { id, oldPassword, newPassword } = req.body;
+    if (!id || !newPassword) return res.status(400).json({ success: false, message: 'Account and new password are required.' });
+
+    const org = await EventOrgAccount.findById(id);
+    if (!org) return res.status(404).json({ success: false, message: 'Account not found.' });
+    if (org.passwordHash && !verifyPassword(oldPassword, org.passwordSalt, org.passwordHash)) {
+      return res.status(400).json({ success: false, message: 'Old password is incorrect.' });
+    }
+
+    const { salt, hash } = hashPassword(newPassword);
+    org.passwordSalt = salt;
+    org.passwordHash = hash;
+    org.passwordUpdatedAt = new Date();
+    await org.save();
+    return res.status(200).json({ success: true, message: 'Password updated successfully.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error while updating password.' });
+  }
+};
+
+const sendPasswordResetOtp = async (req, res) => {
+  try {
+    const { id, email } = req.body;
+    const org = await findOrgByIdentity({ id, contactEmail: email });
+    if (!org || !org.contactEmail) return res.status(404).json({ success: false, message: 'Registered email not found.' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    emailOtpStore[`password:${org.contactEmail}`] = { otp, expiresAt: Date.now() + 10 * 60 * 1000 };
+    const template = getOtpEmailTemplate(otp);
+
+    res.status(200).json({ success: true, message: 'OTP sent to registered email.' });
+    transporter.sendMail({
+      from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
+      to: org.contactEmail,
+      subject: template.subject,
+      html: template.html,
+    }).catch(err => console.error('Background Password OTP Email Error:', err));
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to send password OTP.' });
+  }
+};
+
+const resetPasswordWithOtp = async (req, res) => {
+  try {
+    const { id, email, otp, newPassword } = req.body;
+    const org = await findOrgByIdentity({ id, contactEmail: email });
+    if (!org) return res.status(404).json({ success: false, message: 'Account not found.' });
+
+    const key = `password:${org.contactEmail}`;
+    const record = emailOtpStore[key];
+    if (!record || record.otp !== otp || Date.now() > record.expiresAt) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
+    }
+
+    const { salt, hash } = hashPassword(newPassword);
+    org.passwordSalt = salt;
+    org.passwordHash = hash;
+    org.passwordUpdatedAt = new Date();
+    await org.save();
+    delete emailOtpStore[key];
+    return res.status(200).json({ success: true, message: 'Password reset successfully.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error while resetting password.' });
+  }
+};
+
+const listOrgAccounts = async (req, res) => {
+  try {
+    const accounts = await EventOrgAccount.find().sort({ updatedAt: -1 });
+    return res.status(200).json({ success: true, data: accounts });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error while fetching accounts.' });
+  }
+};
+
+const adminUpdateOrgAccount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = cleanUpdatePayload(req.body);
+    const updated = await EventOrgAccount.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+    if (!updated) return res.status(404).json({ success: false, message: 'Account not found.' });
+    return res.status(200).json({ success: true, message: 'Account updated successfully.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error while updating account.' });
+  }
+};
+
+const updateApprovalStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approvalStatus, reason = '' } = req.body;
+    if (!['pending', 'approved', 'rejected'].includes(approvalStatus)) {
+      return res.status(400).json({ success: false, message: 'Invalid approval status.' });
+    }
+    if (approvalStatus === 'rejected' && !reason.trim()) {
+      return res.status(400).json({ success: false, message: 'Reject reason is required.' });
+    }
+
+    const updated = await EventOrgAccount.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          approvalStatus,
+          rejectionReason: approvalStatus === 'rejected' ? reason : ''
+        },
+        $push: { approvalHistory: { status: approvalStatus, reason } }
+      },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: 'Account not found.' });
+    return res.status(200).json({ success: true, message: 'Approval status updated.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error while updating approval.' });
+  }
+};
 module.exports = {
   registerOrgAccount,
   getOrgAccount,
@@ -653,5 +851,13 @@ module.exports = {
   verifyEmailOtp,
   submitAgreement,
   updateProfile,
-  getProfile
+  getProfile,
+  updateKycDetails,
+  getPasswordStatus,
+  updatePassword,
+  sendPasswordResetOtp,
+  resetPasswordWithOtp,
+  listOrgAccounts,
+  adminUpdateOrgAccount,
+  updateApprovalStatus
 };
