@@ -1,5 +1,27 @@
 const mongoose = require('mongoose');
 
+
+// 👇 Added this new section near the top
+const ticketTierSchema = new mongoose.Schema({
+  ticketName: { type: String, required: true },
+  price: { type: Number, required: true },
+  quantity: { type: Number, required: true },
+  available: { type: Number, required: true },
+  slotDate: { type: String, default: '' },
+  eventStartTime: { type: String, default: '' },
+  eventEndTime: { type: String, default: '' },
+  startDate: { type: String, default: '' },
+  startTime: { type: String, default: '' },
+  endDate: { type: String, default: '' },
+  endTime: { type: String, default: '' },
+  ebPrice: { type: String, default: '-' },
+  ebQty: { type: String, default: '-' },
+  ebStart: { type: String, default: '-' },
+  ebStartTime: { type: String, default: '-' },
+  ebEnd: { type: String, default: '-' },
+  ebEndTime: { type: String, default: '-' }
+}, { _id: false });
+
 const createEventSchema = new mongoose.Schema({
   // Auto-increment Event ID (CE1, CE2, ...) & Multi-tenancy
   createEventId: {
@@ -71,8 +93,7 @@ const createEventSchema = new mongoose.Schema({
     trim: true,
     index: true 
   },
-  // STEP 4: Ticketing
-  ticketTiers: { type: Array, default: [] },
+  ticketTiers: [ticketTierSchema],
 
   // STEP 5: Event Guide & Rules
   guideResponses: { type: Array, default: [] },

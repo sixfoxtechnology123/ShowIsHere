@@ -520,11 +520,15 @@ const handleDragOver = (e) => {
           : ''
       )
     },
-    ticketTiers: (savedTickets || []).map((t) => ({
+ ticketTiers: (savedTickets || []).map((t) => ({
       ticketName: t.name,
       price: Number(t.price) || 0,
       quantity: Number(t.qty) || 0,
       available: Number(t.available) || 0,
+      slotDate: t.slotDate || '',
+      eventStartTime: t.startTime || '',
+      eventEndTime: t.endTime || '',
+
       startDate: t.startDate || '',
       startTime: t.startTime || '',
       endDate: t.endDate || '',
@@ -534,8 +538,7 @@ const handleDragOver = (e) => {
       ebStart: t.ebStart || '-',
       ebStartTime: t.ebStartTime || '-',
       ebEnd: t.ebEnd || '-',
-      ebEndTime: t.ebEndTime || '-',
-      slotDate: t.slotDate || ''
+      ebEndTime: t.ebEndTime || '-'
     })),
     guideResponses: [
       { questionId: 'PET', question: 'Is your event pet-friendly?', selectedOptions: [formData.isPetFriendly] },
@@ -2349,9 +2352,12 @@ const handleDragOver = (e) => {
                 : []
               )
             : (formData.selectedWeeklyDates && formData.selectedWeeklyDates.length > 0 
-                ? formData.selectedWeeklyDates.map(date => {
-                    const match = (formData.weeklyTimeSlots || []).find(s => s.date === date || formData.sameTimeSlotForAll);
-                    return { date, startTime: match?.startTime || '', endTime: match?.endTime || '' };
+                ? formData.selectedWeeklyDates.flatMap(date => {
+                    const matches = (formData.weeklyTimeSlots || []).filter(s => s.date === date || formData.sameTimeSlotForAll);
+                    if (matches.length > 0) {
+                      return matches.map(m => ({ date, startTime: m.startTime, endTime: m.endTime }));
+                    }
+                    return [{ date, startTime: '', endTime: '' }];
                   })
                 : []
               )
