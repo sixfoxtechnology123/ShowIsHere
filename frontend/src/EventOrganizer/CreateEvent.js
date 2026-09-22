@@ -51,6 +51,18 @@ const calculateAvailableAfterEarlyBird = (ticketQty, earlyBirdQty) => {
   return Math.max(0, baseQty - ebQty).toString();
 };
 
+const hasOverlappingSlots = (slots) => {
+  const valid = (slots || []).filter((s) => s.startTime && s.endTime);
+  for (let i = 0; i < valid.length; i++) {
+    for (let j = i + 1; j < valid.length; j++) {
+      if (valid[i].startTime < valid[j].endTime && valid[i].endTime > valid[j].startTime) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 const CreateEvent = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(1);
@@ -203,30 +215,67 @@ useEffect(() => {
     setSeatMapImage(location.state.seatMapPreview);
   }
 
-  // Restore everything (title, categories, dates, venue, tickets)
+// 1. First restore local state/temp data
   const savedData = location.state?.restoredEventForm || sessionStorage.getItem('create_event_temp_data');
+  let eventIdToFetch = null;
+
   if (savedData) {
     try {
       const parsed = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
       
-      if (parsed.formData) {
-        setFormData(parsed.formData);
-      }
-      if (parsed.savedTickets) {
-        setSavedTickets(parsed.savedTickets);
-      }
-      if (parsed.bannerPreview) {
-        setBannerPreview(parsed.bannerPreview);
-      }
-      if (parsed.thumbnailPreview) {
-        setThumbnailPreview(parsed.thumbnailPreview);
-      }
+      if (parsed.formData) setFormData(parsed.formData);
+      if (parsed.savedTickets) setSavedTickets(parsed.savedTickets);
+      if (parsed.bannerPreview) setBannerPreview(parsed.bannerPreview);
+      if (parsed.thumbnailPreview) setThumbnailPreview(parsed.thumbnailPreview);
       if (parsed.createdEventId) {
         setCreatedEventId(parsed.createdEventId);
+        eventIdToFetch = parsed.createdEventId;
       }
     } catch (err) {
       console.error('Error restoring data', err);
     }
+  }
+
+  // 2. Fetch fresh document from MongoDB to overwrite stale dates on refresh
+  const targetEventId = location.state?.eventId || eventIdToFetch || createdEventId;
+
+  if (targetEventId) {
+    API.get(`/events/${targetEventId}`)
+      .then((res) => {
+        const ev = res.data?.data || res.data?.event || res.data;
+        if (ev) {
+          const freshStartDate = ev.schedule?.startDate
+            ? new Date(ev.schedule.startDate).toISOString().split('T')[0]
+            : (ev.startDate ? new Date(ev.startDate).toISOString().split('T')[0] : '');
+
+          setFormData((prev) => {
+            const updated = {
+              ...prev,
+              eventTitle: ev.eventName || prev.eventTitle,
+              fullDescription: ev.eventDescription || prev.fullDescription,
+              startDate: freshStartDate || prev.startDate,
+              startTime: ev.schedule?.startTime || ev.startTime || prev.startTime,
+              endTime: ev.schedule?.endTime || ev.endTime || prev.endTime,
+              venueName: ev.venue?.name || prev.venueName,
+              venueAddress: ev.venue?.addressLine1 || prev.venueAddress,
+              venueCity: ev.venue?.city || prev.venueCity,
+              venuePinCode: ev.venue?.pincode || prev.venuePinCode
+            };
+
+            // Update sessionStorage with the fresh database date
+            sessionStorage.setItem('create_event_temp_data', JSON.stringify({
+              formData: updated,
+              savedTickets,
+              bannerPreview,
+              thumbnailPreview,
+              createdEventId: targetEventId
+            }));
+
+            return updated;
+          });
+        }
+      })
+      .catch((err) => console.error('Error fetching fresh event data:', err));
   }
 }, [location.state]);
 
@@ -1461,44 +1510,75 @@ const handleDragOver = (e) => {
 
             return (
               <div key={index} className="flex items-center gap-3 w-full">
-                <div className="flex-1">
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
-                  <input 
-                    type="time" 
-                    disabled={!formData.startDate}
-                    value={slot.startTime} 
-                    onChange={(e) => {
-                      if (!formData.startDate) {
-                        toast.error('Please select a date first', { id: 'date-restriction-toast' });
-                        return;
-                      }
-                      const slots = [...arr];
-                      slots[index].startTime = e.target.value;
-                      setFormData({ ...formData, dailyTimeSlots: slots });
-                    }} 
-                    className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-                  />
-                </div>
-                <span className="text-slate-400 font-bold mt-5">-</span>
-                <div className="flex-1">
-                  <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
-                  <input 
-                    type="time" 
-                    disabled={!slot.startTime}
-                    value={slot.endTime}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (slot.startTime && val <= slot.startTime) {
-                        toast.error('End time must be later than start time.', { id: 'time-validation-error' });
-                        return;
-                      }
-                      const slots = [...arr];
-                      slots[index].endTime = val;
-                      setFormData({ ...formData, dailyTimeSlots: slots });
-                    }} 
-                    className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-                  />
-                </div>
+         <div className="flex items-center gap-3 w-full">
+  {/* Start Time Input */}
+  <div className="flex-1">
+    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
+    <input 
+      type="time" 
+      value={slot.startTime} 
+      onChange={(e) => {
+        const val = e.target.value;
+        const slots = [...arr];
+        slots[index].startTime = val;
+        setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
+      }} 
+      onBlur={() => {
+        if (!slot.startTime) return;
+        
+        // Check if start time falls inside another event's time
+        const isStartInsideAnother = arr.some((other, idx) => {
+          if (idx === index) return false;
+          if (!other.startTime || !other.endTime) return false;
+          return slot.startTime >= other.startTime && slot.startTime < other.endTime;
+        });
+
+        if (isStartInsideAnother) {
+          toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'start-err' });
+          
+          // Reset start time
+          const slots = [...arr];
+          slots[index].startTime = '';
+          setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
+        }
+      }}
+      className={`${inputFieldStyle} border-2 w-full`} 
+    />
+  </div>
+
+  <span className="text-slate-400 font-bold mt-5">-</span>
+
+  {/* End Time Input */}
+  <div className="flex-1">
+    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
+    <input 
+      type="time" 
+      disabled={!slot.startTime}
+      value={slot.endTime}
+      onChange={(e) => {
+        const val = e.target.value;
+        if (slot.startTime && val <= slot.startTime) {
+          toast.error('End time must be later than start time.', { id: 'time-val-err' });
+          return;
+        }
+        const slots = [...arr];
+        slots[index].endTime = val;
+        setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
+      }} 
+      onBlur={() => {
+        if (slot.startTime && slot.endTime && hasOverlappingSlots(arr)) {
+          toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'overlap-err' });
+          
+          // Reset end time
+          const slots = [...arr];
+          slots[index].endTime = '';
+          setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
+        }
+      }}
+      className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+    />
+  </div>
+</div>
 
                 {/* Slot Action Buttons */}
                 <div className="mt-5 flex items-center gap-1 ">
@@ -1695,39 +1775,75 @@ const handleDragOver = (e) => {
 
                 return (
                   <div key={index} className="flex items-center gap-3 w-full">
-                    <div className="flex-1">
-                      <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
-                      <input 
-                        type="time" 
-                        value={slot.startTime} 
-                        onChange={(e) => {
-                          const slots = [...arr];
-                          slots[index].startTime = e.target.value;
-                          setFormData({ ...formData, weeklyTimeSlots: slots });
-                        }} 
-                        className={`${inputFieldStyle} border-2 w-full`} 
-                      />
-                    </div>
-                    <span className="text-slate-400 font-bold mt-5">-</span>
-                    <div className="flex-1">
-                      <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
-                      <input 
-                        type="time" 
-                        disabled={!slot.startTime}
-                        value={slot.endTime}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (slot.startTime && val <= slot.startTime) {
-                            toast.error('End time must be later than start time.', { id: 'time-validation-error' });
-                            return;
-                          }
-                          const slots = [...arr];
-                          slots[index].endTime = val;
-                          setFormData({ ...formData, weeklyTimeSlots: slots });
-                        }} 
-                        className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-                      />
-                    </div>
+                   <div className="flex items-center gap-3 w-full">
+
+  <div className="flex-1">
+    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
+    <input 
+      type="time" 
+      value={slot.startTime} 
+      onChange={(e) => {
+        const val = e.target.value;
+        const updated = [...(formData.weeklyTimeSlots || [])];
+        updated[slot.globalIndex].startTime = val;
+        setFormData({ ...formData, weeklyTimeSlots: updated });
+      }} 
+      onBlur={() => {
+        if (!slot.startTime) return;
+        
+        // Filter slots strictly for this slot's date
+        const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === slot.date);
+        const isStartInsideAnother = dateSlots.some((other) => {
+          if (other.globalIndex === slot.globalIndex) return false;
+          if (!other.startTime || !other.endTime) return false;
+          return slot.startTime >= other.startTime && slot.startTime < other.endTime;
+        });
+
+        if (isStartInsideAnother) {
+          toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'start-err' });
+          
+          const updated = [...(formData.weeklyTimeSlots || [])];
+          updated[slot.globalIndex].startTime = '';
+          setFormData({ ...formData, weeklyTimeSlots: updated });
+        }
+      }}
+      className={`${inputFieldStyle} border-2 w-full`} 
+    />
+  </div>
+
+  <span className="text-slate-400 font-bold mt-5">-</span>
+
+  {/* End Time Input */}
+  <div className="flex-1">
+    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
+    <input 
+      type="time" 
+      disabled={!slot.startTime}
+      value={slot.endTime}
+      onChange={(e) => {
+        const val = e.target.value;
+        if (slot.startTime && val <= slot.startTime) {
+          toast.error('End time must be later than start time.', { id: 'time-val-err' });
+          return;
+        }
+        const updated = [...(formData.weeklyTimeSlots || [])];
+        updated[slot.globalIndex].endTime = val;
+        setFormData({ ...formData, weeklyTimeSlots: updated });
+      }} 
+      onBlur={() => {
+        const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === slot.date);
+        if (slot.startTime && slot.endTime && hasOverlappingSlots(dateSlots)) {
+          toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'overlap-err' });
+          
+          const updated = [...(formData.weeklyTimeSlots || [])];
+          updated[slot.globalIndex].endTime = '';
+          setFormData({ ...formData, weeklyTimeSlots: updated });
+        }
+      }}
+      className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+    />
+  </div>
+</div>
 
                     <div className="mt-5 flex items-center gap-1">
                       {hasMultiple && (
@@ -1802,25 +1918,47 @@ const handleDragOver = (e) => {
                   </div>
 
                   <div className="space-y-3">
-                    {dateSlotsWithIndex.map((slotItem, localIndex) => {
+                   {dateSlotsWithIndex.map((slotItem, localIndex) => {
                       const isLastRow = localIndex === dateSlotsWithIndex.length - 1;
-
                       return (
                         <div key={slotItem.globalIndex} className="flex items-center gap-3 w-full">
+                          {/* Start Time Input */}
                           <div className="flex-1">
                             <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
                             <input 
                               type="time" 
                               value={slotItem.startTime} 
                               onChange={(e) => {
+                                const val = e.target.value;
                                 const updated = [...(formData.weeklyTimeSlots || [])];
-                                updated[slotItem.globalIndex].startTime = e.target.value;
+                                updated[slotItem.globalIndex].startTime = val;
                                 setFormData({ ...formData, weeklyTimeSlots: updated });
                               }} 
+                              onBlur={() => {
+                                if (!slotItem.startTime) return;
+                                
+                                const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === dateVal);
+                                const isStartInsideAnother = dateSlots.some((other) => {
+                                  if (other.globalIndex === slotItem.globalIndex) return false;
+                                  if (!other.startTime || !other.endTime) return false;
+                                  return slotItem.startTime >= other.startTime && slotItem.startTime < other.endTime;
+                                });
+
+                                if (isStartInsideAnother) {
+                                  toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'weekly-start-err' });
+                                  
+                                  const updated = [...(formData.weeklyTimeSlots || [])];
+                                  updated[slotItem.globalIndex].startTime = '';
+                                  setFormData({ ...formData, weeklyTimeSlots: updated });
+                                }
+                              }}
                               className={`${inputFieldStyle} border-2 w-full`} 
                             />
                           </div>
+
                           <span className="text-slate-400 font-bold mt-5">-</span>
+
+                          {/* End Time Input */}
                           <div className="flex-1">
                             <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
                             <input 
@@ -1837,12 +1975,21 @@ const handleDragOver = (e) => {
                                 updated[slotItem.globalIndex].endTime = val;
                                 setFormData({ ...formData, weeklyTimeSlots: updated });
                               }} 
+                              onBlur={() => {
+                                const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === dateVal);
+                                if (slotItem.startTime && slotItem.endTime && hasOverlappingSlots(dateSlots)) {
+                                  toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'weekly-overlap-err' });
+                                  
+                                  const updated = [...(formData.weeklyTimeSlots || [])];
+                                  updated[slotItem.globalIndex].endTime = '';
+                                  setFormData({ ...formData, weeklyTimeSlots: updated });
+                                }
+                              }}
                               className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
                             />
                           </div>
 
                           <div className="mt-5 flex items-center gap-1.5">
-                            {/* If > 1 row: show delete button on all rows */}
                             {hasMultipleRows && (
                               <button 
                                 type="button" 
@@ -1859,7 +2006,6 @@ const handleDragOver = (e) => {
                               </button>
                             )}
 
-                            {/* Show '+' button strictly on the last row (whether 1 row or many) */}
                             {isLastRow && (
                               <button 
                                 type="button" 
@@ -2187,7 +2333,7 @@ const handleDragOver = (e) => {
     </div>
 
 
-      <div className="pt-6 border-t border-slate-100 space-y-4">
+  <div className="pt-6 border-t border-slate-100 space-y-4">
     <h3 className="font-semibold text-base">Ticket Type</h3>
     
     <div className="rounded-2xl bg-white overflow-hidden shadow-2xs space-y-4 p-4">
@@ -2214,6 +2360,17 @@ const handleDragOver = (e) => {
         const displayDate = slot.date || formData.startDate || '';
         const displayStart = slot.startTime || '';
         const displayEnd = slot.endTime || '';
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const getMaxSalesStartDate = () => {
+          if (!displayDate) return undefined;
+          const d = new Date(displayDate);
+          if (isNaN(d)) return undefined;
+          d.setDate(d.getDate() - 1);
+          return d.toISOString().split('T')[0];
+        };
+        const maxSalesDate = getMaxSalesStartDate();
 
         const slotTickets = savedTickets.filter(t => {
           const slotIdentifier = `${displayDate}_${displayStart}`;
@@ -2262,20 +2419,11 @@ const handleDragOver = (e) => {
                 
                 {slotTickets.length === 0 && (
                   <div className="flex items-center justify-between w-full">
-                    <div 
-                      onClick={() => {
-                        setEditingIndex(null);
-                        setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
-                        setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
-                        setHasEarlyBird(false);
-                        setEbPrice(''); setEbQuantity(''); setEbStartDate(''); setEbStartTime(''); setEbEndDate(''); setEbEndTime('');
-                        setSameTicketForEvent(false);
-                        setShowTicketForm(!showTicketForm);
-                      }}
-                      className="flex-1 py-3.5 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-lg text-xs text-slate-600 font-medium text-center cursor-pointer transition border border-slate-200/60"
-                    >
+                    {/* Plain banner with NO click handler */}
+                    <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-lg text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
                       No tickets added yet!
                     </div>
+                    {/* ONLY this + icon opens the ticket form */}
                     <button
                       type="button"
                       onClick={() => {
@@ -2342,7 +2490,6 @@ const handleDragOver = (e) => {
                                     setEndDate(t.endDate);
                                     setEndTime(t.endTime || '');
                                     
-                                    // Properly pre-fill Early Bird fields & toggle state when editing
                                     const hasEB = t.ebPrice && t.ebPrice !== '-';
                                     setHasEarlyBird(hasEB);
                                     setEbPrice(hasEB ? t.ebPrice : '');
@@ -2352,9 +2499,7 @@ const handleDragOver = (e) => {
                                     setEbEndDate(hasEB && t.ebEnd !== '-' ? t.ebEnd : '');
                                     setEbEndTime(hasEB && t.ebEndTime !== '-' ? (t.ebEndTime || '') : '');
 
-                                    // Pre-fill "Same ticket for this event" toggle state
                                     setSameTicketForEvent(t.slotDate === 'all');
-                                    
                                     setShowTicketForm(true);
                                   }}
                                   className="text-slate-500 hover:text-blue-600 cursor-pointer" 
@@ -2425,39 +2570,46 @@ const handleDragOver = (e) => {
                           className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
                         />
                       </div>
-                      <div className="sm:col-span-2 space-y-1.5">
-                        <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
-                        <input 
-                          type="text" 
-                          placeholder="" 
-                          value={quantity} 
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '' || /^\d*$/.test(val)) {
-                              setQuantity(val);
-                              if (hasEarlyBird) {
-                                setAvailable(val === '' ? '' : calculateAvailableAfterEarlyBird(val, ebQuantity));
-                              }
-                            }
-                          }} 
-                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
-                        />
-                      </div>
-                      <div className="sm:col-span-3 space-y-1.5">
-                        <label className="text-[11px] font-medium text-slate-800 block">Available</label>
-                        <input 
-                          type="text" 
-                          placeholder="" 
-                          value={available} 
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '' || /^\d*$/.test(val)) setAvailable(val);
-                          }} 
-                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
-                        />
-                      </div>
+                  {/* Quantity Input - Fully Manual */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
+                    <input 
+                      type="text" 
+                      placeholder="" 
+                      value={quantity} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          setQuantity(val); // 👈 Only updates Quantity, never touches Available!
+                        }
+                      }} 
+                      className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                    />
+                  </div>
+
+                  {/* Available Input - Fully Manual */}
+                  <div className="sm:col-span-3 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Available</label>
+                    <input 
+                      type="text" 
+                      placeholder="" 
+                      value={available} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*$/.test(val)) {
+                          if (quantity && val !== '' && Number(val) > Number(quantity)) {
+                            toast.error('Available tickets cannot be greater than total quantity.', { id: 'avail-qty-err' });
+                            return;
+                          }
+                          setAvailable(val); // 👈 You manually type whatever number you want!
+                        }
+                      }} 
+                      className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                    />
+                  </div>
                     </div>
 
+                   {/* Sales Period Section */}
                     <div className="space-y-2 pt-1">
                       <span className="text-xs font-semibold text-slate-800 block">Sales Period</span>
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
@@ -2467,8 +2619,18 @@ const handleDragOver = (e) => {
                             <input 
                               type="date" 
                               value={startDate} 
+                              min={todayStr}
+                              max={maxSalesDate}
                               onChange={(e) => {
                                 const val = e.target.value;
+                                if (val && val < todayStr) {
+                                  toast.error('Sales start date cannot be before current date.', { id: 'sales-min-err' });
+                                  return;
+                                }
+                                if (displayDate && val >= displayDate) {
+                                  toast.error('Sales start date must be strictly before the event date.', { id: 'sales-start-err' });
+                                  return;
+                                }
                                 setStartDate(val);
                                 if (endDate && endDate < val) setEndDate('');
                                 setEndTime('');
@@ -2497,10 +2659,20 @@ const handleDragOver = (e) => {
                             <input 
                               type="date" 
                               value={endDate} 
-                              min={startDate} 
+                              min={startDate || todayStr} 
+                              max={displayDate || undefined} // 👈 Cannot be after event date
                               disabled={!startDate} 
                               onChange={(e) => {
-                                setEndDate(e.target.value);
+                                const val = e.target.value;
+                                if (startDate && val < startDate) {
+                                  toast.error('End date cannot be before start date.', { id: 'sales-end-min-err' });
+                                  return;
+                                }
+                                if (displayDate && val > displayDate) {
+                                  toast.error('End date cannot be after the event date.', { id: 'sales-end-max-err' });
+                                  return;
+                                }
+                                setEndDate(val);
                                 setEndTime('');
                               }} 
                               className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
@@ -2538,12 +2710,17 @@ const handleDragOver = (e) => {
                             const checked = e.target.checked;
                             setHasEarlyBird(checked);
                             if (checked) {
-                              setAvailable(quantity ? calculateAvailableAfterEarlyBird(quantity, ebQuantity) : '');
+                              const baseAvail = available || quantity || '';
+                              if (baseAvail && ebQuantity) {
+                                setAvailable(String(Math.max(0, Number(baseAvail) - Number(ebQuantity))));
+                              }
                             }
                             if (!checked) {
+                              if (ebQuantity && available) {
+                                setAvailable(String(Math.min(Number(quantity || available), Number(available) + Number(ebQuantity))));
+                              }
                               setEbPrice('');
                               setEbQuantity('');
-                              setAvailable(quantity);
                               setEbStartDate('');
                               setEbStartTime('');
                               setEbEndDate('');
@@ -2556,7 +2733,7 @@ const handleDragOver = (e) => {
                       </label>
                     </div>
 
-                    {hasEarlyBird && (
+                 {hasEarlyBird && (
                       <div className="rounded-lg space-y-4">
                         <div className="grid grid-cols-6 gap-6">
                           <div className="space-y-1">
@@ -2579,8 +2756,19 @@ const handleDragOver = (e) => {
                               onChange={(e) => {
                                 const val = e.target.value;
                                 if (val === '' || /^\d*$/.test(val)) {
+                                  const currentAvail = Number(available || 0);
+                                  const oldEb = Number(ebQuantity || 0);
+                                  const originalAvail = currentAvail + oldEb;
+
+                                  if (val !== '' && Number(val) > originalAvail) {
+                                    toast.error('Early bird quantity cannot be greater than available tickets.', { id: 'eb-avail-err' });
+                                    setEbQuantity(String(originalAvail));
+                                    setAvailable('0');
+                                    return;
+                                  }
+
                                   setEbQuantity(val);
-                                  setAvailable(quantity ? calculateAvailableAfterEarlyBird(quantity, val) : '');
+                                  setAvailable(val === '' ? String(originalAvail) : String(Math.max(0, originalAvail - Number(val))));
                                 }
                               }} 
                               className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} 
@@ -2592,7 +2780,27 @@ const handleDragOver = (e) => {
                           <div className="sm:col-span-5 grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                               <label className="text-[11px] text-slate-500 block">Start date</label>
-                              <input type="date" value={ebStartDate} onChange={(e) => setEbStartDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} />
+                              <input 
+                                type="date" 
+                                value={ebStartDate} 
+                                min={todayStr}
+                                max={maxSalesDate}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val && val < todayStr) {
+                                    toast.error('Early bird start date cannot be before current date.', { id: 'eb-min-err' });
+                                    return;
+                                  }
+                                  if (displayDate && val >= displayDate) {
+                                    toast.error('Early bird start date must be strictly before the event date.', { id: 'eb-start-err' });
+                                    return;
+                                  }
+                                  setEbStartDate(val);
+                                  if (ebEndDate && ebEndDate < val) setEbEndDate('');
+                                  setEbEndTime('');
+                                }} 
+                                className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white`} 
+                              />
                             </div>
                             <div className="space-y-1">
                               <label className="text-[11px] text-slate-500 block">Start time</label>
@@ -2603,7 +2811,27 @@ const handleDragOver = (e) => {
                           <div className="sm:col-span-6 grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                               <label className="text-[11px] text-slate-500 block">End date</label>
-                              <input type="date" value={ebEndDate} min={ebStartDate} disabled={!ebStartDate} onChange={(e) => setEbEndDate(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} />
+                              <input 
+                                type="date" 
+                                value={ebEndDate} 
+                                min={ebStartDate || todayStr} 
+                                max={displayDate || undefined} // 👈 Cannot be after event date
+                                disabled={!ebStartDate} 
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (ebStartDate && val < ebStartDate) {
+                                    toast.error('Early bird end date cannot be before start date.', { id: 'eb-end-min-err' });
+                                    return;
+                                  }
+                                  if (displayDate && val > displayDate) {
+                                    toast.error('Early bird end date cannot be after the event date.', { id: 'eb-end-max-err' });
+                                    return;
+                                  }
+                                  setEbEndDate(val);
+                                  setEbEndTime('');
+                                }} 
+                                className={`${inputFieldStyle} border border-slate-300 text-xs py-2 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                              />
                             </div>
                             <div className="space-y-1">
                               <label className="text-[11px] text-slate-500 block">End time</label>
@@ -2615,29 +2843,43 @@ const handleDragOver = (e) => {
                     )}
 
                     <div className="flex items-center justify-between pt-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-600">Same ticket for this event</span>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={sameTicketForEvent} 
-                            onChange={(e) => setSameTicketForEvent(e.target.checked)} 
-                            className="sr-only peer" 
-                          />
-                          <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-                     <button 
+                      {formData.eventScheduleType !== 'single' ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-600">Same ticket for this event</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={sameTicketForEvent} 
+                              onChange={(e) => setSameTicketForEvent(e.target.checked)} 
+                              className="sr-only peer" 
+                            />
+                            <div className="w-7 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                      ) : <div />}
+                      <button 
                         type="button" 
                         onClick={() => {
                           if (!ticketName || !price || !quantity) return toast.error('Please fill required ticket details.', { id: 'ticket-val' });
+                          if (available && Number(available) > Number(quantity)) {
+                            return toast.error('Available tickets cannot be greater than total quantity.', { id: 'ticket-val-avail' });
+                          }
+                          if (hasEarlyBird && ebQuantity && Number(ebQuantity) > Number(quantity)) {
+                            return toast.error('Early bird quantity cannot exceed ticket quantity.', { id: 'ticket-val-eb' });
+                          }
+                          if (startDate && startDate < todayStr) {
+                            return toast.error('Ticket sales start date cannot be before current date.', { id: 'ticket-val-min-date' });
+                          }
+                          if (startDate && displayDate && startDate >= displayDate) {
+                            return toast.error('Ticket sales start date must be strictly before the event date.', { id: 'ticket-val-date' });
+                          }
                           if (endDate && startDate && endDate < startDate) return toast.error('End date cannot be before start date.', { id: 'time-val' });
 
                           const newTicketData = { 
                             name: ticketName, 
                             price, 
                             qty: quantity, 
-                            available: hasEarlyBird ? calculateAvailableAfterEarlyBird(quantity, ebQuantity) : (available || quantity),
+                            available: available || quantity,
                             startDate: startDate || '', 
                             startTime: startTime || '',
                             endDate: endDate || '', 
@@ -2646,9 +2888,9 @@ const handleDragOver = (e) => {
                             ebQty: hasEarlyBird ? ebQuantity : '-',
                             ebStart: hasEarlyBird ? ebStartDate : '-', 
                             ebStartTime: hasEarlyBird ? ebStartTime : '-',
-                            ebEnd: hasEarlyBird ? ebEndDate : '-',
+                            ebEnd: hasEarlyBird ? ebEndDate : '-', 
                             ebEndTime: hasEarlyBird ? ebEndTime : '-',
-                            slotDate: sameTicketForEvent ? 'all' : displayDate,
+                            slotDate: (formData.eventScheduleType !== 'single' && sameTicketForEvent) ? 'all' : displayDate,
                             startTime: displayStart
                           };
 
