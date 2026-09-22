@@ -19,6 +19,11 @@ const LoginPage = () => {
   const [isPasswordMode, setIsPasswordMode] = useState(false); 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+const [newPassword, setNewPassword] = useState('');
+const [confirmPassword, setConfirmPassword] = useState('');
+const [showNewPassword, setShowNewPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Countdown timer for Resend OTP
   useEffect(() => {
@@ -57,6 +62,11 @@ const LoginPage = () => {
       toast.error('Invalid OTP', { id: 'signin-toast' });
       return;
     }
+    if (isForgotPassword) {
+      setStep(3); // Moves to the new password form (Step 3)
+      setOtp('');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -75,7 +85,7 @@ const LoginPage = () => {
           if (response.data) {
             localStorage.setItem('orgUserData', JSON.stringify(response.data));
           }
-          navigate('/profile'); 
+          navigate('/dashboard'); 
         } else {
           toast.success('New user! Please complete your registration.', { id: 'signin-toast' });
           localStorage.setItem('loginMobileNumber', mobileNumber);
@@ -163,161 +173,241 @@ const LoginPage = () => {
           
           </div>
 
+{/* --- MAIN FORM RENDER SWITCH --- */}
 {!isPasswordMode ? (
-            step === 1 ? (
-              /* --- OTP STEP 1: MOBILE ENTRY (DEFAULT) --- */
-              <form onSubmit={handleSendOtp} className="space-y-4">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Mobile no.</label>
-                  <input 
-                    type="tel" 
-                    maxLength="10"
-                    value={mobileNumber} 
-                    onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} 
-                    placeholder="Enter your mobile no" 
-                    className={`${inputFieldStyle} border-2 bg-white`} 
-                  />
-                </div>
+  step === 1 ? (
+    /* --- OTP STEP 1: MOBILE ENTRY --- */
+    <form onSubmit={handleSendOtp} className="space-y-4">
+      <div>
+        <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Mobile no.</label>
+        <input 
+          type="tel" 
+          maxLength="10"
+          value={mobileNumber} 
+          onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} 
+          placeholder="Enter your mobile no" 
+          className={`${inputFieldStyle} border-2 bg-white`} 
+        />
+      </div>
+      <button 
+        type="submit" 
+        disabled={mobileNumber.length !== 10}
+        className="w-full bg-blue-600 disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
+      >
+        Send OTP
+      </button>
+    </form>
+  ) : step === 2 ? (
+    /* --- OTP STEP 2: 4-DIGIT VERIFICATION --- */
+    <div className="space-y-4">
+      <div>
+        <label className="text-[12px] font-medium text-slate-700 mb-1">One-time password</label>
+        <input 
+          type="text" 
+          maxLength="4"
+          value={otp} 
+          onChange={handleOtpChange} 
+          placeholder="Enter OTP" 
+          className={`${inputFieldStyle} border-2 tracking-widest font-bold text-base bg-white`} 
+        />
+      </div>
+      <div className="flex justify-end text-xs">
+        {canResend ? (
+          <button type="button" onClick={handleResendOtp} className="text-blue-600 font-semibold cursor-pointer">
+            Resend OTP
+          </button>
+        ) : (
+          <span className="text-slate-400">Resend in {timer}s</span>
+        )}
+      </div>
+      <div className="flex justify-center pt-2">
+        <button type="button" onClick={() => { setStep(1); setOtp(''); setIsForgotPassword(false); }} className="text-blue-600 font-semibold hover:underline cursor-pointer text-xs">
+          Back
+        </button>
+      </div>
+      {loading && (
+        <div className="text-center text-xs text-slate-500 font-medium">Verifying OTP...</div>
+      )}
+    </div>
+  ) : (
+    /* --- STEP 3: RESET PASSWORD FORM --- */
+    <form onSubmit={async (e) => {
+      e.preventDefault();
+      if (newPassword !== confirmPassword) {
+        toast.error('Passwords do not match!', { id: 'signin-toast' });
+        return;
+      }
+      try {
+        const response = await API.post('/login-page/reset-password', {
+          mobileNumber,
+          newPassword
+        });
+        if (response.success) {
+          toast.success('Password changed successfully!', { id: 'signin-toast' });
+          setIsForgotPassword(false);
+          setIsPasswordMode(true);
+          setStep(1);
+          setNewPassword('');
+          setConfirmPassword('');
+          setOtp('');
+          setPassword('');
+        } else {
+          toast.error(response.message || 'Failed to reset password.');
+        }
+      } catch (err) {
+        toast.error('Server error while resetting password.', { id: 'signin-toast' });
+      }
+    }} className="space-y-4">
+      <div className="text-center text-xs text-slate-600 mb-2 font-medium">
+        To Reset your password enter your registered mobile number to get OTP
+      </div>
 
-                <button 
-                  type="submit" 
-                  disabled={mobileNumber.length !== 10}
-                  className="w-full bg-blue-600 disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
-                >
-                  Send OTP
-                </button>
-
-               
-              </form>
+      <div>
+        <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">New Password</label>
+        <div className="relative">
+          <input 
+            type={showNewPassword ? "text" : "password"} 
+            value={newPassword} 
+            onChange={(e) => setNewPassword(e.target.value)} 
+            placeholder="Enter password" 
+            className={`${inputFieldStyle} border-2 bg-white pr-10`} 
+          />
+          <button
+            type="button"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 cursor-pointer"
+          >
+            {showNewPassword ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
             ) : (
-              /* --- OTP STEP 2: 4-DIGIT VERIFICATION --- */
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[12px] font-medium text-slate-700 mb-1">One-time password</label>
-                  <input 
-                    type="text" 
-                    maxLength="4"
-                    value={otp} 
-                    onChange={handleOtpChange} 
-                    placeholder="Enter OTP" 
-                    className={`${inputFieldStyle} border-2 tracking-widest font-bold text-base bg-white`} 
-                  />
-                </div>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88" /></svg>
+            )}
+          </button>
+        </div>
+      </div>
 
-                <div className="flex justify-end text-xs">
-                  {canResend ? (
-                    <button 
-                      type="button" 
-                      onClick={handleResendOtp}
-                      className="text-blue-600 font-semibold cursor-pointer"
-                    >
-                      Resend OTP
-                    </button>
-                  ) : (
-                    <span className="text-slate-400">Resend in {timer}s</span>
-                  )}
-                </div>
+      <div>
+        <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Confirm Password</label>
+        <div className="relative">
+          <input 
+            type={showConfirmPassword ? "text" : "password"} 
+            value={confirmPassword} 
+            onChange={(e) => setConfirmPassword(e.target.value)} 
+            placeholder="Enter password" 
+            className={`${inputFieldStyle} border-2 bg-white pr-10`} 
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 cursor-pointer"
+          >
+            {showConfirmPassword ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88" /></svg>
+            )}
+          </button>
+        </div>
+      </div>
 
-                <div className="flex justify-center pt-2">
-                  <button 
-                    type="button" 
-                    onClick={() => { setStep(1); setOtp(''); }} 
-                    className="text-blue-600 font-semibold hover:underline cursor-pointer text-xs"
-                  >
-                    Back
-                  </button>
-                </div>
+      <button 
+        type="submit" 
+        disabled={!newPassword || !confirmPassword}
+        className="w-full bg-blue-600 disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
+      >
+        Submit
+      </button>
+    </form>
+  )
+) : (
+  /* --- PASSWORD LOGIN VIEW --- */
+  <form onSubmit={async (e) => {
+    e.preventDefault();
+    try {
+      const response = await API.post('/login-page/login-password', { 
+        mobileNumber, 
+        password 
+      });
+      if (response.success) {
+        toast.success('Successfully Signed In!');
+        if (response.token) localStorage.setItem('orgToken', response.token);
+        if (response.data) localStorage.setItem('orgUserData', JSON.stringify(response.data));
+        navigate('/profile');
+      } else {
+        toast.error(response.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      toast.error('Login failed. Please check credentials.', { id: 'signin-toast' });
+    }
+  }} className="space-y-4">
+    <div>
+      <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Mobile no.</label>
+      <input 
+        type="tel" 
+        maxLength="10"
+        value={mobileNumber} 
+        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} 
+        placeholder="Enter Mobile no." 
+        className={`${inputFieldStyle} border-2 bg-white`} 
+      />
+    </div>
 
-                {loading && (
-                  <div className="text-center text-xs text-slate-500 font-medium">Verifying OTP...</div>
-                )}
-              </div>
-            )
+    <div>
+      <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Password</label>
+      <div className="relative">
+        <input 
+          type={showPassword ? "text" : "password"} 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          placeholder="Enter password" 
+          className={`${inputFieldStyle} border-2 bg-white pr-10`} 
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-700 cursor-pointer"
+        >
+          {showPassword ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
           ) : (
-            /* --- PASSWORD LOGIN VIEW --- */
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              try {
-                const response = await API.post('/login-page/login-password', { 
-                  mobileNumber, 
-                  password 
-                });
-                if (response.success) {
-                  toast.success('Successfully Signed In!');
-                  if (response.token) localStorage.setItem('orgToken', response.token);
-                  if (response.data) localStorage.setItem('orgUserData', JSON.stringify(response.data));
-                  navigate('/profile');
-                } else {
-                  toast.error(response.message || 'Invalid credentials');
-                }
-              } catch (err) {
-                toast.error('Login failed. Please check credentials.');
-              }
-            }} className="space-y-4">
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Mobile no.</label>
-                <input 
-                  type="tel" 
-                  maxLength="10"
-                  value={mobileNumber} 
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} 
-                  placeholder="Enter Mobile no." 
-                  className={`${inputFieldStyle} border-2 bg-white`} 
-                />
-              </div>
-
-            <div>
-                <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Password</label>
-                <div className="relative">
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    placeholder="Enter password" 
-                    className={`${inputFieldStyle} border-2 bg-white pr-10`} 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-700 cursor-pointer"
-                  >
-                    {showPassword ? (
-                      /* Eye Open Icon */
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    ) : (
-                      /* Eye Slash / Closed Icon */
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                <div className="text-right mt-1">
-                  <span className="text-xs text-blue-600 font-semibold cursor-pointer hover:underline">Forgot password?</span>
-                </div>
-              </div>
-              <button 
-                type="submit" 
-                disabled={mobileNumber.length !== 10 || !password}
-                className="w-full bg-blue-600  disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
-              >
-                Proceed
-              </button>
-            <div className="text-center">
-                <button 
-                  type="button" 
-                  onClick={() => setIsPasswordMode(false)} 
-                  className="text-blue-600 font-semibold text-xs  cursor-pointer"
-                >
-                  Login with OTP
-                </button>
-              </div>
-             
-            </form>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88" /></svg>
           )}
+        </button>
+      </div>
+      <div className="text-right mt-1">
+        <span 
+          onClick={() => {
+            setIsPasswordMode(false);
+            setIsForgotPassword(true);
+            setStep(1);
+            setMobileNumber('');
+            setOtp('');
+          }} 
+          className="text-xs text-blue-600 font-semibold cursor-pointer hover:underline"
+        >
+          Forgot password?
+        </span>
+      </div>
+    </div>
+
+    <button 
+      type="submit" 
+      disabled={mobileNumber.length !== 10 || !password}
+      className="w-full bg-blue-600 disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
+    >
+      Proceed
+    </button>
+    <div className="text-center">
+      <button 
+        type="button" 
+        onClick={() => setIsPasswordMode(false)} 
+        className="text-blue-600 font-semibold text-xs cursor-pointer"
+      >
+        Login with OTP
+      </button>
+    </div>
+  </form>
+)}
 
           <hr className="border-slate-300" />
 
