@@ -650,7 +650,7 @@ const handleDragOver = (e) => {
         const res = await API.post('/events/save-step', {
           ...payload,
           eventId: createdEventId,
-          status: 'DRAFT'
+          status: 'PENDING'
         });
         
         toast.success(res.data?.message || 'Submitted successfully! Form reset.');
