@@ -16,6 +16,9 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [isPasswordMode, setIsPasswordMode] = useState(false); 
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Countdown timer for Resend OTP
   useEffect(() => {
@@ -160,8 +163,97 @@ const LoginPage = () => {
           
           </div>
 
-          {step === 1 ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
+{!isPasswordMode ? (
+            step === 1 ? (
+              /* --- OTP STEP 1: MOBILE ENTRY (DEFAULT) --- */
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Mobile no.</label>
+                  <input 
+                    type="tel" 
+                    maxLength="10"
+                    value={mobileNumber} 
+                    onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} 
+                    placeholder="Enter your mobile no" 
+                    className={`${inputFieldStyle} border-2 bg-white`} 
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={mobileNumber.length !== 10}
+                  className="w-full bg-blue-600 disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
+                >
+                  Send OTP
+                </button>
+
+               
+              </form>
+            ) : (
+              /* --- OTP STEP 2: 4-DIGIT VERIFICATION --- */
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[12px] font-medium text-slate-700 mb-1">One-time password</label>
+                  <input 
+                    type="text" 
+                    maxLength="4"
+                    value={otp} 
+                    onChange={handleOtpChange} 
+                    placeholder="Enter OTP" 
+                    className={`${inputFieldStyle} border-2 tracking-widest font-bold text-base bg-white`} 
+                  />
+                </div>
+
+                <div className="flex justify-end text-xs">
+                  {canResend ? (
+                    <button 
+                      type="button" 
+                      onClick={handleResendOtp}
+                      className="text-blue-600 font-semibold cursor-pointer"
+                    >
+                      Resend OTP
+                    </button>
+                  ) : (
+                    <span className="text-slate-400">Resend in {timer}s</span>
+                  )}
+                </div>
+
+                <div className="flex justify-center pt-2">
+                  <button 
+                    type="button" 
+                    onClick={() => { setStep(1); setOtp(''); }} 
+                    className="text-blue-600 font-semibold hover:underline cursor-pointer text-xs"
+                  >
+                    Back
+                  </button>
+                </div>
+
+                {loading && (
+                  <div className="text-center text-xs text-slate-500 font-medium">Verifying OTP...</div>
+                )}
+              </div>
+            )
+          ) : (
+            /* --- PASSWORD LOGIN VIEW --- */
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const response = await API.post('/login-page/login-password', { 
+                  mobileNumber, 
+                  password 
+                });
+                if (response.success) {
+                  toast.success('Successfully Signed In!');
+                  if (response.token) localStorage.setItem('orgToken', response.token);
+                  if (response.data) localStorage.setItem('orgUserData', JSON.stringify(response.data));
+                  navigate('/profile');
+                } else {
+                  toast.error(response.message || 'Invalid credentials');
+                }
+              } catch (err) {
+                toast.error('Login failed. Please check credentials.');
+              }
+            }} className="space-y-4">
               <div>
                 <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Mobile no.</label>
                 <input 
@@ -169,70 +261,95 @@ const LoginPage = () => {
                   maxLength="10"
                   value={mobileNumber} 
                   onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} 
-                  placeholder="Enter your mobile no" 
-                  className={`${inputFieldStyle} border-2`} 
+                  placeholder="Enter Mobile no." 
+                  className={`${inputFieldStyle} border-2 bg-white`} 
                 />
               </div>
 
-            <button 
-              type="submit" 
-              disabled={mobileNumber.length !== 10}
-              className="w-full bg-blue-600  disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
-            >
-              Send OTP
-            </button>
-            </form>
-        ) : (
-            <div className="space-y-4">
-              <div>
-                <label className="text-[12px] font-medium text-slate-700   mb-1">One-time password</label>
-                <input 
-                  type="text" 
-                  maxLength="4"
-                  value={otp} 
-                  onChange={handleOtpChange} 
-                  placeholder="Enter OTP" 
-                  className={`${inputFieldStyle} border-2 tracking-widest font-bold text-base`} 
-                />
-              </div>
-
-              {/* Resend Timer / Button aligned to the right */}
-              <div className="flex justify-end text-xs">
-                {canResend ? (
-                  <button 
-                    type="button" 
-                    onClick={handleResendOtp}
-                    className="text-blue-600 font-semibold  cursor-pointer"
+            <div>
+                <label className="text-[11px] font-bold text-slate-600 block uppercase tracking-wider mb-1">Password</label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    placeholder="Enter password" 
+                    className={`${inputFieldStyle} border-2 bg-white pr-10`} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-700 cursor-pointer"
                   >
-                    Resend OTP
+                    {showPassword ? (
+                      /* Eye Open Icon */
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    ) : (
+                      /* Eye Slash / Closed Icon */
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88" />
+                      </svg>
+                    )}
                   </button>
-                ) : (
-                  <span className="text-slate-400">Resend in {timer}s</span>
-                )}
+                </div>
+                <div className="text-right mt-1">
+                  <span className="text-xs text-blue-600 font-semibold cursor-pointer hover:underline">Forgot password?</span>
+                </div>
               </div>
-
-              {/* Back button centered */}
-              <div className="flex justify-center pt-2">
+              <button 
+                type="submit" 
+                disabled={mobileNumber.length !== 10 || !password}
+                className="w-full bg-blue-600  disabled:bg-slate-200 text-white disabled:text-slate-400 font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer shadow-sm disabled:cursor-not-allowed"
+              >
+                Proceed
+              </button>
+            <div className="text-center">
                 <button 
                   type="button" 
-                  onClick={() => { setStep(1); setOtp(''); }} 
-                  className="text-blue-600 font-semibold hover:underline cursor-pointer text-xs"
+                  onClick={() => setIsPasswordMode(false)} 
+                  className="text-blue-600 font-semibold text-xs  cursor-pointer"
                 >
-                  Back
+                  Login with OTP
                 </button>
               </div>
-
-              {loading && (
-                <div className="text-center text-xs text-slate-500 font-medium">Verifying OTP...</div>
-              )}
-            </div>
+             
+            </form>
           )}
 
           <hr className="border-slate-300" />
 
-        <div className="text-center space-y-2">
+   <div className="text-center space-y-2">
             <p className="text-xs font-bold text-slate-800">
-              Already have an account? <span className="text-blue-600 font-bold cursor-pointer hover:underline">Sign in</span>
+              {isPasswordMode ? (
+                <>
+                  Don't have an account?{' '}
+                  <span 
+                    onClick={() => {
+                      setIsPasswordMode(false);
+                      setStep(1);
+                    }} 
+                    className="text-blue-600 font-bold cursor-pointer hover:underline"
+                  >
+                    Sign up
+                  </span>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <span 
+                    onClick={() => {
+                      setIsPasswordMode(true);
+                      setStep(1);
+                    }} 
+                    className="text-blue-600 font-bold cursor-pointer hover:underline"
+                  >
+                    Sign in
+                  </span>
+                </>
+              )}
             </p>
             <div className="text-xs text-slate-800 font-semibold">
               <p>For any queries, please write to</p>
