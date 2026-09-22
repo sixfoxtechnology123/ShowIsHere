@@ -67,7 +67,7 @@ const AppContent = () => {
   const iskyc = routerLocation.pathname === '/profile/kyc';
   const isprofilesettings = routerLocation.pathname === '/profile/settings';
   const isEventDashboard = routerLocation.pathname === '/event-dashboard';
-  const isLoginPage = routerLocation.pathname === '/signinDashboard';
+  const isLoginPage = routerLocation.pathname === '/loginPage';
 
 
   useEffect(() => {
@@ -197,7 +197,7 @@ const AppContent = () => {
             location={location} 
             onDetectLocation={detectLocation} 
             onOpenLocationModal={() => setIsLocationModalOpen(true)} 
-            onSignInClick={() => navigate('/signinDashboard')}
+            onSignInClick={() => navigate('/loginPage')}
           />
           <SubNavbar />
         </>
@@ -229,7 +229,7 @@ const AppContent = () => {
         <Route path="/question-databse-master" element={<QuestionDatabseMaster />} />
         <Route path="/question-database-master" element={<QuestionDatabseMaster />} />
         <Route path="/event-question-master" element={<EventQuestion />} />
-        <Route path="/signinDashboard" element={<LoginPage />} />
+        <Route path="/loginPage" element={<LoginPage />} />
 
 
         <Route path="/profile" element={<Profile />} />

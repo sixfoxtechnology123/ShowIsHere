@@ -54,11 +54,15 @@ const Footer = () => {
         </div>
       </div>
         
-        <div className={footerTopItem}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-          </svg>
-          <span>LIST YOUR SHOW</span>
+    <div className={footerTopItem}>
+          <Link 
+            to="/loginPage" 
+            onClick={scrollToTop} 
+            className="hover:opacity-80 transition-opacity cursor-pointer" 
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
+            <span>Create Events</span>
+          </Link>
         </div>
       </div>
 

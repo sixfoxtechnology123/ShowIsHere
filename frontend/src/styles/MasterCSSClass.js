@@ -120,7 +120,7 @@ export const pageTabActive = "px-3 py-1 rounded font-bold transition cursor-poin
 export const pageTabInactive = "px-3 py-1 rounded font-bold transition cursor-pointer border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center space-x-2";
 export const addPageButton = "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition cursor-pointer";
 
-export const inputFieldStyle = "w-full  border-2 border-slate-200 rounded-lg px-3 py-1 text-sm text-slate-900 outline-none focus:border-blue-500 font-normal";
+export const inputFieldStyle = "w-full  border-2 border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 font-normal";
 export const inputFieldStyleduration = "border-2 border-slate-200 rounded-lg px-3 py-1 text-sm text-slate-900 outline-none focus:border-blue-500 font-normal";
 
 // ==========================================
