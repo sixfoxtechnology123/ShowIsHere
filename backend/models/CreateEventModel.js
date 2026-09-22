@@ -65,6 +65,12 @@ const createEventSchema = new mongoose.Schema({
     googleMapLink: { type: String, default: '' }
   },
 
+  seatMapId: { 
+    type: String, 
+    default: null, 
+    trim: true,
+    index: true 
+  },
   // STEP 4: Ticketing
   ticketTiers: { type: Array, default: [] },
 
@@ -95,7 +101,7 @@ const createEventSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true,
-  strict: false,
+  strict: true,
   collection: 'createevents'
 });
 

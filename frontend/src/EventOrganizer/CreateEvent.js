@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef,useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useLocation} from 'react-router-dom';
 import SeatMapViewer from './../components/SeatMap';
@@ -167,12 +167,67 @@ const [imgZoom, setImgZoom] = useState(1);
 const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
 const [isDraggingImg, setIsDraggingImg] = useState(false);
 const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
+const seatMapBoxRef = useRef(null);
 
 useEffect(() => {
-  if (location.state?.targetStep) setActiveStep(location.state.targetStep);
-  if (location.state?.seatMapId) setSelectedSeatMapId(location.state.seatMapId);
-  if (location.state?.seatMapPreview) setSeatMapImage(location.state.seatMapPreview);
-  if (location.state?.seatMapStats) setSeatStats(location.state.seatMapStats);
+  const box = seatMapBoxRef.current;
+  if (!box) return;
+
+  const handleNativeWheel = (e) => {
+    if (!seatMapImage) return;
+
+    // This strictly stops the browser page from scrolling
+    e.preventDefault();
+    e.stopPropagation();
+
+    const delta = e.deltaY < 0 ? 0.15 : -0.15;
+    setImgZoom((prev) => Math.min(5, Math.max(0.6, Number((prev + delta).toFixed(2)))));
+  };
+
+  // { passive: false } allows preventDefault() to block whole-page scroll
+  box.addEventListener('wheel', handleNativeWheel, { passive: false });
+
+  return () => {
+    box.removeEventListener('wheel', handleNativeWheel);
+  };
+}, [seatMapImage]);
+
+useEffect(() => {
+  if (location.state?.targetStep) {
+    setActiveStep(location.state.targetStep);
+  }
+  if (location.state?.seatMapId) {
+    setSelectedSeatMapId(location.state.seatMapId);
+  }
+  if (location.state?.seatMapPreview) {
+    setSeatMapImage(location.state.seatMapPreview);
+  }
+
+  // Restore everything (title, categories, dates, venue, tickets)
+  const savedData = location.state?.restoredEventForm || sessionStorage.getItem('create_event_temp_data');
+  if (savedData) {
+    try {
+      const parsed = typeof savedData === 'string' ? JSON.parse(savedData) : savedData;
+      
+      if (parsed.formData) {
+        setFormData(parsed.formData);
+      }
+      if (parsed.savedTickets) {
+        setSavedTickets(parsed.savedTickets);
+      }
+      if (parsed.bannerPreview) {
+        setBannerPreview(parsed.bannerPreview);
+      }
+      if (parsed.thumbnailPreview) {
+        setThumbnailPreview(parsed.thumbnailPreview);
+      }
+      if (parsed.createdEventId) {
+        setCreatedEventId(parsed.createdEventId);
+      }
+    } catch (err) {
+      console.error('Error restoring data', err);
+    }
+  }
 }, [location.state]);
 
   const handleInputChange = (e) => {
@@ -1632,7 +1687,7 @@ const handleDragOver = (e) => {
 
           {formData.sameTimeSlotForAll ? (
             /* ALL DAYS SHARED BOX */
-            <div className="border border-slate-200 rounded-xl p-4 bg-white shadow-2xs space-y-3">
+            <div className="border border-slate-200 rounded-lg p-4 bg-white shadow-2xs space-y-3">
               <span className="text-xs font-bold text-slate-800 block">All Selected Days</span>
               {(formData.weeklyTimeSlots || [{ date: 'all', startTime: '', endTime: '' }]).map((slot, index, arr) => {
                 const isLast = index === arr.length - 1;
@@ -1725,7 +1780,7 @@ const handleDragOver = (e) => {
               const hasMultipleRows = dateSlotsWithIndex.length > 1;
 
               return (
-                <div key={dateVal} className="border border-slate-200 rounded-xl p-4 bg-white shadow-2xs space-y-3">
+                <div key={dateVal} className="border border-slate-200 rounded-lg p-4 bg-white shadow-2xs space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <span className="text-xs font-bold text-slate-800">{dateHeaderTitle}</span>
                     <button
@@ -1962,149 +2017,175 @@ const handleDragOver = (e) => {
         </div>
       )}
 
-          {/* STEP 4: SEAT MAP & TICKET */}
-          {activeStep === 4 && (
-            <div className="space-y-8">
-             <div className="space-y-4">
-              <h3 className="font-semibold text-base">Seat Map configuration</h3>
-<div className="space-y-4">
-  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-    {/* Left Column: Preview Box & Info Notice */}
-    <div className="lg:col-span-7 space-y-4">
-      {/* Zoom in/out indicator bar (Appears above the box only when image is present) */}
-      {seatMapImage && (
-        <div className="flex items-center justify-end space-x-1.5 pb-1">
-          <button
-            type="button"
-            onClick={() => setImgZoom((prev) => Math.max(0.6, Number((prev - 0.2).toFixed(2))))}
-            className="w-6 h-6 flex items-center justify-center rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-extrabold text-xs shadow-xs cursor-pointer"
-            title="Zoom Out"
-          >
-            -
-          </button>
-          <span className="w-10 text-center font-bold text-slate-700 text-xs">
-            {Math.round(imgZoom * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={() => setImgZoom((prev) => Math.min(4, Number((prev + 0.2).toFixed(2))))}
-            className="w-6 h-6 flex items-center justify-center rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-extrabold text-xs shadow-xs cursor-pointer"
-            title="Zoom In"
-          >
-            +
-          </button>
-        </div>
-      )}
+      {/* STEP 4: SEAT MAP & TICKET */}
+      {activeStep === 4 && (
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-slate-900 tracking-tight">Seat Map configuration</h3>
 
-      {/* Main Image Box */}
-      <div
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          const f = e.dataTransfer.files[0];
-          if (f && f.type.startsWith('image/')) {
-            const r = new FileReader();
-            r.onloadend = () => {
-              setSeatMapImage(r.result);
-              setImgZoom(1);
-              setImgPan({ x: 0, y: 0 });
-            };
-            r.readAsDataURL(f);
-            toast.success('Seat map image uploaded successfully!');
-          }
-        }}
-        onWheel={(e) => {
-          if (!seatMapImage) return;
-          e.preventDefault();
-          const delta = e.deltaY < 0 ? 0.15 : -0.15;
-          setImgZoom((prev) => Math.min(4, Math.max(0.6, Number((prev + delta).toFixed(2)))));
-        }}
-        onMouseDown={(e) => {
-          if (!seatMapImage) return;
-          setIsDraggingImg(true);
-          setDragOrigin({ x: e.clientX - imgPan.x, y: e.clientY - imgPan.y });
-        }}
-        onMouseMove={(e) => {
-          if (!isDraggingImg || !seatMapImage) return;
-          setImgPan({
-            x: e.clientX - dragOrigin.x,
-            y: e.clientY - dragOrigin.y
-          });
-        }}
-        onMouseUp={() => setIsDraggingImg(false)}
-        onMouseLeave={() => setIsDraggingImg(false)}
-        className={`w-full h-72 rounded-2xl border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden transition ${
-          seatMapImage
-            ? isDraggingImg
-              ? 'cursor-grabbing select-none'
-              : 'cursor-grab select-none'
-            : 'hover:border-slate-300'
-        }`}
+            <div className="flex flex-col lg:flex-row items-start gap-12 pt-2">
+        <div className="w-[380px] shrink-0 space-y-3">
+  {/* Main Display Box with Cover, Drag & Zoom */}
+  <div
+    ref={seatMapBoxRef}
+    onDragOver={(e) => e.preventDefault()}
+    onDrop={(e) => {
+      e.preventDefault();
+      const f = e.dataTransfer.files[0];
+      if (f && f.type.startsWith('image/')) {
+        const r = new FileReader();
+        r.onloadend = () => {
+          setSeatMapImage(r.result);
+          setImgZoom(1);
+          setImgPan({ x: 0, y: 0 });
+        };
+        r.readAsDataURL(f);
+        toast.success('Seat map image uploaded successfully!');
+      }
+    }}
+    onMouseDown={(e) => {
+      if (!seatMapImage) return;
+      setIsDraggingImg(true);
+      setDragOrigin({ x: e.clientX - imgPan.x, y: e.clientY - imgPan.y });
+    }}
+    onMouseMove={(e) => {
+      if (!isDraggingImg || !seatMapImage) return;
+      setImgPan({
+        x: e.clientX - dragOrigin.x,
+        y: e.clientY - dragOrigin.y
+      });
+    }}
+    onMouseUp={() => setIsDraggingImg(false)}
+    onMouseLeave={() => setIsDraggingImg(false)}
+    className={`w-[380px] h-[215px] rounded-xl border-2 border-slate-300 bg-white flex items-center justify-center overflow-hidden relative ${
+      seatMapImage
+        ? isDraggingImg
+          ? 'cursor-grabbing select-none'
+          : 'cursor-grab select-none'
+        : ''
+    }`}
+  >
+    {/* Floating Controls inside Top-Right Corner */}
+    {seatMapImage && (
+      <div 
+        onMouseDown={(e) => e.stopPropagation()} 
+        className="absolute top-1 right-1 z-20 flex items-center gap-1 bg-white/90 backdrop-blur-xs  rounded-lg  shadow-xs"
       >
-        {seatMapImage ? (
-          <img
-            src={seatMapImage}
-            alt="Seat Map Preview"
-            draggable={false}
-            style={{
-              transform: `translate(${imgPan.x}px, ${imgPan.y}px) scale(${imgZoom})`,
-              transformOrigin: 'center center',
-              transition: isDraggingImg ? 'none' : 'transform 0.1s ease-out'
-            }}
-            className="w-full h-full object-contain pointer-events-none p-2"
-          />
-        ) : null}
-      </div>
+        {/* Zoom Out */}
+        <button
+          type="button"
+          onClick={() => setImgZoom((prev) => Math.max(0.6, Number((prev - 0.2).toFixed(2))))}
+          className="w-5 h-5 flex items-center justify-center rounded-md bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs cursor-pointer select-none transition"
+          title="Zoom Out"
+        >
+          −
+        </button>
 
-      {/* Info Notice Box */}
-      <div className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-start gap-3">
-        <span className="text-blue-500 mt-0.5 shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-          </svg>
+        {/* Percentage Display */}
+        <span className="w-8 text-center font-bold text-slate-700 text-[10px] select-none">
+          {Math.round(imgZoom * 100)}%
         </span>
-        <p className="text-xs text-slate-600 leading-relaxed">
-          Upload a image of your event seat map as per your ticket category (.jpg or .png 600 X 750px recomended)
-        </p>
+
+        {/* Zoom In */}
+        <button
+          type="button"
+          onClick={() => setImgZoom((prev) => Math.min(5, Number((prev + 0.2).toFixed(2))))}
+          className="w-5 h-5 flex items-center justify-center rounded-md bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs cursor-pointer select-none transition"
+          title="Zoom In"
+        >
+          +
+        </button>
+
+        {/* Reset Button */}
+        <button
+          type="button"
+          onClick={() => {
+            setImgZoom(1);
+            setImgPan({ x: 0, y: 0 });
+          }}
+          className="w-5 h-5 flex items-center justify-center rounded-md bg-white hover:bg-slate-100 border border-slate-300 text-slate-600 hover:text-blue-600 cursor-pointer select-none transition text-xs"
+          title="Reset View"
+        >
+          ↺
+        </button>
       </div>
-    </div>
+    )}
 
-    {/* Right Column: Action Buttons */}
-    <div className="lg:col-span-5 flex flex-col gap-2 justify-center pt-28">
-      <Link 
-        to="/seatmap" 
-        className="w-full py-2 px-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl text-center no-underline shadow-xs transition cursor-pointer"
-      >
-        Open Seat Map Creator
-      </Link>
-      
-      <div className="text-center text-xs text-slate-400 font-medium my-0.5">or</div>
+    {seatMapImage ? (
+      <img
+        src={seatMapImage}
+        alt="Seat Map Preview"
+        draggable={false}
+        style={{
+          transform: `translate(${imgPan.x}px, ${imgPan.y}px) scale(${imgZoom})`,
+          transformOrigin: 'center center',
+          transition: isDraggingImg ? 'none' : 'transform 0.1s ease-out'
+        }}
+        className="w-full h-full object-contain pointer-events-none p-2"
+      />
+    ) : null}
+  </div>
 
-      <label className="w-full py-2 px-1 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-800 text-sm font-semibold rounded-xl text-center cursor-pointer shadow-xs transition block">
-        Upload image
-        <input 
-          type="file" 
-          accept="image/*" 
-          onChange={(e) => {
-            const f = e.target.files[0];
-            if (f) {
-              const r = new FileReader();
-              r.onloadend = () => {
-                setSeatMapImage(r.result);
-                setImgZoom(1);
-                setImgPan({ x: 0, y: 0 });
-                toast.success('Seat map image uploaded successfully!');
-              };
-              r.readAsDataURL(f);
-            }
-          }} 
-          className="hidden" 
-        />
-      </label>
-    </div>
+  {/* Info Notice Box */}
+  <div className="w-[380px] p-2.5 bg-blue-50/70 border border-blue-100 rounded-lg flex items-center gap-2.5">
+    <span className="text-blue-500 shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+      </svg>
+    </span>
+    <p className="text-[10px] text-slate-600 leading-snug">
+      Upload a image of your event seat map as per your ticket category (.jpg or .png 600 X 750px recomended)
+    </p>
   </div>
 </div>
-</div>
+
+        {/* Right Column: Actions (Removed the [cite] text) */}
+        <div className="w-[210px] flex flex-col items-center gap-2.5 pt-14">
+          <button
+            type="button"
+            onClick={() => {
+              const snapshotToPersist = {
+                formData,
+                savedTickets,
+                bannerPreview,
+                thumbnailPreview,
+                createdEventId
+              };
+              sessionStorage.setItem('create_event_temp_data', JSON.stringify(snapshotToPersist));
+              navigate('/seatmap', { state: { eventFormData: snapshotToPersist } });
+            }}
+            className="w-full py-2.5 px-4 bg-[#1E60F2] hover:bg-blue-700 text-white text-xs font-semibold rounded-lg text-center shadow-xs transition cursor-pointer"
+          >
+            Open Seat Map Creator
+          </button>
+          
+          <div className="text-center text-xs text-slate-500 font-medium my-0.5">or</div>
+
+          <label className="w-full py-2.5 px-4 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-semibold rounded-lg text-center cursor-pointer shadow-xs transition block">
+            Upload image
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => {
+                const f = e.target.files[0];
+                if (f) {
+                  const r = new FileReader();
+                  r.onloadend = () => {
+                    setSeatMapImage(r.result);
+                    setImgZoom(1);
+                    setImgPan({ x: 0, y: 0 });
+                    toast.success('Seat map image uploaded successfully!');
+                  };
+                  r.readAsDataURL(f);
+                }
+              }} 
+              className="hidden" 
+            />
+          </label>
+        </div>
+      </div>
+    </div>
+
 
       <div className="pt-6 border-t border-slate-100 space-y-4">
     <h3 className="font-semibold text-base">Ticket Type</h3>
@@ -2144,7 +2225,7 @@ const handleDragOver = (e) => {
         });
 
         return (
-          <div key={slotIdx} className="border border-slate-200/80 rounded-xl overflow-hidden bg-white mb-4">
+          <div key={slotIdx} className="border border-slate-200/80 rounded-lg overflow-hidden bg-white mb-4">
             
             {/* Accordion Header */}
             <div 
@@ -2191,7 +2272,7 @@ const handleDragOver = (e) => {
                         setSameTicketForEvent(false);
                         setShowTicketForm(!showTicketForm);
                       }}
-                      className="flex-1 py-3.5 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-xl text-xs text-slate-600 font-medium text-center cursor-pointer transition border border-slate-200/60"
+                      className="flex-1 py-3.5 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-lg text-xs text-slate-600 font-medium text-center cursor-pointer transition border border-slate-200/60"
                     >
                       No tickets added yet!
                     </div>
@@ -2476,7 +2557,7 @@ const handleDragOver = (e) => {
                     </div>
 
                     {hasEarlyBird && (
-                      <div className="rounded-xl space-y-4">
+                      <div className="rounded-lg space-y-4">
                         <div className="grid grid-cols-6 gap-6">
                           <div className="space-y-1">
                             <label className="text-[11px] font-medium text-slate-800 block">Price</label>

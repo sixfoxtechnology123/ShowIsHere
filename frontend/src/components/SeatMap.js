@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,useLocation } from 'react-router-dom';
 import { toJpeg } from 'html-to-image';
 import API from '../utils/api';
 import {
@@ -113,6 +113,9 @@ const ColorPickerField = ({ label, value, onChange }) => {
 
 
 const SeatMap = () => {
+  const location = useLocation();
+const navigate = useNavigate();
+const savedEventForm = location.state?.eventFormData || null;
   const [zoomLevel, setZoomLevel] = useState(100);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isAutoFit, setIsAutoFit] = useState(true);
@@ -516,7 +519,6 @@ const handleDeleteSelected = () => {
     }
   };
 
-const navigate = useNavigate();
 
 const handleCancelClick = () => {
   if (hasInteractedRef.current) {
@@ -1190,68 +1192,70 @@ const handlePropertyChange = (field, value) => {
   }
 };
 
+
 const handleSaveMap = async () => {
-    if (isEmpty) return;
-    setIsSavingMap(true); // Now correctly references the top-level state
+  if (isEmpty) return;
+  setIsSavingMap(true);
 
-    try {
-      // 1. Temporarily clear selections and active borders
-      setSelectedSectionId(null);
-      setSelectedShapeId(null);
-      setSelectedRowKey(null);
-      setSelectedSeatKey(null);
+  try {
+    setSelectedSectionId(null);
+    setSelectedShapeId(null);
+    setSelectedRowKey(null);
+    setSelectedSeatKey(null);
 
-      // Wait a tick for React to clear any selection rings
-      await new Promise((res) => setTimeout(res, 80));
+    await new Promise((res) => setTimeout(res, 80));
 
-      // 2. Locate the main canvas element and take snapshot
-      const boardElement = canvasRef.current?.querySelector('.canvasBoard');
-      let previewImageData = null;
+    const boardElement = canvasRef.current?.querySelector('.canvasBoard');
+    let previewImageData = null;
 
-      if (boardElement) {
-        previewImageData = await toJpeg(boardElement, {
-          quality: 0.85,
-          backgroundColor: '#ffffff'
-        });
+    if (boardElement) {
+      // FIX: Temporarily remove zoom/pan so the whole map gets captured
+      const originalTransform = boardElement.style.transform;
+      boardElement.style.transform = 'none';
+
+      previewImageData = await toJpeg(boardElement, {
+        quality: 0.85,
+        backgroundColor: '#ffffff'
+      });
+
+      // Restore zoom/pan after capture
+      boardElement.style.transform = originalTransform;
+    }
+
+    const payload = {
+      name: 'Mahajati Sadan — Main Auditorium',
+      previewImage: previewImageData,
+      pages,
+      zones,
+      customCategories,
+      sections,
+      shapes
+    };
+
+    const res = await API.post('/seatmaps/save', payload);
+    const savedData = res.data || res;
+
+    hasInteractedRef.current = false;
+    alert(`Seat map saved successfully as ${savedData.seatMapId || 'SM'}!`);
+
+    const formToRestore = savedEventForm || JSON.parse(sessionStorage.getItem('create_event_temp_data') || '{}');
+
+    navigate('/create-event', {
+      state: {
+        targetStep: 4,
+        seatMapId: savedData.seatMapId,
+        seatMapMongoId: savedData.seatMapMongoId || savedData._id,
+        seatMapPreview: savedData.previewImage || previewImageData,
+        restoredEventForm: formToRestore
       }
-
-      // 3. Construct the comprehensive seat map payload
-      const payload = {
-        name: 'Mahajati Sadan — Main Auditorium',
-        previewImage: previewImageData,
-        pages,
-        zones,
-        customCategories,
-        sections,
-        shapes
-      };
-
-      // 4. Send to backend endpoint
-      const res = await API.post('/seatmaps/save', payload);
-      const savedData = res.data || res;
-
-      hasInteractedRef.current = false;
-      alert(`Seat map saved successfully as ${savedData.seatMapId || 'SM'}!`);
-navigate('/create-event', {
-  state: {
-    targetStep: 4,
-    seatMapId: savedData.seatMapId,
-    seatMapPreview: savedData.previewImage || previewImageData,
-    seatMapStats: {
-      totalSeats: savedData.totalSeats || 0,
-      availableSeats: savedData.availableSeats || 0,
-      reservedSeats: savedData.reservedSeats || 0,
-      categoryCounts: savedData.categoryCounts || {}
-    }
+    });
+  } catch (err) {
+    console.error('API Save Error:', err);
+    alert(err.response?.data?.message || 'Failed to save seat map.');
+  } finally {
+    setIsSavingMap(false);
   }
-});
-    } catch (err) {
-      console.error('API Save Error:', err);
-      alert(err.response?.data?.message || 'Failed to save seat map. Ensure the /api/seatmaps/save endpoint is active.');
-    } finally {
-      setIsSavingMap(false);
-    }
-  };
+};
 
   const totalSeats = sections.reduce((acc, s) => acc + Object.keys(s.seats).length, 0);
 
