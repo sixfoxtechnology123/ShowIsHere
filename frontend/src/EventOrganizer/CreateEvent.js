@@ -579,7 +579,11 @@ const handleDragOver = (e) => {
       ebEnd: t.ebEnd || '-',
       ebEndTime: t.ebEndTime || '-'
     })),
-   guideResponses: formData.guideResponses || [],
+   guideResponses: (formData.guideResponses || []).filter(g => {
+  const hasText = g.answerText && g.answerText.trim() !== '';
+  const hasSelection = g.selectedOptions && g.selectedOptions.length > 0 && g.selectedOptions[0] !== '';
+  return hasText || hasSelection;
+}),
     minAgeLimit: formData.minAgeLimit || '',
     durationHours: formData.durationHours || '',
     durationMinutes: formData.durationMinutes || '',
@@ -619,7 +623,7 @@ const handleDragOver = (e) => {
     }
   };
 
-  // 2. "Next / Proceed" Button (No loading toast)
+// 2. "Next / Proceed" Button (No loading toast)
   const handleProceed = async () => {
     if (activeStep === 1 && !validateStep1()) return;
     if (activeStep === 3 && !formData.venueName.trim()) {
@@ -642,11 +646,55 @@ const handleDragOver = (e) => {
         setIsDataSaved(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        const res = await API.post('/events/publish', {
+        // Final submit handler keeping status as DRAFT and resetting form
+        const res = await API.post('/events/save-step', {
           ...payload,
-          eventId: createdEventId
+          eventId: createdEventId,
+          status: 'DRAFT'
         });
-        toast.success(res.data?.message || 'Event published successfully!');
+        
+        toast.success(res.data?.message || 'Submitted successfully! Form reset.');
+        
+        // Clear local storage and reset form state back to Step 1
+        sessionStorage.removeItem('create_event_temp_data');
+        setCreatedEventId(null);
+        setActiveStep(1);
+        setSavedTickets([]);
+        setBannerPreview(null);
+        setThumbnailPreview(null);
+        setSeatMapImage(null);
+        setGuideQuestions([]);
+        setFormData({
+          eventTitle: '',
+          eventCategory: '',
+          eventSubCategory: '',
+          eventType: '',
+          eventLanguages: [],
+          eventFormat: '',
+          fullDescription: '',
+          bannerImage: null,
+          thumbnailImage: null,
+          artistSearchQuery: '',
+          artistsList: [],
+          hashtags: ['', '', '', '', '', ''],
+          eventScheduleType: 'single',
+          startDate: '',
+          startTime: '',
+          endTime: '',
+          venueName: '',
+          venueAddress: '',
+          venueCity: '',
+          venuePinCode: '',
+          googleMapLink: '',
+          minAgeLimit: '',
+          durationHours: '',
+          durationMinutes: '',
+          guideResponses: [],
+          contactName: '',
+          contactEmail: '',
+          contactMobile: ''
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
       console.error('Proceed error:', err);
@@ -3006,41 +3054,50 @@ const handleDragOver = (e) => {
       </div>
     </div>
 
-    {/* Duration Section */}
-    <div className="space-y-3">
-      <div className="flex items-center gap-4 flex-wrap">
-        <label className={`${accountLabelStyle} mb-0`}>Duration</label>
-        
-        <div className="flex items-center gap-2">
-          <input 
-            type="number" 
-            name="durationHours" 
-            value={formData.durationHours} 
-            onChange={handleInputChange} 
-            className={`${inputFieldStyleduration} border-2 w-20 text-center`} 
-          />
-          <span className="text-sm text-slate-700">Hours</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input 
-            type="number" 
-            name="durationMinutes" 
-            value={formData.durationMinutes} 
-            onChange={handleInputChange} 
-            className={`${inputFieldStyleduration} border-2 w-20 text-center`} 
-          />
-          <span className="text-sm text-slate-700">Minutes</span>
-        </div>
-      </div>
-
-      {/* Optional Duration Preview Badge */}
-      {(formData.durationHours || formData.durationMinutes) && (
-        <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-16 ml-16 py-1.5 rounded-md">
-          Duration : {formData.durationHours || 0} Hours {formData.durationMinutes || 0} Minutes
-        </div>
-      )}
+ {/* Duration Section */}
+<div className="space-y-3">
+  <div className="flex items-center gap-4 flex-wrap">
+    <label className={`${accountLabelStyle} mb-0`}>Duration</label>
+    
+    <div className="flex items-center gap-2">
+      <input 
+        type="number" 
+        name="durationHours" 
+        min="0"
+        value={formData.durationHours} 
+        onChange={(e) => {
+          const val = Math.max(0, Number(e.target.value));
+          setFormData({ ...formData, durationHours: val === 0 && e.target.value === '' ? '' : val });
+        }} 
+        className={`${inputFieldStyleduration} border-2 w-20 text-center`} 
+      />
+      <span className="text-sm text-slate-700">Hours</span>
     </div>
+
+    <div className="flex items-center gap-2">
+      <input 
+        type="number" 
+        name="durationMinutes" 
+        min="0"
+        max="59"
+        value={formData.durationMinutes} 
+        onChange={(e) => {
+          const val = Math.max(0, Number(e.target.value));
+          setFormData({ ...formData, durationMinutes: val === 0 && e.target.value === '' ? '' : val });
+        }} 
+        className={`${inputFieldStyleduration} border-2 w-20 text-center`} 
+      />
+      <span className="text-sm text-slate-700">Minutes</span>
+    </div>
+  </div>
+
+  {/* Optional Duration Preview Badge */}
+  {(formData.durationHours || formData.durationMinutes) && (
+    <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-16 ml-16 py-1.5 rounded-md">
+      Duration : {formData.durationHours || 0} Hours {formData.durationMinutes || 0} Minutes
+    </div>
+  )}
+</div>
 
 <div className="space-y-4 pt-4">
   <h3 className="font-semibold text-base text-slate-900">Event Guide</h3>
@@ -3170,15 +3227,30 @@ const handleDragOver = (e) => {
         </div>
       </main>
 
-      <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
-        <div className={accountFooterInner}>
-          <button type="button" onClick={handleSecondaryAction} className={accountSecondaryBtn}>
-            {activeStep > 1 ? 'Back' : 'Save as Draft'}
-          </button>
+    <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
+        <div className={`${accountFooterInner} flex justify-between items-center w-full px-6`}>
+          {/* Left Column: Save as Draft */}
+          <div className="flex-1 flex justify-start">
+            <button type="button" onClick={handleSaveDraft} className={accountSecondaryBtn}>
+              Save as Draft
+            </button>
+          </div>
 
-          <button type="button" onClick={handleProceed} className={accountPrimaryBtn}>
-            <span>{activeStep === steps.length ? 'Submit' : steps[activeStep].label}</span>
-          </button>
+          {/* Middle Column: Back and Next / Submit buttons grouped */}
+          <div className="flex-1 flex items-center justify-center gap-3">
+            {activeStep > 1 && (
+              <button type="button" onClick={handleSecondaryAction} className={accountSecondaryBtn}>
+                Back
+              </button>
+            )}
+
+            <button type="button" onClick={handleProceed} className={accountPrimaryBtn}>
+              <span>{activeStep === steps.length ? 'Submit' : steps[activeStep].label}</span>
+            </button>
+          </div>
+
+          {/* Right Column: Empty spacer to balance the left side */}
+          <div className="flex-1"></div>
         </div>
       </footer>
     </div>
