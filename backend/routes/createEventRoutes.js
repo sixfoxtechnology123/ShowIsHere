@@ -5,7 +5,7 @@ const createEventController = require('../controllers/createEventController');
 router.get('/guide-questions', createEventController.getGuideQuestionsByStep1);
 router.post('/save-step', createEventController.saveEventStepData);
 router.post('/publish', createEventController.publishEvent);
-router.get('/:id', createEventController.getEventById);
 router.get('/', createEventController.getAllEvents);
+router.get('/:id', createEventController.getEventById);
 
 module.exports = router;

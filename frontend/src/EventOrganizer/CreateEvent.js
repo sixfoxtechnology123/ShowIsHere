@@ -109,6 +109,7 @@ const [openSlotIndex, setOpenSlotIndex] = useState(null);
   const [createdEventId, setCreatedEventId] = useState(null);
   const [mapZoom, setMapZoom] = useState(15);
   const [selectedSeatMapId, setSelectedSeatMapId] = useState(null);
+  const [guideQuestions, setGuideQuestions] = useState([]);
   const [formData, setFormData] = useState({
     // Step 1
     eventTitle: '',
@@ -180,6 +181,44 @@ const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
 const [isDraggingImg, setIsDraggingImg] = useState(false);
 const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
 const seatMapBoxRef = useRef(null);
+
+useEffect(() => {
+  let isCurrentRequest = true;
+
+  if (!formData.eventCategory) {
+    setGuideQuestions([]);
+    return () => {
+      isCurrentRequest = false;
+    };
+  }
+
+  const params = new URLSearchParams();
+  params.append('categoryId', formData.eventCategory);
+
+  if (formData.eventSubCategory) {
+    params.append('subCategoryIds', formData.eventSubCategory);
+  }
+  if (formData.eventType) {
+    params.append('eventTypeIds', formData.eventType);
+  }
+
+  API.get(`/events/guide-questions?${params.toString()}`)
+    .then((res) => {
+      if (!isCurrentRequest) return;
+      const questionsList = Array.isArray(res) ? res : (res?.data || []);
+      setGuideQuestions(questionsList);
+    })
+    .catch((err) => {
+      if (!isCurrentRequest) return;
+      console.error("Error loading guide questions:", err);
+      setGuideQuestions([]);
+    });
+
+  return () => {
+    isCurrentRequest = false;
+  };
+}, [formData.eventCategory, formData.eventSubCategory, formData.eventType]);
+
 
 useEffect(() => {
   const box = seatMapBoxRef.current;
@@ -540,12 +579,7 @@ const handleDragOver = (e) => {
       ebEnd: t.ebEnd || '-',
       ebEndTime: t.ebEndTime || '-'
     })),
-    guideResponses: [
-      { questionId: 'PET', question: 'Is your event pet-friendly?', selectedOptions: [formData.isPetFriendly] },
-      { questionId: 'ID', question: 'Is ID required for entry?', selectedOptions: [formData.idRequired] },
-      { questionId: 'DRESS', question: 'Allowed dress code:', answerText: formData.allowedDressCode || '' },
-      { questionId: 'VENUE', question: 'Is venue indoor or outdoor?', selectedOptions: [formData.venueType || ''] }
-    ],
+   guideResponses: formData.guideResponses || [],
     minAgeLimit: formData.minAgeLimit || '',
     durationHours: formData.durationHours || '',
     durationMinutes: formData.durationMinutes || '',
@@ -916,7 +950,7 @@ const handleDragOver = (e) => {
                       <div className="w-full h-full flex flex-col items-center justify-center relative group">
                         <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover rounded-md shadow-xs" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
-                          <label className="px-4 py-2 bg-white text-slate-800 text-xs font-semibold rounded-lg shadow cursor-pointer hover:bg-slate-100 transition">
+                          <label className="px-4 py-2 bg-white text-slate-800 text-xs font-semibold rounded-md shadow cursor-pointer hover:bg-slate-100 transition">
                             Change Banner Image
                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'banner')} className="hidden" />
                           </label>
@@ -956,7 +990,7 @@ const handleDragOver = (e) => {
                       <div className="w-full h-full flex flex-col items-center justify-center relative group">
                         <img src={thumbnailPreview} alt="Thumbnail" className="w-full h-full object-cover rounded-md shadow-xs" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
-                          <label className="px-3 py-2 bg-white text-slate-800 text-xs font-semibold rounded-lg shadow cursor-pointer hover:bg-slate-100 transition">
+                          <label className="px-3 py-2 bg-white text-slate-800 text-xs font-semibold rounded-md shadow cursor-pointer hover:bg-slate-100 transition">
                             Change Thumbnail
                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'thumbnail')} className="hidden" />
                           </label>
@@ -1467,7 +1501,7 @@ const handleDragOver = (e) => {
           weeklyTimeSlots: [],
           dailyTimeSlots: [{ startTime: '', endTime: '' }]
         })}
-        className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'daily' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        className={`flex-1 py-2 rounded-md text-xs font-bold transition cursor-pointer ${formData.recurringType === 'daily' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
       >
         Daily
       </button>
@@ -1481,7 +1515,7 @@ const handleDragOver = (e) => {
           weeklyTimeSlots: [],
           dailyTimeSlots: [{ startTime: '', endTime: '' }]
         })} 
-        className={`flex-1 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${formData.recurringType === 'weekly' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+        className={`flex-1 py-2 rounded-md text-xs font-bold transition cursor-pointer ${formData.recurringType === 'weekly' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
       >
         Weekly
       </button>
@@ -1593,7 +1627,7 @@ const handleDragOver = (e) => {
                         const slots = arr.filter((_, i) => i !== index);
                         setFormData({ ...formData, dailyTimeSlots: slots });
                       }} 
-                     className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
+                     className="w-9 h-9 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
                       title="Delete slot"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
@@ -1611,7 +1645,7 @@ const handleDragOver = (e) => {
                         const slots = [...arr, { startTime: '', endTime: '' }];
                         setFormData({ ...formData, dailyTimeSlots: slots });
                       }} 
-                        className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
+                        className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
                       title="Add time slot"
                     >
                       +
@@ -1701,7 +1735,7 @@ const handleDragOver = (e) => {
                 return (
                   <div 
                     key={i} 
-                    className="relative group px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs inline-flex items-center justify-center select-none"
+                    className="relative group px-3 py-2 bg-blue-600 text-white rounded-md text-xs font-bold shadow-xs inline-flex items-center justify-center select-none"
                   >
                     <span>{formatted}</span>
                     
@@ -1770,7 +1804,7 @@ const handleDragOver = (e) => {
 
           {formData.sameTimeSlotForAll ? (
             /* ALL DAYS SHARED BOX */
-            <div className="border border-slate-200 rounded-lg p-4 bg-white shadow-2xs space-y-3">
+            <div className="border border-slate-200 rounded-md p-4 bg-white shadow-2xs space-y-3">
               <span className="text-xs font-bold text-slate-800 block">All Selected Days</span>
               {(formData.weeklyTimeSlots || [{ date: 'all', startTime: '', endTime: '' }]).map((slot, index, arr) => {
                 const isLast = index === arr.length - 1;
@@ -1856,7 +1890,7 @@ const handleDragOver = (e) => {
                             const slots = arr.filter((_, i) => i !== index);
                             setFormData({ ...formData, weeklyTimeSlots: slots });
                           }} 
-                          className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
+                          className="w-9 h-9 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
                           title="Delete slot"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
@@ -1872,7 +1906,7 @@ const handleDragOver = (e) => {
                             const newSlot = { date: 'all', startTime: '', endTime: '' };
                             setFormData({ ...formData, weeklyTimeSlots: [...arr, newSlot] });
                           }} 
-                          className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
+                          className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
                           title="Add time slot"
                         >
                           +
@@ -1899,7 +1933,7 @@ const handleDragOver = (e) => {
               const hasMultipleRows = dateSlotsWithIndex.length > 1;
 
               return (
-                <div key={dateVal} className="border border-slate-200 rounded-lg p-4 bg-white shadow-2xs space-y-3">
+                <div key={dateVal} className="border border-slate-200 rounded-md p-4 bg-white shadow-2xs space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                     <span className="text-xs font-bold text-slate-800">{dateHeaderTitle}</span>
                     <button
@@ -2000,7 +2034,7 @@ const handleDragOver = (e) => {
                                   const updated = (formData.weeklyTimeSlots || []).filter((_, i) => i !== slotItem.globalIndex);
                                   setFormData({ ...formData, weeklyTimeSlots: updated });
                                 }} 
-                                className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
+                                className="w-9 h-9 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
                                 title="Delete slot"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
@@ -2018,7 +2052,7 @@ const handleDragOver = (e) => {
                                     weeklyTimeSlots: [...(formData.weeklyTimeSlots || []), { date: dateVal, startTime: '', endTime: '' }]
                                   });
                                 }} 
-                                className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
+                                className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
                                 title="Add time slot"
                               >
                                 +
@@ -2218,7 +2252,7 @@ const handleDragOver = (e) => {
     {seatMapImage && (
       <div 
         onMouseDown={(e) => e.stopPropagation()} 
-        className="absolute top-1 right-1 z-20 flex items-center gap-1 bg-white/90 backdrop-blur-xs  rounded-lg  shadow-xs"
+        className="absolute top-1 right-1 z-20 flex items-center gap-1 bg-white/90 backdrop-blur-xs  rounded-md  shadow-xs"
       >
         {/* Zoom Out */}
         <button
@@ -2276,7 +2310,7 @@ const handleDragOver = (e) => {
   </div>
 
   {/* Info Notice Box */}
-  <div className="w-[380px] p-2.5 bg-blue-50/70 border border-blue-100 rounded-lg flex items-center gap-2.5">
+  <div className="w-[380px] p-2.5 bg-blue-50/70 border border-blue-100 rounded-md flex items-center gap-2.5">
     <span className="text-blue-500 shrink-0">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
         <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
@@ -2303,14 +2337,14 @@ const handleDragOver = (e) => {
               sessionStorage.setItem('create_event_temp_data', JSON.stringify(snapshotToPersist));
               navigate('/seatmap', { state: { eventFormData: snapshotToPersist } });
             }}
-            className="w-full py-2.5 px-4 bg-[#1E60F2] hover:bg-blue-700 text-white text-xs font-semibold rounded-lg text-center shadow-xs transition cursor-pointer"
+            className="w-full py-2.5 px-4 bg-[#1E60F2] hover:bg-blue-700 text-white text-xs font-semibold rounded-md text-center shadow-xs transition cursor-pointer"
           >
             Open Seat Map Creator
           </button>
           
           <div className="text-center text-xs text-slate-500 font-medium my-0.5">or</div>
 
-          <label className="w-full py-2.5 px-4 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-semibold rounded-lg text-center cursor-pointer shadow-xs transition block">
+          <label className="w-full py-2.5 px-4 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 text-xs font-semibold rounded-md text-center cursor-pointer shadow-xs transition block">
             Upload image
             <input 
               type="file" 
@@ -2388,7 +2422,7 @@ const handleDragOver = (e) => {
         });
 
         return (
-          <div key={slotIdx} className="border border-slate-200/80 rounded-lg overflow-hidden bg-white mb-4">
+          <div key={slotIdx} className="border border-slate-200/80 rounded-md overflow-hidden bg-white mb-4">
             
             {/* Accordion Header */}
             <div 
@@ -2426,7 +2460,7 @@ const handleDragOver = (e) => {
                 {slotTickets.length === 0 && (
                   <div className="flex items-center justify-between w-full">
                     {/* Plain banner with NO click handler */}
-                    <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-lg text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
+                    <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-md text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
                       No tickets added yet!
                     </div>
                     {/* ONLY this + icon opens the ticket form */}
@@ -2740,7 +2774,7 @@ const handleDragOver = (e) => {
                     </div>
 
                  {hasEarlyBird && (
-                      <div className="rounded-lg space-y-4">
+                      <div className="rounded-md space-y-4">
                         <div className="grid grid-cols-6 gap-6">
                           <div className="space-y-1">
                             <label className="text-[11px] font-medium text-slate-800 block">Price</label>
@@ -2929,7 +2963,7 @@ const handleDragOver = (e) => {
                           setEditingIndex(null);
                           setShowTicketForm(false);
                         }} 
-                        className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition cursor-pointer"
+                        className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-2xs transition cursor-pointer"
                       >
                         {editingIndex !== null ? 'Update' : 'Save'}
                       </button>
@@ -3009,50 +3043,97 @@ const handleDragOver = (e) => {
     </div>
 
 <div className="space-y-4 pt-4">
-      <h3 className="font-semibold text-base text-slate-900">Event Guide</h3>
-      <p className="text-xs text-slate-500 -mt-2">Provide attendees with valuable information and address their questions</p>
-      
-      {/* 1. Pet Friendly */}
-      <div className="flex justify-between items-center pb-2 ">
-        <span className="text-xs font-medium text-slate-800">Is your event pet-friendly?</span>
-        <div className="w-1/3 flex gap-6 text-xs font-semibold">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="radio" name="isPetFriendly" value="yes" checked={formData.isPetFriendly === 'yes'} onChange={handleInputChange} /> Yes
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="radio" name="isPetFriendly" value="no" checked={formData.isPetFriendly === 'no'} onChange={handleInputChange} /> No
-          </label>
+  <h3 className="font-semibold text-base text-slate-900">Event Guide</h3>
+  <p className="text-xs text-slate-500 -mt-2">Provide attendees with valuable information and address their questions</p>
+  
+{guideQuestions.length === 0 ? (
+  <p className="text-xs text-slate-400 py-4 text-center border border-dashed border-slate-200 rounded-md">
+    No specific guide questions found for this category/type.
+  </p>
+) : (
+  guideQuestions.map((q) => {
+    const existingResponse = (formData.guideResponses || []).find(g => g.questionId === q.questionId);
+    const currentAnswer = existingResponse?.selectedOptions?.[0] || existingResponse?.answerText || '';
+    const optionsCount = q.options?.length || 0;
+
+    return (
+      <div key={q._id || q.questionId} className="space-y-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 gap-2">
+          <span className="text-xs font-medium text-slate-800">{q.questionText || q.question}</span>
+          
+          {optionsCount > 0 && optionsCount <= 2 ? (
+            <div className="w-full sm:w-1/3 flex items-center gap-6 px-2">
+              {q.options.map((opt, oIdx) => (
+                <label key={oIdx} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name={`question_${q.questionId}`}
+                    value={opt}
+                    checked={currentAnswer === opt}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const updated = [...(formData.guideResponses || [])];
+                      const idx = updated.findIndex(item => item.questionId === q.questionId);
+                      if (idx > -1) {
+                        updated[idx].selectedOptions = [val];
+                      } else {
+                        updated.push({ questionId: q.questionId, question: q.questionText || q.question, selectedOptions: [val] });
+                      }
+                      setFormData({ ...formData, guideResponses: updated });
+                    }}
+                    className="w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer"
+                  />
+                  {opt}
+                </label>
+              ))}
+            </div>
+          ) : optionsCount > 2 ? (
+            <select 
+              value={currentAnswer} 
+              onChange={(e) => {
+                const val = e.target.value;
+                const updated = [...(formData.guideResponses || [])];
+                const idx = updated.findIndex(item => item.questionId === q.questionId);
+                if (idx > -1) {
+                  updated[idx].selectedOptions = [val];
+                } else {
+                  updated.push({ questionId: q.questionId, question: q.questionText || q.question, selectedOptions: [val] });
+                }
+                setFormData({ ...formData, guideResponses: updated });
+              }}
+              className="w-full sm:w-1/3 text-xs p-2 rounded-md border-2 border-slate-200 bg-white focus:outline-none focus:border-blue-500"
+            >
+              <option value="">Select</option>
+              {q.options.map((opt, oIdx) => (
+                <option key={oIdx} value={opt}>{opt}</option>
+              ))}
+            </select>
+          ) : (
+            <input 
+              type="text" 
+              placeholder="Type answer..." 
+              value={currentAnswer} 
+              onChange={(e) => {
+                const val = e.target.value;
+                const updated = [...(formData.guideResponses || [])];
+                const idx = updated.findIndex(item => item.questionId === q.questionId);
+                if (idx > -1) {
+                  updated[idx].answerText = val;
+                } else {
+                  updated.push({ questionId: q.questionId, question: q.questionText || q.question, answerText: val });
+                }
+                setFormData({ ...formData, guideResponses: updated });
+              }} 
+              className="w-full sm:w-1/3 text-xs p-2  rounded-md border border-slate-200 bg-white focus:outline-none focus:border-blue-500" 
+            />
+          )}
         </div>
-      </div>
-      <div className="border-b border-slate-100"></div>
-      {/* 2. ID Required */}
-      <div className="flex justify-between items-center py-2 ">
-        <span className="text-xs font-medium text-slate-800">Is ID required for entry?</span>
-        <select name="idRequired" value={formData.idRequired} onChange={handleInputChange} className="w-1/3 text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500">
-          <option value="">Select</option>
-          <option value="Yes">Yes</option>
-          <option value="No">No</option>
-        </select>
-      </div>
-  <div className="border-b border-slate-100"></div>
-      {/* 3. Allowed Dress Code */}
-      <div className="flex justify-between items-center py-2 ">
-        <span className="text-xs font-medium text-slate-800">Allowed dress code:</span>
-        <input type="text" name="allowedDressCode" placeholder="e.g. Smart casuals only" value={formData.allowedDressCode} onChange={handleInputChange} className="w-1/3 text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500" />
-      </div>
-  <div className="border-b border-slate-100"></div>
-      {/* 4. Venue Indoor or Outdoor */}
-      <div className="flex justify-between items-center py-2 ">
-        <span className="text-xs font-medium text-slate-800">Is venue indoor or outdoor?</span>
-        <select name="venueType" value={formData.venueType || ''} onChange={handleInputChange} className="w-1/3 text-xs p-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-blue-500">
-          <option value="">Select</option>
-          <option value="Indoor">Indoor</option>
-          <option value="Outdoor">Outdoor</option>
-          <option value="Both">Both</option>
-        </select>
-      </div>
         <div className="border-b border-slate-100"></div>
       </div>
+    );
+  })
+)}
+</div>
   </div>
 )}
 

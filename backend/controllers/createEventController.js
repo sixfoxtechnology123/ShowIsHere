@@ -1,7 +1,13 @@
 const mongoose = require('mongoose');
 const CreateEvent = require('../models/CreateEventModel');
+const EventQuestionMaster = require('../models/EventQuestionmodel');
+const QuestionDatabase = require('../models/questionDatabaseModel');
 
-const getQuestionDatabaseCollection = () => mongoose.connection.collection('questiondatabase');
+const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const toList = (value) => {
+  if (!value) return [];
+  return Array.isArray(value) ? value.filter(Boolean) : String(value).split(',').map((item) => item.trim()).filter(Boolean);
+};
 
 // Function: Finds the actual latest createEventId in the DB (per tenant) and generates the next one
 const getNextCreateEventIdFromDB = async (tenantKey) => {
@@ -88,7 +94,6 @@ exports.saveEventStepData = async (req, res) => {
   }
 };
 
-// 1. Fetch matching Step 5 Guide Questions based on Step 1 selection
 exports.getGuideQuestionsByStep1 = async (req, res) => {
   try {
     const { categoryId, subCategoryIds, eventTypeIds } = req.query;
@@ -97,28 +102,50 @@ exports.getGuideQuestionsByStep1 = async (req, res) => {
       return res.status(400).json({ success: false, message: 'categoryId query parameter is required' });
     }
 
-    const subCats = subCategoryIds ? subCategoryIds.split(',').map((s) => s.trim()) : [];
-    const eventTypes = eventTypeIds ? eventTypeIds.split(',').map((t) => t.trim()) : [];
+    const subCategoryList = toList(subCategoryIds);
+    const eventTypeList = toList(eventTypeIds);
+    const subCategoryRegexes = subCategoryList.map((item) => new RegExp(`^${escapeRegex(item)}$`, 'i'));
+    const eventTypeRegexes = eventTypeList.map((item) => new RegExp(`^${escapeRegex(item)}$`, 'i'));
 
-    const mappings = await mongoose.connection.collection('eventquestionsmasters').find({
-      eventCategoryId: categoryId,
-      status: 'ACTIVE'
-    }).toArray();
+    const query = {
+      status: 'ACTIVE',
+      $or: [
+        { eventCategoryId: categoryId },
+        { eventCategoryName: new RegExp(`^${escapeRegex(categoryId)}$`, 'i') }
+      ]
+    };
+
+    if (subCategoryList.length) {
+      query.subCategories = {
+        $elemMatch: {
+          $or: [
+            { subCategoryId: { $in: subCategoryList } },
+            { subCategoryName: { $in: subCategoryRegexes } }
+          ]
+        }
+      };
+    }
+
+    if (eventTypeList.length) {
+      query.eventTypes = {
+        $elemMatch: {
+          $or: [
+            { eventTypeId: { $in: eventTypeList } },
+            { typeName: { $in: eventTypeRegexes } }
+          ]
+        }
+      };
+    }
+
+    const mappings = await EventQuestionMaster.find(query).lean();
 
     if (!mappings || mappings.length === 0) {
       return res.status(200).json({ success: true, data: [] });
     }
 
     const matchedQuestionIdsSet = new Set();
-
     mappings.forEach((mapping) => {
-      const mappingSubIds = (mapping.subCategories || []).map((s) => s.subCategoryId || s.subCategoryName);
-      const mappingTypeIds = (mapping.eventTypes || []).map((t) => `${t.subCategoryId}-${t.eventTypeId || t.typeName}`);
-
-      const subMatch = subCats.length === 0 || mappingSubIds.some((id) => subCats.includes(id));
-      const typeMatch = eventTypes.length === 0 || mappingTypeIds.some((id) => eventTypes.includes(id));
-
-      if (subMatch && typeMatch && Array.isArray(mapping.questionIds)) {
+      if (Array.isArray(mapping.questionIds)) {
         mapping.questionIds.forEach((qId) => matchedQuestionIdsSet.add(qId));
       }
     });
@@ -129,24 +156,41 @@ exports.getGuideQuestionsByStep1 = async (req, res) => {
       return res.status(200).json({ success: true, data: [] });
     }
 
-    const QuestionColl = getQuestionDatabaseCollection();
-    const resolvedQuestions = await QuestionColl.find({
-      questionId: { $in: uniqueQuestionIds }
-    }).toArray();
+    const objectIds = uniqueQuestionIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    const resolvedQuestions = await QuestionDatabase.find({
+      $or: [
+        { questionId: { $in: uniqueQuestionIds } },
+        { _id: { $in: objectIds } }
+      ]
+    }).lean();
+
+    const questionOrder = uniqueQuestionIds.reduce((map, id, index) => {
+      map[id] = index;
+      return map;
+    }, {});
 
     resolvedQuestions.sort((a, b) => {
-      const numA = parseInt((a.questionId || '').replace(/\D/g, ''), 10) || 0;
-      const numB = parseInt((b.questionId || '').replace(/\D/g, ''), 10) || 0;
-      return numA - numB;
+      const orderA = questionOrder[a.questionId] ?? questionOrder[String(a._id)] ?? Number.MAX_SAFE_INTEGER;
+      const orderB = questionOrder[b.questionId] ?? questionOrder[String(b._id)] ?? Number.MAX_SAFE_INTEGER;
+      return orderA - orderB;
     });
 
-    return res.status(200).json({ success: true, data: resolvedQuestions });
+    const data = resolvedQuestions.map((question) => ({
+      ...question,
+      questionText: question.question,
+      options: ['optionA', 'optionB', 'optionC', 'optionD', 'optionE']
+        .map((key) => question[key])
+        .filter((option) => option && String(option).trim())
+    }));
+
+    return res.status(200).json({ success: true, data });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 // 3. Final Step 6 Publish
 exports.publishEvent = async (req, res) => {

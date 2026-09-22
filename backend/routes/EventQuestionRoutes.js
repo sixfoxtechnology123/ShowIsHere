@@ -8,3 +8,4 @@ router.put('/:id', eventQuestionController.updateEventQuestion);
 router.delete('/:id', eventQuestionController.deleteEventQuestion);
 
 module.exports = router;
+ 
