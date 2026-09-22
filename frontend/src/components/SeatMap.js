@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate,useLocation } from 'react-router-dom';
 import { toJpeg } from 'html-to-image';
+import toast from 'react-hot-toast';
 import API from '../utils/api';
 import {
   seatMapWrapper,
@@ -1202,6 +1203,7 @@ const handleSaveMap = async () => {
     setSelectedShapeId(null);
     setSelectedRowKey(null);
     setSelectedSeatKey(null);
+    setShowGrid(false);
 
     await new Promise((res) => setTimeout(res, 80));
 
@@ -1222,6 +1224,8 @@ const handleSaveMap = async () => {
       boardElement.style.transform = originalTransform;
     }
 
+    setShowGrid(true);
+
     const payload = {
       name: 'Mahajati Sadan — Main Auditorium',
       previewImage: previewImageData,
@@ -1236,7 +1240,7 @@ const handleSaveMap = async () => {
     const savedData = res.data || res;
 
     hasInteractedRef.current = false;
-    alert(`Seat map saved successfully as ${savedData.seatMapId || 'SM'}!`);
+    toast.success("Seat map saved successfully ");
 
     const formToRestore = savedEventForm || JSON.parse(sessionStorage.getItem('create_event_temp_data') || '{}');
 
@@ -1879,27 +1883,30 @@ const handleSaveMap = async () => {
   }}
 >
   <div 
-    className="min-w-full min-h-full p-20 flex items-start justify-center"
+    className="p-16 flex items-start justify-center"
     style={{
+      minWidth: '100%',
+      minHeight: '100%',
       width: 'max-content',
-      height: 'max-content'
+      height: 'max-content',
+      paddingBottom: '350px' /* 👈 Gives extra scroll space below bottom items */
     }}
   >
     <div 
       style={{
-        width: `${activePage.width * (zoomLevel / 100)}px`,
-        height: `${activePage.height * (zoomLevel / 100)}px`,
+        width: `${Math.max(activePage.width, activePage.width * (zoomLevel / 100))}px`,
+        height: `${Math.max(activePage.height, activePage.height * (zoomLevel / 100))}px`,
         position: 'relative',
         flexShrink: 0
       }}
     >
       <div 
-        className="canvasBoard bg-white relative overflow-visible rounded-lg"
+        className="canvasBoard bg-white relative overflow-visible rounded-lg shadow-2xl"
         style={{ 
           width: `${activePage.width}px`,
           height: `${activePage.height}px`,
           transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel / 100})`, 
-          transformOrigin: 'top left'
+          transformOrigin: 'top center' /* 👈 Keeps scaling centered so bottom content does not clip */
         }}
       >
         {showGrid && viewMode === 'creator' && <div className={`${canvasGridBg} print:hidden`} style={{ display: viewMode === 'preview' ? 'none' : 'block' }}></div>}
