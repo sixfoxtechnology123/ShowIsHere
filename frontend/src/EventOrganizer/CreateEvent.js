@@ -518,6 +518,8 @@ const handleDragOver = (e) => {
     eventId: createdEventId || undefined,
     seatMapId: selectedSeatMapId || undefined,
     currentActiveStep: activeStep,
+    orgId: localStorage.getItem('orgId') || undefined,
+    loginMobileNumber: localStorage.getItem('loginMobileNumber') || undefined,
     eventName: formData.eventTitle,
     eventDescription: formData.fullDescription || '',
     eventCategoryId: formData.eventCategory,

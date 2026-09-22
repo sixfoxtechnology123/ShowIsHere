@@ -84,6 +84,9 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
           }
           if (response.data) {
             localStorage.setItem('orgUserData', JSON.stringify(response.data));
+          
+            localStorage.setItem('orgId', response.data.orgId || response.data._id);
+            localStorage.setItem('loginMobileNumber', mobileNumber);
           }
           navigate('/dashboard'); 
         } else {
@@ -328,10 +331,14 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
         mobileNumber, 
         password 
       });
-      if (response.success) {
+  if (response.success) {
         toast.success('Successfully Signed In!');
         if (response.token) localStorage.setItem('orgToken', response.token);
-        if (response.data) localStorage.setItem('orgUserData', JSON.stringify(response.data));
+        if (response.data) {
+          localStorage.setItem('orgUserData', JSON.stringify(response.data));
+          localStorage.setItem('orgId', response.data.orgId || response.data._id);
+          localStorage.setItem('loginMobileNumber', mobileNumber);
+        }
         navigate('/profile');
       } else {
         toast.error(response.message || 'Invalid credentials');

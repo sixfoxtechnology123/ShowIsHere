@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 
-// 👇 Added this new section near the top
+
 const ticketTierSchema = new mongoose.Schema({
   ticketName: { type: String, required: true },
   price: { type: Number, required: true },
@@ -38,6 +38,17 @@ const createEventSchema = new mongoose.Schema({
     index: true
   },
 
+orgId: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true
+  },
+  loginMobileNumber: {
+    type: String,
+    required: true,
+    trim: true
+  },
   // STEP 1: Basic Details & Categorization
   eventName: {
     type: String,

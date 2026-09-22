@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const CreateEvent = require('../models/CreateEventModel');
 const EventQuestionMaster = require('../models/EventQuestionmodel');
 const QuestionDatabase = require('../models/questionDatabaseModel');
+const Organizer = require('../models/eventOrgAccountModel');
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toList = (value) => {
@@ -34,11 +35,16 @@ const getNextCreateEventIdFromDB = async (tenantKey) => {
   return `CE${maxId + 1}`; // Increments directly from the highest remaining ID
 };
 
-// 2. Save Step Data or Draft
 exports.saveEventStepData = async (req, res) => {
   try {
-    const { eventId, currentActiveStep, ...eventData } = req.body;
+    const { eventId, currentActiveStep, loginMobileNumber, ...eventData } = req.body;
     const tenantKey = req.tenantKey || req.headers['x-tenant-key'] || 'default-tenant';
+
+    // Force the correct string orgId ("ORG1") using mobile number, completely ignoring whatever frontend sent
+    const orgDoc = await mongoose.connection.db.collection('organizers').findOne({
+      loginMobileNumber: loginMobileNumber || req.headers['x-login-mobile']
+    });
+    const orgId = orgDoc?.orgId || 'ORG1';
 
     if (!eventData.eventName || !eventData.eventCategoryId) {
       return res.status(400).json({
@@ -55,6 +61,8 @@ exports.saveEventStepData = async (req, res) => {
           $set: {
             ...eventData,
             tenantKey,
+            orgId,
+            loginMobileNumber,
             currentActiveStep: currentActiveStep || 1
           }
         },
@@ -72,13 +80,15 @@ exports.saveEventStepData = async (req, res) => {
       });
     }
 
-    // B. NEW EVENT: Query DB for the highest existing ID right before inserting
+    // B. NEW EVENT
     const createEventId = await getNextCreateEventIdFromDB(tenantKey);
 
     const newEvent = await CreateEvent.create({
       ...eventData,
       createEventId,
       tenantKey,
+      orgId,
+      loginMobileNumber,
       currentActiveStep: currentActiveStep || 1,
       status: 'DRAFT'
     });
@@ -93,7 +103,6 @@ exports.saveEventStepData = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-
 exports.getGuideQuestionsByStep1 = async (req, res) => {
   try {
     const { categoryId, subCategoryIds, eventTypeIds } = req.query;
