@@ -982,44 +982,46 @@ const handleProceed = async () => {
                       className={inputFieldStyle}
                     />
                   </div>
-            <div>
-  {/* Label */}
-  <div className="flex items-center justify-between">
-    <label className={`${accountLabelStyle}`}>Email address</label>
-  </div>
+                      <div>
+                        {/* Label */}
+                        <div className="flex items-center justify-between">
+                          <label className={`${accountLabelStyle}`}>Email address</label>
+                        </div>
 
-  {/* Input Field */}
-  <input
-    type="email"
-    name="contactEmail"
-    placeholder="Enter email address"
-    value={formData.contactEmail}
-    onChange={(e) => {
-      handleInputChange(e);
-      setIsEmailVerified(false);
-    }}
-    disabled={isEmailVerified}
-    className={`${inputFieldStyle} ${isEmailVerified ? 'bg-slate-100 text-slate-500' : ''}`}
-  />
+                        {/* Input Field */}
+                        <input
+                          type="email"
+                          name="contactEmail"
+                          placeholder="Enter email address"
+                          value={formData.contactEmail}
+                          onChange={(e) => {
+                            handleInputChange(e);
+                            setIsEmailVerified(false);
+                          }}
+                          disabled={isEmailVerified}
+                          className={`${inputFieldStyle} ${isEmailVerified ? 'bg-slate-100 text-slate-500' : ''}`}
+                        />
 
-  {/* Verification Button / Status moved to bottom right */}
-  <div className="flex justify-end mt-1">
-    {isEmailVerified ? (
-      <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
-        ✓ Verified
-      </span>
-    ) : (
-      <button
-        type="button"
-        onClick={handleSendEmailOtp}
-        disabled={isVerifyingEmail}
-        className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer  bg-transparent shrink-0"
-      >
-        {isVerifyingEmail ? 'Sending...' : 'Verify'}
-      </button>
-    )}
-  </div>
-</div>
+                        {/* Verification Button / Status: Hidden until a valid email format is typed */}
+                        <div className="flex justify-end mt-1">
+                          {isEmailVerified ? (
+                            <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                              ✓ Verified
+                            </span>
+                          ) : (
+                            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail) && (
+                              <button
+                                type="button"
+                                onClick={handleSendEmailOtp}
+                                disabled={isVerifyingEmail}
+                                className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer  bg-transparent shrink-0"
+                              >
+                                {isVerifyingEmail ? 'Sending...' : 'Verify'}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
                  <div>
                     <label className={accountLabelStyle}>Mobile Number</label>
                     <input
