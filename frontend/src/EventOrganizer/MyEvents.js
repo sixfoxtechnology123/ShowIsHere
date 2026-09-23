@@ -90,33 +90,35 @@ const handleDuplicateEvent = async (e, eventId) => {
   const isConfirmed = window.confirm("Are you sure you want to duplicate this event?");
   if (!isConfirmed) return;
 
-  // 2. Find event & create temporary optimistic clone locally
+  // 2. Find event & create temporary optimistic clone locally (Marked as syncing)
   const targetEvent = events.find((evt) => (evt._id || evt.createEventId) === eventId);
   const tempId = `temp-${Date.now()}`;
   const optimisticEvent = {
     ...targetEvent,
     _id: tempId,
-    createEventId: tempId,
+    createEventId: 'Duplicating...',
     eventName: `${targetEvent?.eventName || 'Event'} (Copy)`,
-    status: 'DRAFT'
+    status: 'DRAFT',
+    isSyncing: true // Flag to disable click until real DB ID arrives
   };
 
-  // 3. Instant local state update & toast message
+  // 3. Instant local state update
   setEvents((prev) => [optimisticEvent, ...prev]);
-  toast.success("Event duplicated!");
 
-  // 4. API request runs in the background
+  // 4. API request runs to create DB record
   try {
     const response = await API.post(`/events/duplicate/${eventId}`);
     if (response.data?.success) {
       const actualEvent = response.data.data;
-      // Replace temporary event with real backend data
+      
+      // Replace temporary event with real backend data instantly
       setEvents((prev) =>
-        prev.map((evt) => (evt._id === tempId ? actualEvent : evt))
+        prev.map((evt) => (evt._id === tempId ? { ...actualEvent, isSyncing: false } : evt))
       );
+      toast.success("Event duplicated!");
     }
   } catch (err) {
-    // Revert state & inform user if background call fails
+    // Revert state & inform user if call fails
     setEvents((prev) => prev.filter((evt) => evt._id !== tempId));
     toast.error(err.response?.data?.message || 'Failed to duplicate event on server.');
   }
@@ -255,9 +257,22 @@ const handleDuplicateEvent = async (e, eventId) => {
                         status.label === 'Live' ? 'hover:bg-[#cccccc]' : ''
                       }`}
                     >
-                    <div className={`absolute top-0 right-0 ${status.statusColor} text-white text-[10px] font-extrabold px-3 py-1 uppercase tracking-wider z-10`}>
-                      {status.label}
-                    </div>
+                    <div 
+                        onClick={(e) => {
+                          if (status.label === 'Draft') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigate('/create-event', { 
+                              state: { eventId: evt._id || evt.createEventId } 
+                            });
+                          }
+                        }}
+                        className={`absolute top-0 right-0 ${status.statusColor} text-white text-[10px] font-extrabold px-3 py-1 uppercase tracking-wider z-10 ${
+                          status.label === 'Draft' ? 'cursor-pointer hover:opacity-90' : ''
+                        }`}
+                      >
+                        {status.label}
+                      </div>
 
                     {/* Strict 3:4 Aspect Ratio Thumbnail Container */}
                     <div className="w-full md:w-36 lg:w-40 aspect-[3/4] shrink-0 relative bg-slate-100 overflow-hidden flex items-center justify-center">
@@ -360,38 +375,46 @@ const handleDuplicateEvent = async (e, eventId) => {
                       </div>
                     )}
 
-                    {!status.muted && (() => {
-                      const rawDate = evt.schedule?.startDate;
-                      const startTime = evt.schedule?.startTime;
-                      if (!rawDate || !startTime) return null;
+                  {!status.muted && (() => {
+                  // 1. Show ONLY if event status is APPROVED
+                  const isApproved = evt.status?.toUpperCase() === 'APPROVED';
+                  if (!isApproved) return null;
 
-                      const timeLeft = calculateTimeLeft(rawDate, startTime);
-                      if (!timeLeft || timeLeft.expired) return null;
+                  const rawDate = evt.schedule?.startDate;
+                  const startTime = evt.schedule?.startTime;
+                  if (!rawDate || !startTime) return null;
 
-                      return (
-                        <div className="mt-2 pt-2  pr-20 w-full flex items-center justify-center space-x-1 text-slate-900 font-bold text-sm">
-                          <div className="flex flex-col items-center">
-                            <span className="text-xl font-bold text-slate-900">{timeLeft.days}</span>
-                            <span className="text-[10px] font-medium text-slate-700">Days</span>
-                          </div>
-                          <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
-                          <div className="flex flex-col items-center">
-                            <span className="text-xl font-bold text-slate-900">{timeLeft.hours}</span>
-                            <span className="text-[10px] font-medium text-slate-700">Hours</span>
-                          </div>
-                          <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
-                          <div className="flex flex-col items-center">
-                            <span className="text-xl font-bold text-slate-900">{timeLeft.minutes}</span>
-                            <span className="text-[10px] font-medium text-slate-700">Minutes</span>
-                          </div>
-                          <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
-                          <div className="flex flex-col items-center">
-                            <span className="text-xl font-bold text-slate-900">{timeLeft.seconds}</span>
-                            <span className="text-[10px] font-medium text-slate-700">Seconds</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                  const timeLeft = calculateTimeLeft(rawDate, startTime);
+                  
+                  // 2. Hide timer if expired or if calculation returns null
+                  if (!timeLeft || timeLeft.expired || (timeLeft.days <= 0 && timeLeft.hours <= 0 && timeLeft.minutes <= 0 && timeLeft.seconds <= 0)) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="mt-2 pt-2 pr-20 w-full flex items-center justify-center space-x-1 text-slate-900 font-bold text-sm">
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-bold text-slate-900">{timeLeft.days}</span>
+                        <span className="text-[10px] font-medium text-slate-700">Days</span>
+                      </div>
+                      <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-bold text-slate-900">{timeLeft.hours}</span>
+                        <span className="text-[10px] font-medium text-slate-700">Hours</span>
+                      </div>
+                      <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-bold text-slate-900">{timeLeft.minutes}</span>
+                        <span className="text-[10px] font-medium text-slate-700">Minutes</span>
+                      </div>
+                      <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-bold text-slate-900">{timeLeft.seconds}</span>
+                        <span className="text-[10px] font-medium text-slate-700">Seconds</span>
+                      </div>
+                    </div>
+                  );
+                })()}
                   </div>
                   </Link>
                 );

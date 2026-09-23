@@ -3,6 +3,7 @@ const CreateEvent = require('../models/CreateEventModel');
 const EventQuestionMaster = require('../models/EventQuestionmodel');
 const QuestionDatabase = require('../models/questionDatabaseModel');
 const Organizer = require('../models/eventOrgAccountModel');
+const ArtistMaster = require('../models/Artist');
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toList = (value) => {
@@ -240,11 +241,38 @@ exports.publishEvent = async (req, res) => {
   }
 };
 
-// 4. Get Event By ID
+// 4. Get Event By ID (With Artist Image Lookup)
 exports.getEventById = async (req, res) => {
   try {
-    const event = await CreateEvent.findById(req.params.id);
+    // 1. Fetch event as a plain JS object (.lean())
+    const event = await CreateEvent.findById(req.params.id).lean();
     if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
+    // 2. Check if the event has artists
+    if (Array.isArray(event.artists) && event.artists.length > 0) {
+      // Collect all artistId values
+      const artistIds = event.artists.map((a) => a.artistId).filter(Boolean);
+
+      // 3. Find matching artists in ArtistMaster DB using artistId or _id
+      const artistDocs = await ArtistMaster.find({
+        $or: [
+          { artistId: { $in: artistIds } },
+          { _id: { $in: artistIds.filter((id) => mongoose.Types.ObjectId.isValid(id)) } }
+        ]
+      }).lean();
+
+      // 4. Merge photoUrl into each artist object
+      event.artists = event.artists.map((a) => {
+        const match = artistDocs.find(
+          (doc) => doc.artistId === a.artistId || String(doc._id) === String(a.artistId)
+        );
+        return {
+          ...a,
+          photoUrl: match?.photoUrl || match?.photo || null
+        };
+      });
+    }
+
     return res.status(200).json({ success: true, data: event });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

@@ -252,9 +252,10 @@ useEffect(() => {
     setSeatMapImage(location.state.seatMapPreview);
   }
 
-// 1. First restore local state/temp data
+  // 1. Resolve targetEventId synchronously from location.state OR sessionStorage FIRST
+  let eventIdToFetch = location.state?.eventId || null;
+
   const savedData = location.state?.restoredEventForm || sessionStorage.getItem('create_event_temp_data');
-  let eventIdToFetch = null;
 
   if (savedData) {
     try {
@@ -264,57 +265,118 @@ useEffect(() => {
       if (parsed.savedTickets) setSavedTickets(parsed.savedTickets);
       if (parsed.bannerPreview) setBannerPreview(parsed.bannerPreview);
       if (parsed.thumbnailPreview) setThumbnailPreview(parsed.thumbnailPreview);
+      
+      // If eventId was not passed on location.state direct, grab it from parsed data
       if (parsed.createdEventId) {
         setCreatedEventId(parsed.createdEventId);
-        eventIdToFetch = parsed.createdEventId;
+        if (!eventIdToFetch) {
+          eventIdToFetch = parsed.createdEventId;
+        }
       }
     } catch (err) {
       console.error('Error restoring data', err);
     }
   }
 
-  // 2. Fetch fresh document from MongoDB to overwrite stale dates on refresh
-  const targetEventId = location.state?.eventId || eventIdToFetch || createdEventId;
+  // Fallback to state createdEventId only if local extractions yield nothing
+  const targetEventId = eventIdToFetch || createdEventId;
 
+  // 2. Fetch directly using targetEventId
   if (targetEventId) {
     API.get(`/events/${targetEventId}`)
       .then((res) => {
         const ev = res.data?.data || res.data?.event || res.data;
         if (ev) {
-          const freshStartDate = ev.schedule?.startDate
-            ? new Date(ev.schedule.startDate).toISOString().split('T')[0]
-            : (ev.startDate ? new Date(ev.startDate).toISOString().split('T')[0] : '');
+          setCreatedEventId(ev._id || targetEventId);
 
-          setFormData((prev) => {
-            const updated = {
-              ...prev,
-              eventTitle: ev.eventName || prev.eventTitle,
-              fullDescription: ev.eventDescription || prev.fullDescription,
-              startDate: freshStartDate || prev.startDate,
-              startTime: ev.schedule?.startTime || ev.startTime || prev.startTime,
-              endTime: ev.schedule?.endTime || ev.endTime || prev.endTime,
-              venueName: ev.venue?.name || prev.venueName,
-              venueAddress: ev.venue?.addressLine1 || prev.venueAddress,
-              venueCity: ev.venue?.city || prev.venueCity,
-              venuePinCode: ev.venue?.pincode || prev.venuePinCode
-            };
+          // 1. Media
+          if (ev.media?.bannerImage) setBannerPreview(ev.media.bannerImage);
+          if (ev.media?.thumbnailImage) setThumbnailPreview(ev.media.thumbnailImage);
+          if (ev.media?.seatMapImage) setSeatMapImage(ev.media.seatMapImage);
 
-            // Update sessionStorage with the fresh database date
-            sessionStorage.setItem('create_event_temp_data', JSON.stringify({
-              formData: updated,
-              savedTickets,
-              bannerPreview,
-              thumbnailPreview,
-              createdEventId: targetEventId
-            }));
+          // 2. Ticket Tiers
+          if (Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0) {
+            setSavedTickets(
+              ev.ticketTiers.map((t, idx) => ({
+                id: t._id || idx + 1,
+                name: t.ticketName || '',
+                price: String(t.price ?? ''),
+                qty: String(t.quantity ?? ''),
+                available: String(t.available ?? t.quantity ?? ''),
+                slotDate: t.slotDate || '',
+                startTime: t.eventStartTime || t.startTime || '',
+                endTime: t.eventEndTime || t.endTime || '',
+                startDate: t.startDate || '',
+                endDate: t.endDate || '',
+                ebPrice: t.ebPrice || '-',
+                ebQty: t.ebQty || '-',
+                ebStart: t.ebStart || '-',
+                ebStartTime: t.ebStartTime || '-',
+                ebEnd: t.ebEnd || '-',
+                ebEndTime: t.ebEndTime || '-'
+              }))
+            );
+          }
 
-            return updated;
-          });
+          // 3. Artists
+          const mappedArtists = Array.isArray(ev.artists)
+            ? ev.artists.map((a) => {
+                const masterMatch = masterArtists?.find(
+                  (m) => String(m.artistId) === String(a.artistId) || String(m._id) === String(a.artistId)
+                );
+                return {
+                  id: a.artistId || a._id,
+                  artistId: a.artistId || a._id,
+                  name: a.artistName || masterMatch?.artistName || '',
+                  role: a.role || masterMatch?.artistType || '',
+                  photo: a.photoUrl || a.photo || masterMatch?.photoUrl || masterMatch?.photoBase64 || null
+                };
+              })
+            : [];
+
+          // 4. Form Data
+          setFormData((prev) => ({
+            ...prev,
+            eventTitle: ev.eventName || '',
+            fullDescription: ev.eventDescription || '',
+            eventCategory: ev.eventCategoryId || '',
+            eventSubCategory: ev.subCategories?.[0]?.subCategoryName || '',
+            eventType: ev.eventTypes?.[0]?.typeName || '',
+            eventLanguages: ev.eventLanguages || [],
+            eventFormat: ev.eventFormat || '',
+            bannerImage: ev.media?.bannerImage || '',
+            thumbnailImage: ev.media?.thumbnailImage || '',
+
+            artistsList: mappedArtists,
+            hashtags: ev.hashtags || [],
+
+            // Schedule & Venue
+            eventScheduleType: ev.schedule?.eventScheduleType || 'single',
+            startDate: ev.schedule?.startDate ? new Date(ev.schedule.startDate).toISOString().split('T')[0] : '',
+            startTime: ev.schedule?.startTime || '',
+            endTime: ev.schedule?.endTime || '',
+            venueName: ev.venue?.name || '',
+            venueAddress: ev.venue?.addressLine1 || '',
+            venueCity: ev.venue?.city || '',
+            venuePinCode: ev.venue?.pincode || '',
+            googleMapLink: ev.venue?.googleMapLink || '',
+
+            // Guide Responses & Event Rules
+            minAgeLimit: String(ev.minAgeLimit ?? ''),
+            durationHours: String(ev.durationHours ?? ''),
+            durationMinutes: String(ev.durationMinutes ?? ''),
+            guideResponses: Array.isArray(ev.guideResponses) ? ev.guideResponses : [],
+
+            // Contact Person
+            contactName: ev.contactPerson?.name || '',
+            contactEmail: ev.contactPerson?.email || '',
+            contactMobile: ev.contactPerson?.mobile || ''
+          }));
         }
       })
-      .catch((err) => console.error('Error fetching fresh event data:', err));
+      .catch((err) => console.error('Error fetching event details:', err));
   }
-}, [location.state]);
+}, [location.key]); // <--- Ensures effect runs on every click/navigation
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
