@@ -33,7 +33,7 @@ const buildEventStatus = (event) => {
     return { label: 'Rejected', statusColor: 'bg-red-600', rightBarColor: 'bg-red-500', muted: true };
   }
   if (event.approvalStatus !== 'approved') {
-    return { label: 'Pending', statusColor: 'bg-amber-500', rightBarColor: 'bg-amber-500', muted: false };
+    return { label: 'Pending Approval', statusColor: 'bg-amber-500', rightBarColor: 'bg-amber-500', muted: false };
   }
 
   const endDate = new Date(getEventEndDate(event));
@@ -48,13 +48,17 @@ const formatDateParts = (event) => {
   const rawDate = event.schedule?.startDate || event.createdAt;
   const date = new Date(rawDate);
   if (Number.isNaN(date.getTime())) {
-    return { day: '--', month: 'DATE', time: event.schedule?.startTime || '--' };
+    return { day: '--', month: 'DATE', timeRange: event.schedule?.startTime || '--' };
   }
+
+  const startTime = event.schedule?.startTime || event.ticketTiers?.[0]?.eventStartTime || '--';
+  const endTime = event.schedule?.endTime || event.ticketTiers?.[0]?.eventEndTime || '';
+  const timeRange = endTime ? `${startTime}-${endTime}` : startTime;
 
   return {
     day: String(date.getDate()).padStart(2, '0'),
     month: date.toLocaleString('en-US', { month: 'long' }).toUpperCase(),
-    time: event.schedule?.startTime || event.ticketTiers?.[0]?.eventStartTime || '--'
+    timeRange
   };
 };
 
@@ -121,7 +125,7 @@ const MyEvents = () => {
         <EventOrgLefSidebar />
 
         <main className={dashMainContentArea}>
-          <div className={`${dashScrollableBody} px-12 sm:px-20 lg:px-28 py-4`}>
+          <div className={`${dashScrollableBody} px-8 sm:px-14 lg:px-24 py-4`}>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-5">
               <Link
                 to="/create-event"
@@ -180,7 +184,8 @@ const MyEvents = () => {
                       {status.label}
                     </div>
 
-                    <div className="w-full md:w-52 h-44 md:h-auto shrink-0 relative bg-slate-100">
+                    {/* Strict 3:4 Aspect Ratio Thumbnail Container */}
+                    <div className="w-full md:w-36 lg:w-40 aspect-[3/4] shrink-0 relative bg-slate-100 overflow-hidden flex items-center justify-center">
                       <img
                         src={image}
                         alt={evt.eventName || 'Event'}
@@ -201,7 +206,6 @@ const MyEvents = () => {
                             <span className={`w-1.5 h-1.5 rounded-full ${status.muted ? 'bg-slate-300' : 'bg-pink-600'}`}></span>
                             <span>{evt.eventCategoryName || evt.eventFormat || 'Event'}</span>
                           </span>
-                          <span>{evt.createEventId || evt._id}</span>
                         </div>
 
                         <p className={`text-xs leading-relaxed pt-1 ${status.muted ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -212,23 +216,26 @@ const MyEvents = () => {
                         )}
                       </div>
 
-                      <div className={`flex items-center text-xs font-medium ${status.muted ? 'text-slate-400' : 'text-slate-500'}`}>
-                        <svg className="w-4 h-4 mr-1.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11.5A2.5 2.5 0 1012 6a2.5 2.5 0 000 5.5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 9.5c0 7-7.5 12-7.5 12s-7.5-5-7.5-12a7.5 7.5 0 1115 0z" /></svg>
+                      <div className={`flex items-center pb-6 text-xs font-medium ${status.muted ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <span className="mr-1.5 text-sm">📍</span>
                         <span>{location}</span>
                       </div>
                     </div>
 
-                    <div className="w-full md:w-40 px-4 py-4 border-t md:border-t-0 md:border-l border-slate-100 flex flex-row md:flex-col items-center justify-between md:justify-center text-center relative bg-white">
+                    <div className="w-full md:w-40 px-4 py-4 border-t md:border-t-0  flex flex-row md:flex-col items-center justify-between md:justify-center text-center relative bg-white">
                       <div>
                         <h4 className={`text-2xl font-black ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
                           {dateParts.day}
                         </h4>
-                        <span className={`text-[10px] font-extrabold tracking-wider block ${status.muted ? 'text-slate-300' : 'text-slate-400'}`}>
+                        <span className={`text-[10px] font-extrabold tracking-wider block uppercase ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
                           {dateParts.month}
                         </span>
-                        <span className={`text-[10px] block mt-1 ${status.muted ? 'text-slate-300' : 'text-slate-400'}`}>
-                          {dateParts.time}
-                        </span>
+                        <div className={`flex items-center justify-center space-x-1.5 text-xs font-bold mt-1.5 ${status.muted ? 'text-slate-300' : 'text-slate-900'}`}>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5 shrink-0 text-slate-700">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                          <span>{dateParts.timeRange}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

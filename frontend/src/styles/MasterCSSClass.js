@@ -237,7 +237,7 @@ export const accountLogoImg = "w-8 h-8 object-cover rounded-lg";
 export const accountBrandText = "font-extrabold text-blue-900 text-base tracking-tight";
 export const accountStepsBar = "hidden md:flex items-center space-x-20";
 
-export const accountStepItemActive = "flex items-center space-x-2 px-5 py-1 rounded-md bg-[#EAF0FE] border border-blue-100/60 shadow-xs relative text-blue-700 font-bold text-sm cursor-pointer overflow-hidden before:absolute before:left-0 before:inset-y-0 before:w-1.5 before:bg-blue-600 before:rounded-r-[1px]";
+export const accountStepItemActive = "flex items-center space-x-2 px-5 py-1 rounded-md shadow-xs relative text-blue-700 font-bold text-sm cursor-pointer overflow-hidden";
 export const accountStepItemInactive = "flex items-center space-x-3 px-5 py-2 rounded-md text-sm font-semibold text-slate-400 cursor-pointer hover:text-slate-600 transition";
 
 export const accountStepBadgeActive = "w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[11px] font-bold shadow-xs";

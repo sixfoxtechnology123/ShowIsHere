@@ -743,10 +743,10 @@ const handleDragOver = (e) => {
               return (
                 <div
                   key={step.id}
-                  onClick={() => {
-                    setActiveStep(step.id);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  // onClick={() => {
+                  //   setActiveStep(step.id);
+                  //   window.scrollTo({ top: 0, behavior: 'smooth' });
+                  // }}
                   className={isActive ? accountStepItemActive : accountStepItemInactive}
                 >
                   <span className={isActive ? accountStepBadgeActive : accountStepBadgeInactive}>
@@ -3217,7 +3217,7 @@ const handleDragOver = (e) => {
                 </div>
               </div>
 
-              <div className=" bg-amber-50 border border-amber-200 rounded-md flex items-center justify-center gap-2 text-xs text-amber-700 font-medium absolute w-3/5 bottom-44 p-3">
+              <div className="w-full absolute left-1/2 -translate-x-1/2 bottom-44 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-center gap-2 text-xs text-amber-700 font-medium p-3 max-w-[calc(100%-4rem)] sm:max-w-xl md:max-w-2xl">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
               </svg>
