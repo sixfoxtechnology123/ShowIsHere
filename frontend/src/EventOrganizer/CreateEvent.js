@@ -1,10 +1,8 @@
-import React, { useState, useRef,useEffect } from 'react';
+import React, { useState, useRef,useEffect,useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useLocation} from 'react-router-dom';
 import SeatMapViewer from './../components/SeatMap';
 import { indianCities } from '../utils/indianCities';
-
-
 
 import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
@@ -498,9 +496,25 @@ const handleDragOver = (e) => {
       handleFileUpload(file, type); // Passes the File object directly
     }
   };
-
-
-
+const hasFormContent = useMemo(() => {
+    switch (activeStep) {
+      case 1:
+        return Boolean(formData.eventTitle?.trim() && formData.eventCategory);
+      case 2:
+        return formData.artistsList.length > 0 || formData.hashtags.some(tag => tag && tag.trim() !== '' && tag !== '#');
+      case 3:
+        return Boolean(formData.venueName?.trim() && (formData.startDate || formData.selectedWeeklyDates?.length > 0));
+      case 4:
+        return savedTickets.length > 0 || seatMapImage !== null;
+      case 5:
+        return Boolean(formData.minAgeLimit || formData.durationHours || formData.durationMinutes || (formData.guideResponses && formData.guideResponses.length > 0));
+      case 6:
+        return Boolean(formData.contactName?.trim() || formData.contactEmail?.trim() || formData.contactMobile?.trim());
+      default:
+        return false;
+    }
+  }, [activeStep, formData, savedTickets, seatMapImage]);
+  
   const validateStep1 = () => {
     if (!formData.eventTitle.trim()) {
       toast.error('Please enter the Event Title.', { id: 'event-error' });
@@ -743,10 +757,10 @@ const handleDragOver = (e) => {
               return (
                 <div
                   key={step.id}
-                  // onClick={() => {
-                  //   setActiveStep(step.id);
-                  //   window.scrollTo({ top: 0, behavior: 'smooth' });
-                  // }}
+                  onClick={() => {
+                    setActiveStep(step.id);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   className={isActive ? accountStepItemActive : accountStepItemInactive}
                 >
                   <span className={isActive ? accountStepBadgeActive : accountStepBadgeInactive}>
@@ -855,7 +869,7 @@ const handleDragOver = (e) => {
                     <option key={sub._id || sub.subCategoryName} value={sub.subCategoryName}>
                       {sub.subCategoryName}
                     </option>
-                  ))}
+                  ))}  
                 </select>
               </div>
 
@@ -3228,33 +3242,43 @@ const handleDragOver = (e) => {
 
         </div>
       </main>
-
-    <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
-        <div className={`${accountFooterInner} flex justify-between items-center w-full px-6`}>
-          {/* Left Column: Save as Draft */}
-          <div className="flex-1 flex justify-start">
-            <button type="button" onClick={handleSaveDraft} className={accountSecondaryBtn}>
-              Save as Draft
+<footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
+      <div className={`${accountFooterInner} flex justify-between items-center w-full px-6`}>
+        <div className="flex-1 flex justify-start">
+          {activeStep === 1 ? (
+            <button type="button" onClick={() => navigate('/my-events')} className={accountSecondaryBtn}>
+              Cancel
             </button>
-          </div>
-
-          {/* Middle Column: Back and Next / Submit buttons grouped */}
-          <div className="flex-1 flex items-center justify-center gap-3">
-            {activeStep > 1 && (
-              <button type="button" onClick={handleSecondaryAction} className={accountSecondaryBtn}>
-                Back
-              </button>
-            )}
-
-            <button type="button" onClick={handleProceed} className={accountPrimaryBtn}>
-              <span>{activeStep === steps.length ? 'Submit' : steps[activeStep].label}</span>
+          ) : (
+            <button type="button" onClick={handleSecondaryAction} className={accountSecondaryBtn}>
+              Back
             </button>
-          </div>
-
-          {/* Right Column: Empty spacer to balance the left side */}
-          <div className="flex-1"></div>
+          )}
         </div>
-      </footer>
+
+        <div className="flex-1 flex items-center justify-center gap-3">
+          <button 
+            type="button" 
+            onClick={handleSaveDraft} 
+            disabled={!hasFormContent} 
+            className={`${accountSecondaryBtn} ${!hasFormContent ? 'opacity-30 cursor-not-allowed bg-slate-100' : ''}`}
+          >
+            Save as Draft
+          </button>
+
+          <button 
+            type="button" 
+            onClick={handleProceed} 
+            disabled={!hasFormContent} 
+            className={`${accountPrimaryBtn} ${!hasFormContent ? 'opacity-30 cursor-not-allowed bg-blue-300' : ''}`}
+          >
+            <span>{activeStep === steps.length ? 'Submit' : steps[activeStep].label}</span>
+          </button>
+        </div>
+
+        <div className="flex-1"></div>
+      </div>
+    </footer>
     </div>
   );
 };
