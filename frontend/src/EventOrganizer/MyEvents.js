@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 import EventOrgHeader from './EventOrgHeader';
 import EventOrgFooter from './EventOrgFooter';
+import toast from 'react-hot-toast';
 import EventOrgLefSidebar from './EventOrgLefSidebar';
 import Logo from '../assets/Logo.jpeg';
 import {
@@ -26,13 +27,18 @@ const getEventEndDate = (event) => {
 };
 
 const buildEventStatus = (event) => {
-  if (event.status === 'DRAFT') {
+  const statusUpper = String(event.status || '').toUpperCase();
+
+  if (statusUpper === 'DRAFT') {
     return { label: 'Draft', statusColor: 'bg-slate-500', rightBarColor: 'bg-slate-400', muted: false };
   }
-  if (event.approvalStatus === 'rejected') {
+  if (statusUpper === 'CANCELLED' || statusUpper === 'CANCEL') {
+    return { label: 'Cancelled', statusColor: 'bg-rose-700', rightBarColor: 'bg-rose-700', muted: true };
+  }
+  if (statusUpper === 'REJECTED') {
     return { label: 'Rejected', statusColor: 'bg-red-600', rightBarColor: 'bg-red-500', muted: true };
   }
-  if (event.approvalStatus !== 'approved') {
+  if (statusUpper === 'PENDING') {
     return { label: 'Pending Approval', statusColor: 'bg-amber-500', rightBarColor: 'bg-amber-500', muted: false };
   }
 
@@ -63,6 +69,7 @@ const formatDateParts = (event) => {
 };
 
 const MyEvents = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +82,45 @@ const MyEvents = () => {
     return () => clearInterval(timer);
   }, []);
 
+const handleDuplicateEvent = async (e, eventId) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  // 1. Warning Confirmation
+  const isConfirmed = window.confirm("Are you sure you want to duplicate this event?");
+  if (!isConfirmed) return;
+
+  // 2. Find event & create temporary optimistic clone locally
+  const targetEvent = events.find((evt) => (evt._id || evt.createEventId) === eventId);
+  const tempId = `temp-${Date.now()}`;
+  const optimisticEvent = {
+    ...targetEvent,
+    _id: tempId,
+    createEventId: tempId,
+    eventName: `${targetEvent?.eventName || 'Event'} (Copy)`,
+    status: 'DRAFT'
+  };
+
+  // 3. Instant local state update & toast message
+  setEvents((prev) => [optimisticEvent, ...prev]);
+  toast.success("Event duplicated!");
+
+  // 4. API request runs in the background
+  try {
+    const response = await API.post(`/events/duplicate/${eventId}`);
+    if (response.data?.success) {
+      const actualEvent = response.data.data;
+      // Replace temporary event with real backend data
+      setEvents((prev) =>
+        prev.map((evt) => (evt._id === tempId ? actualEvent : evt))
+      );
+    }
+  } catch (err) {
+    // Revert state & inform user if background call fails
+    setEvents((prev) => prev.filter((evt) => evt._id !== tempId));
+    toast.error(err.response?.data?.message || 'Failed to duplicate event on server.');
+  }
+};
   useEffect(() => {
     const fetchMyEvents = async () => {
       setLoading(true);
@@ -282,21 +328,16 @@ const MyEvents = () => {
 
                       </button>
 
-                      {/* Duplicate Button */}
+                     {/* Duplicate Button */}
                       <button
                         type="button"
-                        onClick={(e) => { 
-                          e.preventDefault(); 
-                          e.stopPropagation(); 
-                          /* Add your duplicate action here */ 
-                        }}
-                        className="w-7 h-7 rounded-full bg-[#666666] text-white flex items-center justify-center shadow-md transition-colors"
+                        onClick={(e) => handleDuplicateEvent(e, evt._id || evt.createEventId)}
+                        className="w-7 h-7 rounded-full bg-[#666666] text-white flex items-center justify-center shadow-md transition-colors hover:bg-slate-800"
                         title="Duplicate"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
-                            </svg>
-
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-3.5 h-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                        </svg>
                       </button>
                     </div>
                   )}

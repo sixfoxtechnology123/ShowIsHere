@@ -218,8 +218,8 @@ exports.publishEvent = async (req, res) => {
           ...rest,
           tenantKey,
           currentActiveStep: 6,
-          status: 'PUBLISHED',
-          approvalStatus: 'pending',
+          status: 'PENDING',
+         
           rejectionReason: ''
         }
       },
@@ -296,26 +296,64 @@ exports.getAdminEvents = async (req, res) => {
 exports.updateEventApprovalStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { approvalStatus, reason = '' } = req.body;
+    const { status, reason = '' } = req.body;
+const targetStatus = status?.toUpperCase();
 
-    if (!['pending', 'approved', 'rejected'].includes(approvalStatus)) {
+    if (!['PENDING', 'APPROVED', 'REJECTED'].includes(targetStatus)) {
       return res.status(400).json({ success: false, message: 'Invalid approval status.' });
     }
 
     const updated = await CreateEvent.findByIdAndUpdate(
       id,
       {
-        $set: {
-          approvalStatus,
-          rejectionReason: approvalStatus === 'rejected' ? reason : ''
+          $set: {
+          status: targetStatus,
+          rejectionReason: targetStatus === 'REJECTED' ? reason : ''
         },
-        $push: { approvalHistory: { status: approvalStatus, reason } }
+        $push: { approvalHistory: { status: targetStatus, reason } }
       },
       { new: true }
     );
 
     if (!updated) return res.status(404).json({ success: false, message: 'Event not found.' });
     return res.status(200).json({ success: true, message: 'Event approval status updated.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+exports.duplicateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantKey = req.tenantKey || req.headers['x-tenant-key'] || 'default-tenant';
+
+    const originalEvent = await CreateEvent.findById(id).lean();
+
+    if (!originalEvent) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    // Delete primary keys to avoid duplicate key errors
+    delete originalEvent._id;
+    delete originalEvent.createdAt;
+    delete originalEvent.updatedAt;
+
+    const createEventId = await getNextCreateEventIdFromDB(tenantKey);
+
+    const duplicatedEvent = await CreateEvent.create({
+      ...originalEvent,
+      createEventId,
+      tenantKey,
+      status: 'DRAFT',              // Set status to DRAFT
+     
+      rejectionReason: '',          // Reset rejection reason
+      approvalHistory: []          // Reset approval history
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: duplicatedEvent,
+      message: `Event duplicated as draft! (${createEventId})`
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

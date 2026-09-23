@@ -10,5 +10,6 @@ router.get('/admin/events', createEventController.getAdminEvents);
 router.put('/admin/events/:id/approval', createEventController.updateEventApprovalStatus);
 router.get('/', createEventController.getAllEvents);
 router.get('/:id', createEventController.getEventById);
+router.post('/duplicate/:id', createEventController.duplicateEvent);
 
 module.exports = router;

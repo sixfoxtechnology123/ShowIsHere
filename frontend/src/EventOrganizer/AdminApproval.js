@@ -44,45 +44,48 @@ const AdminApproval = () => {
     fetchApprovals();
   }, []);
 
-  const updateEventStatus = async (event, approvalStatus) => {
-    const label = approvalStatus === 'approved' ? 'approve' : 'reject';
+  const updateEventStatus = async (event, status) => {
+    const label = status === 'approved' ? 'approve' : 'reject';
     if (!window.confirm(`Are you sure you want to ${label} this event?`)) return;
 
-    const reason = approvalStatus === 'rejected'
+    const reason = status === 'rejected'
       ? window.prompt('Reject reason (optional)', event.rejectionReason || '') || ''
       : '';
 
     try {
-      const response = await API.put(`/events/admin/events/${event._id}/approval`, { approvalStatus, reason });
+      const response = await API.put(`/events/admin/events/${event._id}/approval`, { status, reason });
       setEvents((prev) => prev.map((item) => (item._id === event._id ? response.data : item)));
-      toast.success(`Event ${approvalStatus}.`);
+      toast.success(`Event ${status}.`);
     } catch (error) {
       toast.error(error.message || 'Failed to update event.');
     }
   };
 
-  const updateAccountStatus = async (account, approvalStatus) => {
-    const label = approvalStatus === 'approved' ? 'approve' : 'reject';
+  const updateAccountStatus = async (account, status) => {
+    const label = status === 'approved' ? 'approve' : 'reject';
     if (!window.confirm(`Are you sure you want to ${label} this account?`)) return;
 
-    const reason = approvalStatus === 'rejected'
+    const reason = status === 'rejected'
       ? window.prompt('Reject reason (optional)', account.rejectionReason || '') || ''
       : '';
 
     try {
-      const response = await API.put(`/org/admin/accounts/${account._id}/approval`, { approvalStatus, reason });
+      const response = await API.put(`/org/admin/accounts/${account._id}/approval`, { status, reason });
       setAccounts((prev) => prev.map((item) => (item._id === account._id ? response.data : item)));
-      toast.success(`Account ${approvalStatus}.`);
+      toast.success(`Account ${status}.`);
     } catch (error) {
       toast.error(error.message || 'Failed to update account.');
     }
   };
 
-  const renderStatus = (status = 'pending') => (
-    <span className={`inline-flex items-center px-2 py-1 rounded border text-[10px] font-bold uppercase ${statusClasses[status] || statusClasses.pending}`}>
-      {status}
-    </span>
-  );
+  const renderStatus = (rawStatus = 'PENDING') => {
+    const status = (rawStatus || 'pending').toLowerCase();
+    return (
+      <span className={`inline-flex items-center px-2 py-1 rounded border text-[10px] font-bold uppercase ${statusClasses[status] || statusClasses.pending}`}>
+        {status}
+      </span>
+    );
+  };
 
   return (
     <div className={dashLayoutWrapper}>
@@ -122,15 +125,16 @@ const AdminApproval = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {events.map((event) => {
-                      const isApproved = event.approvalStatus === 'approved';
-                      const isRejected = event.approvalStatus === 'rejected';
+                      const normalizedStatus = (event.status || '').toLowerCase();
+                      const isApproved = normalizedStatus === 'approved';
+                      const isRejected = normalizedStatus === 'rejected';
 
                       return (
                         <tr key={event._id} className="align-top">
                           <td className="px-4 py-4">
                             <div className="font-bold text-slate-900">{event.eventName || 'Untitled'}</div>
                             <div className="text-slate-500 mt-1">{event.eventCategoryName || 'General Event'}</div>
-                            <div className="text-slate-500 mt-1">{event.eventDescription || 'No description'}</div>
+                            {/* <div className="text-slate-500 mt-1">{event.eventDescription || 'No description'}</div> */}
                           </td>
                           <td className="px-4 py-4 text-slate-600">
                             <div>{event.loginMobileNumber}</div>
@@ -142,8 +146,7 @@ const AdminApproval = () => {
                             <div>{[event.venue?.name, event.venue?.city].filter(Boolean).join(', ') || 'No venue'}</div>
                           </td>
                           <td className="px-4 py-4">
-                            {renderStatus(event.approvalStatus)}
-                            
+                            {renderStatus(event.status)}
                             {event.rejectionReason && <div className="text-red-600 mt-2">Reason: {event.rejectionReason}</div>}
                           </td>
                           <td className="px-4 py-4 text-slate-600">
@@ -200,8 +203,9 @@ const AdminApproval = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {accounts.map((account) => {
-                      const isApproved = account.approvalStatus === 'approved';
-                      const isRejected = account.approvalStatus === 'rejected';
+                      const normalizedStatus = (account.status || '').toLowerCase();
+                      const isApproved = normalizedStatus === 'approved';
+                      const isRejected = normalizedStatus === 'rejected';
                       const panImageUrl = account.panCardDocument?.base64Data || account.panCardImage || account.panImage;
 
                       return (
@@ -232,7 +236,7 @@ const AdminApproval = () => {
                             <div>Bank: {account.bankName || '-'} {account.accountNumber || ''}</div>
                           </td>
                           <td className="px-4 py-4">
-                            {renderStatus(account.approvalStatus)}
+                            {renderStatus(account.status)}
                             {account.rejectionReason && <div className="text-red-600 mt-2">Reason: {account.rejectionReason}</div>}
                           </td>
                           <td className="px-4 py-4 text-right">
