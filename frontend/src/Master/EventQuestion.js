@@ -455,19 +455,19 @@ const fetchMasters = async () => {
                         <td className="py-2 px-2 font-semibold">{item.eventCategoryName}</td>
                         <td className="py-2 px-2">{(item.subCategories || []).map((sub) => sub.subCategoryName).join(', ') || '-'}</td>
                         <td className="py-2 px-2">{(item.eventTypes || []).map((type) => type.typeName).join(', ') || '-'}</td>
-                       <td className="py-2 px-2">
-                        {item.questions && item.questions.length > 0 ? (
-                          <div className="space-y-1">
-                            {item.questions.map((q, qIdx) => (
-                              <div key={qIdx} className="text-xs">
-                                <span className="font-medium">{q.questionId || `QD${qIdx + 1}`}:</span> {q.question}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          (item.questionIds || []).join(', ')
-                        )}
-                      </td>
+                      <td className="py-2 px-2">
+                          {item.questions && item.questions.length > 0 ? (
+                            <div className="text-xs truncate max-w-xs">
+                              <span className="font-medium">{item.questions[0].questionId || 'QD1'}:</span> {item.questions[0].question}
+                            </div>
+                          ) : item.questionIds && item.questionIds.length > 0 ? (
+                            <div className="text-xs">
+                              {item.questionIds[0]}
+                            </div>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
                         <td className="py-2 px-2">
                           <span className={item.status === 'ACTIVE' ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold' : 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold'}>
                             {item.status}
