@@ -120,7 +120,7 @@ export const pageTabActive = "px-3 py-1 rounded font-bold transition cursor-poin
 export const pageTabInactive = "px-3 py-1 rounded font-bold transition cursor-pointer border bg-white text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center space-x-2";
 export const addPageButton = "px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold transition cursor-pointer";
 
-export const inputFieldStyle = "w-full  border-2 border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 bg-white outline-none focus:border-blue-500 font-normal";
+export const inputFieldStyle = "w-full  border-2 border-slate-200 rounded-lg px-3 py-1 text-sm text-slate-900 bg-white outline-none focus:border-blue-500 font-normal";
 export const inputFieldStyleduration = "border-2 border-slate-200 rounded-lg px-3 py-1 text-sm text-slate-900 outline-none focus:border-blue-500 font-normal";
 
 // ==========================================
@@ -263,8 +263,8 @@ export const accountCheckboxWrapper = "flex items-center space-x-2.5 cursor-poin
 export const accountNoticeBox = "bg-amber-50/80 border border-amber-200/80 text-amber-900 text-[11px] font-semibold px-4 py-2.5 rounded-md";
 
 
-export const accountSecondaryBtn = "px-6 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-sm rounded-md transition cursor-pointer shadow-2xs";
-export const accountPrimaryBtn = "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg transition cursor-pointer shadow-sm flex items-center space-x-1.5";
+export const accountSecondaryBtn = "px-6 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-sm rounded-md transition cursor-pointer shadow-2xs";
+export const accountPrimaryBtn = "px-6 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg transition cursor-pointer shadow-sm flex items-center space-x-1.5";
 
 // Step 2 Document Upload Styles
 export const accountUploadStepWrapper = "space-y-2";

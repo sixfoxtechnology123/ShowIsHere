@@ -45,13 +45,13 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       return;
     }
     setStep(2);
-    setTimer(10);
+    setTimer(60);
     setCanResend(false);
     toast.success('OTP sent successfully', { id: 'signin-toast' });
   };
 
   const handleResendOtp = () => {
-    setTimer(10);
+    setTimer(60);
     setCanResend(false);
     setOtp('');
     toast.success('Resent OTP', { id: 'signin-toast' });

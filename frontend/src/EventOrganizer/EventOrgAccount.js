@@ -113,6 +113,8 @@ const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
 const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
 const [enteredOtp, setEnteredOtp] = useState('');
 const [hasSigned, setHasSigned] = useState(false);
+const [resendTimer, setResendTimer] = useState(60);
+const [canResend, setCanResend] = useState(false);
 const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
 const initialMobile = location.state?.prefilledMobile || 
                         JSON.parse(localStorage.getItem('orgUserData') || '{}').loginMobileNumber || 
@@ -150,6 +152,50 @@ const initialMobile = location.state?.prefilledMobile ||
     setIsDrawing(true);
     setHasSigned(true);
   };
+
+
+  useEffect(() => {
+  let interval = null;
+  if (isOtpModalOpen && resendTimer > 0) {
+    interval = setInterval(() => {
+      setResendTimer((prev) => prev - 1);
+    }, 1000);
+  } else if (resendTimer === 0) {
+    setCanResend(true);
+  }
+  return () => clearInterval(interval);
+}, [isOtpModalOpen, resendTimer]);
+
+// Reset timer when opening the modal fresh
+const handleOpenOtpModal = () => {
+  setResendTimer(60);
+  setCanResend(false);
+  setIsOtpModalOpen(true);
+};
+
+  const handleAutoVerifyEmailOtp = async (otpCode) => {
+    try {
+      const response = await API.post('/org/verify-email-otp', {
+        email: formData.contactEmail,
+        otp: otpCode
+      });
+
+      const resData = response.data || response;
+
+      if (resData && resData.success) {
+        setIsEmailVerified(true);
+        setIsOtpModalOpen(false);
+        setEnteredOtp('');
+        toast.success('Email verified successfully!', { id: 'otp-success-toast' });
+      } else {
+        toast.error(resData.message || 'Invalid OTP code. Please try again.', { id: 'otp-error-toast' });
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Invalid OTP code. Please try again.';
+      toast.error(errorMsg, { id: 'otp-error-toast' });
+    }
+  };
+
 
 const handleSendEmailOtp = async () => {
     if (!formData.contactEmail.trim()) {
@@ -525,6 +571,10 @@ const validateStep1 = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.contactEmail)) {
       toast.error('Please enter a valid email address.', { id: 'form-error-toast' });
+      return false;
+    }
+    if (!isEmailVerified) {
+      toast.error('Please verify your email address using OTP before proceeding.', { id: 'form-error-toast' });
       return false;
     }
     if (!formData.contactMobile.trim()) {
@@ -932,38 +982,44 @@ const handleProceed = async () => {
                       className={inputFieldStyle}
                     />
                   </div>
-             <div>
-            
-              <div className="flex items-center justify-between ">
-                <label className={`${accountLabelStyle}`}>Email address</label>
-                {isEmailVerified ? (
-                  <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
-                    ✓ Verified
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSendEmailOtp}
-                    disabled={isVerifyingEmail}
-                    className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer underline bg-transparent shrink-0"
-                  >
-                    {isVerifyingEmail ? 'Sending...' : 'Verify Email'}
-                  </button>
-                )}
-              </div>
-              <input
-                type="email"
-                name="contactEmail"
-                placeholder="Enter email address"
-                value={formData.contactEmail}
-                onChange={(e) => {
-                  handleInputChange(e);
-                  setIsEmailVerified(false);
-                }}
-                disabled={isEmailVerified}
-                className={`${inputFieldStyle} ${isEmailVerified ? 'bg-slate-100 text-slate-500' : ''}`}
-              />
-            </div>
+            <div>
+  {/* Label */}
+  <div className="flex items-center justify-between">
+    <label className={`${accountLabelStyle}`}>Email address</label>
+  </div>
+
+  {/* Input Field */}
+  <input
+    type="email"
+    name="contactEmail"
+    placeholder="Enter email address"
+    value={formData.contactEmail}
+    onChange={(e) => {
+      handleInputChange(e);
+      setIsEmailVerified(false);
+    }}
+    disabled={isEmailVerified}
+    className={`${inputFieldStyle} ${isEmailVerified ? 'bg-slate-100 text-slate-500' : ''}`}
+  />
+
+  {/* Verification Button / Status moved to bottom right */}
+  <div className="flex justify-end mt-1">
+    {isEmailVerified ? (
+      <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+        ✓ Verified
+      </span>
+    ) : (
+      <button
+        type="button"
+        onClick={handleSendEmailOtp}
+        disabled={isVerifyingEmail}
+        className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer  bg-transparent shrink-0"
+      >
+        {isVerifyingEmail ? 'Sending...' : 'Verify'}
+      </button>
+    )}
+  </div>
+</div>
                  <div>
                     <label className={accountLabelStyle}>Mobile Number</label>
                     <input
@@ -1375,7 +1431,7 @@ const handleProceed = async () => {
           ✕
         </button>
       </div>
- 
+
       {/* Modal Body */}
       <div className="p-5 space-y-4">
         <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3 text-center">
@@ -1384,7 +1440,7 @@ const handleProceed = async () => {
           </p>
         </div>
 
-        {/* OTP Input Field */}
+        {/* OTP Input Field with Auto-Verify */}
         <div className="space-y-1.5">
           <label className="text-[11px] font-bold text-slate-600 block text-center uppercase tracking-wider">Enter 6-Digit OTP</label>
           <input
@@ -1392,21 +1448,40 @@ const handleProceed = async () => {
             maxLength="6"
             placeholder="••••••"
             value={enteredOtp}
-            onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '');
+              setEnteredOtp(val);
+
+              // Auto-verify upon typing 6 digits
+              if (val.length === 6) {
+                handleAutoVerifyEmailOtp(val);
+              }
+            }}
             autoFocus
             className={`${inputFieldStyle} text-center tracking-[0.75em] font-extrabold text-lg py-2.5 rounded-xl border-slate-200 focus:border-blue-500`}
           />
-    
         </div>
 
-        {/* Action Button */}
-        <button
-          type="button"
-          onClick={handleVerifyEmailOtp}
-          className={`${gstModalProceedBtn} w-full py-2.5 rounded-xl font-bold text-xs shadow-md shadow-blue-500/20 hover:shadow-lg transition-all cursor-pointer`}
-        >
-          Confirm & Verify
-        </button>
+        {/* Dynamic Resend Timer / Button */}
+        <div className="text-right">
+          {canResend ? (
+            <button
+              type="button"
+              onClick={() => {
+                setResendTimer(60);
+                setCanResend(false);
+                handleSendEmailOtp(); // Triggers sending OTP again
+              }}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 underline cursor-pointer bg-transparent border-none p-0"
+            >
+              Resend OTP
+            </button>
+          ) : (
+            <span className="text-xs text-slate-400 font-medium">
+              Resend in {resendTimer}s
+            </span>
+          )}
+        </div>
       </div>
       
     </div>
@@ -1430,16 +1505,25 @@ const handleProceed = async () => {
       </div>
 
       {/* OK Button with Profile Redirect */}
-      <button
-        type="button"
-        onClick={() => {
-          setIsSuccessModalOpen(false);
-          navigate('/profile'); // <--- Redirects to your profile route
-        }}
-        className="w-full py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200"
-      >
-        OK
-      </button>
+     <button
+  type="button"
+  onClick={() => {
+    setIsSuccessModalOpen(false);
+    navigate('/profile', { 
+      state: { 
+        updatedOrgData: {
+          ...formData,
+          verifiedEmail: true,
+          panCardDocument: panCardBase64,
+          signatureImage: signatureImage
+        } 
+      } 
+    });
+  }}
+  className="w-full py-2.5 bg-blue-600 text-white font-semibold text-sm rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200"
+>
+  OK
+</button>
 
     </div>
   </div>

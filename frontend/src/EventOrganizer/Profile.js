@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import API from '../utils/api';
+import { useLocation } from 'react-router-dom';
 import EventOrgHeader from './EventOrgHeader';
 import EventOrgFooter from './EventOrgFooter';
 import EventOrgLefSidebar from './EventOrgLefSidebar';
@@ -40,11 +41,38 @@ const linkValue = (value) => {
 };
 
 const Profile = () => {
+  const routerLocation = useLocation(); // 1. Must be here at the top level of the component
   const [showPopup, setShowPopup] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(initialForm);
 
   const loadProfile = async () => {
+    // 2. Add this check at the very beginning of loadProfile
+    if (routerLocation.state?.updatedOrgData) {
+      const u = routerLocation.state.updatedOrgData;
+      setFormData({
+        id: u.id || u._id || '',
+        orgName: u.orgName || '',
+        websiteUrl: u.websiteUrl || '',
+        address1: u.address1 || u.orgAddress || '',
+        address2: u.address2 || '',
+        country: u.country || 'India',
+        state: u.state || '',
+        city: u.city || '',
+        contactMobile: u.contactMobile || u.loginMobileNumber || '',
+        contactEmail: u.contactEmail || '',
+        verifiedEmail: Boolean(u.verifiedEmail),
+        about: u.about || '',
+        instagram: u.instagram || '',
+        facebook: u.facebook || '',
+        twitter: u.twitter || '',
+        linkedin: u.linkedin || '',
+        profilePhoto: u.profilePhoto || '',
+        approvalStatus: u.approvalStatus || 'pending'
+      });
+      return;
+    }
+
     const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
     const userId = savedUser._id || savedUser.id;
     const mobile = savedUser.loginMobileNumber || savedUser.contactMobile;
@@ -80,8 +108,8 @@ const Profile = () => {
 
   useEffect(() => {
     loadProfile().catch((error) => console.error('Error fetching profile:', error));
-  }, []);
-
+  }, [routerLocation]); // 3. Must depend on routerLocation here
+  
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
