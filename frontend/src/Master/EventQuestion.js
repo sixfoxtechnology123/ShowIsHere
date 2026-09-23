@@ -131,11 +131,23 @@ const fetchMasters = async () => {
     }
   };
 
-  const fetchRecords = async () => {
+const fetchRecords = async () => {
     setLoading(true);
     try {
       const res = await API.get('/event-questions');
-      setRecords(getPayloadArray(res));
+      const list = getPayloadArray(res);
+      
+      // Sort ascending by Category name, then Subcategory name
+      list.sort((a, b) => {
+        const catCompare = (a.eventCategoryName || '').localeCompare(b.eventCategoryName || '');
+        if (catCompare !== 0) return catCompare;
+        
+        const subA = (a.subCategories?.[0]?.subCategoryName || '');
+        const subB = (b.subCategories?.[0]?.subCategoryName || '');
+        return subA.localeCompare(subB);
+      });
+
+      setRecords(list);
     } catch {
       toast.error('Failed to load event question mappings.', { id: 'event-question-toast' });
     } finally {
@@ -455,19 +467,31 @@ const fetchMasters = async () => {
                         <td className="py-2 px-2 font-semibold">{item.eventCategoryName}</td>
                         <td className="py-2 px-2">{(item.subCategories || []).map((sub) => sub.subCategoryName).join(', ') || '-'}</td>
                         <td className="py-2 px-2">{(item.eventTypes || []).map((type) => type.typeName).join(', ') || '-'}</td>
-                      <td className="py-2 px-2">
-                          {item.questions && item.questions.length > 0 ? (
-                            <div className="text-xs truncate max-w-xs">
-                              <span className="font-medium">{item.questions[0].questionId || 'QD1'}:</span> {item.questions[0].question}
-                            </div>
-                          ) : item.questionIds && item.questionIds.length > 0 ? (
-                            <div className="text-xs">
-                              {item.questionIds[0]}
-                            </div>
-                          ) : (
-                            '-'
+                    <td className="py-2 px-2">
+                      {item.questions && item.questions.length > 0 ? (
+                        <div className="text-xs">
+                          <div className="truncate max-w-xs">
+                            <span className="font-medium">{item.questions[0].questionId || 'QD1'}:</span> {item.questions[0].question}
+                          </div>
+                          {item.questions.length > 1 && (
+                            <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 font-semibold rounded text-[10px]">
+                              +{item.questions.length - 1} more
+                            </span>
                           )}
-                        </td>
+                        </div>
+                      ) : item.questionIds && item.questionIds.length > 0 ? (
+                        <div className="text-xs">
+                          <div>{item.questionIds[0]}</div>
+                          {item.questionIds.length > 1 && (
+                            <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 font-semibold rounded text-[10px]">
+                              +{item.questionIds.length - 1} more
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
                         <td className="py-2 px-2">
                           <span className={item.status === 'ACTIVE' ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold' : 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold'}>
                             {item.status}

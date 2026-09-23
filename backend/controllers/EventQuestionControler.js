@@ -9,18 +9,14 @@ const getMaxEventQuestionNumber = async () => {
   }, 0);
 };
 
-const nextEventQuestionId = async () => `EQ${(await getMaxEventQuestionNumber()) + 1}`;
-
-const normalizePayload = (body, eventQuestionId) => ({
-  eventQuestionId,
-  eventCategoryId: body.eventCategoryId || '',
-  eventCategoryName: body.eventCategoryName || '',
-  subCategories: Array.isArray(body.subCategories) ? body.subCategories : [],
-  eventTypes: Array.isArray(body.eventTypes) ? body.eventTypes : [],
-  questionIds: Array.isArray(body.questionIds) ? body.questionIds.filter(Boolean) : [],
-  showQuestionDetails: Boolean(body.showQuestionDetails),
-  status: body.status || 'ACTIVE'
-});
+const getNextIds = async (count) => {
+  const maxNum = await getMaxEventQuestionNumber();
+  const ids = [];
+  for (let i = 1; i <= count; i++) {
+    ids.push(`EQ${maxNum + i}`);
+  }
+  return ids;
+};
 
 const attachQuestionDetails = async (records) => {
   const list = Array.isArray(records) ? records : [records];
@@ -54,15 +50,70 @@ exports.getEventQuestions = async (req, res) => {
 
 exports.createEventQuestion = async (req, res) => {
   try {
-    const payload = normalizePayload(req.body, await nextEventQuestionId());
-    if (!payload.eventCategoryId || !payload.eventCategoryName) {
+    const body = req.body;
+    if (!body.eventCategoryId || !body.eventCategoryName) {
       return res.status(400).json({ success: false, message: 'Event category is required.' });
     }
-    if (!payload.questionIds.length) {
+    const questionIds = Array.isArray(body.questionIds) ? body.questionIds.filter(Boolean) : [];
+    if (!questionIds.length) {
       return res.status(400).json({ success: false, message: 'Please select at least one question.' });
     }
 
-    const saved = await EventQuestion.create(payload);
+    const subCategories = Array.isArray(body.subCategories) ? body.subCategories : [];
+    const eventTypes = Array.isArray(body.eventTypes) ? body.eventTypes : [];
+
+    const docsToCreate = [];
+
+    if (subCategories.length > 0) {
+      for (const sub of subCategories) {
+        const subId = sub.subCategoryId || sub.subCategoryName;
+        const matchingTypes = eventTypes.filter(
+          (t) => String(t.subCategoryId || '') === String(subId) || String(t.subCategoryName || '') === String(sub.subCategoryName)
+        );
+
+        if (matchingTypes.length > 0) {
+          for (const type of matchingTypes) {
+            docsToCreate.push({
+              eventCategoryId: body.eventCategoryId,
+              eventCategoryName: body.eventCategoryName,
+              subCategories: [sub],
+              eventTypes: [type],
+              questionIds,
+              showQuestionDetails: Boolean(body.showQuestionDetails),
+              status: body.status || 'ACTIVE'
+            });
+          }
+        } else {
+          docsToCreate.push({
+            eventCategoryId: body.eventCategoryId,
+            eventCategoryName: body.eventCategoryName,
+            subCategories: [sub],
+            eventTypes: [],
+            questionIds,
+            showQuestionDetails: Boolean(body.showQuestionDetails),
+            status: body.status || 'ACTIVE'
+          });
+        }
+      }
+    } else {
+      docsToCreate.push({
+        eventCategoryId: body.eventCategoryId,
+        eventCategoryName: body.eventCategoryName,
+        subCategories: [],
+        eventTypes: [],
+        questionIds,
+        showQuestionDetails: Boolean(body.showQuestionDetails),
+        status: body.status || 'ACTIVE'
+      });
+    }
+
+    const assignedIds = await getNextIds(docsToCreate.length);
+    const finalPayloads = docsToCreate.map((doc, idx) => ({
+      ...doc,
+      eventQuestionId: assignedIds[idx]
+    }));
+
+    const saved = await EventQuestion.insertMany(finalPayloads);
     res.status(201).json({ success: true, data: await attachQuestionDetails(saved) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -74,9 +125,18 @@ exports.updateEventQuestion = async (req, res) => {
     const existing = await EventQuestion.findById(req.params.id);
     if (!existing) return res.status(404).json({ success: false, message: 'Event question mapping not found.' });
 
+    const body = req.body;
     const updated = await EventQuestion.findByIdAndUpdate(
       req.params.id,
-      normalizePayload(req.body, existing.eventQuestionId),
+      {
+        eventCategoryId: body.eventCategoryId || existing.eventCategoryId,
+        eventCategoryName: body.eventCategoryName || existing.eventCategoryName,
+        subCategories: Array.isArray(body.subCategories) ? body.subCategories : existing.subCategories,
+        eventTypes: Array.isArray(body.eventTypes) ? body.eventTypes : existing.eventTypes,
+        questionIds: Array.isArray(body.questionIds) ? body.questionIds.filter(Boolean) : existing.questionIds,
+        showQuestionDetails: Boolean(body.showQuestionDetails),
+        status: body.status || 'ACTIVE'
+      },
       { new: true }
     );
     res.status(200).json({ success: true, data: await attachQuestionDetails(updated) });
