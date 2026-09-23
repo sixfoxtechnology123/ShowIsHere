@@ -497,23 +497,75 @@ const handleDragOver = (e) => {
     }
   };
 const hasFormContent = useMemo(() => {
-    switch (activeStep) {
-      case 1:
-        return Boolean(formData.eventTitle?.trim() && formData.eventCategory);
-      case 2:
-        return formData.artistsList.length > 0 || formData.hashtags.some(tag => tag && tag.trim() !== '' && tag !== '#');
-      case 3:
-        return Boolean(formData.venueName?.trim() && (formData.startDate || formData.selectedWeeklyDates?.length > 0));
-      case 4:
-        return savedTickets.length > 0 || seatMapImage !== null;
-      case 5:
-        return Boolean(formData.minAgeLimit || formData.durationHours || formData.durationMinutes || (formData.guideResponses && formData.guideResponses.length > 0));
-      case 6:
-        return Boolean(formData.contactName?.trim() || formData.contactEmail?.trim() || formData.contactMobile?.trim());
-      default:
-        return false;
-    }
-  }, [activeStep, formData, savedTickets, seatMapImage]);
+  switch (activeStep) {
+    case 1:
+      return Boolean(
+        formData.eventTitle?.trim() ||
+        formData.eventCategory ||
+        formData.eventSubCategory ||
+        formData.eventType ||
+        (formData.eventLanguages && formData.eventLanguages.length > 0) ||
+        formData.eventFormat ||
+        formData.fullDescription?.trim() ||
+        bannerPreview !== null ||
+        thumbnailPreview !== null
+      );
+    case 2:
+      return Boolean(
+        (formData.artistsList && formData.artistsList.length > 0) ||
+        (formData.hashtags && formData.hashtags.some(tag => tag && tag.trim() !== '' && tag !== '#')) ||
+        formData.artistSearchQuery?.trim()
+      );
+    case 3:
+      return Boolean(
+        formData.startDate ||
+        formData.startTime ||
+        formData.endTime ||
+        (formData.selectedWeeklyDates && formData.selectedWeeklyDates.length > 0) ||
+        (formData.dailyTimeSlots && formData.dailyTimeSlots.some(s => s.startTime || s.endTime)) ||
+        (formData.weeklyTimeSlots && formData.weeklyTimeSlots.some(s => s.startTime || s.endTime)) ||
+        formData.venueName?.trim() ||
+        formData.venueAddress?.trim() ||
+        formData.venueCity?.trim() ||
+        formData.venuePinCode?.trim()
+      );
+    case 4:
+      return Boolean(
+        savedTickets.length > 0 ||
+        seatMapImage !== null ||
+        ticketName.trim() !== '' ||
+        price.trim() !== '' ||
+        quantity.trim() !== '' ||
+        available.trim() !== ''
+      );
+    case 5:
+      return Boolean(
+        formData.minAgeLimit ||
+        formData.durationHours !== '' ||
+        formData.durationMinutes !== '' ||
+        (formData.guideResponses && formData.guideResponses.some(g => (g.answerText && g.answerText.trim() !== '') || (g.selectedOptions && g.selectedOptions.length > 0 && g.selectedOptions[0] !== '')))
+      );
+    case 6:
+      return Boolean(
+        formData.contactName?.trim() ||
+        formData.contactEmail?.trim() ||
+        formData.contactMobile?.trim()
+      );
+    default:
+      return false;
+  }
+}, [
+  activeStep,
+  formData,
+  savedTickets,
+  seatMapImage,
+  bannerPreview,
+  thumbnailPreview,
+  ticketName,
+  price,
+  quantity,
+  available
+]);
   
   const validateStep1 = () => {
     if (!formData.eventTitle.trim()) {
@@ -3243,42 +3295,42 @@ const hasFormContent = useMemo(() => {
         </div>
       </main>
 <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
-      <div className={`${accountFooterInner} flex justify-between items-center w-full px-6`}>
-        <div className="flex-1 flex justify-start">
-          {activeStep === 1 ? (
-            <button type="button" onClick={() => navigate('/my-events')} className={accountSecondaryBtn}>
-              Cancel
-            </button>
-          ) : (
-            <button type="button" onClick={handleSecondaryAction} className={accountSecondaryBtn}>
-              Back
-            </button>
-          )}
-        </div>
+  <div className={`${accountFooterInner} flex justify-between items-center w-full px-6`}>
+    <div className="flex-1 flex justify-start">
+      {activeStep === 1 ? (
+        <button type="button" onClick={() => navigate('/my-events')} className={accountSecondaryBtn}>
+          Cancel
+        </button>
+      ) : (
+        <button type="button" onClick={handleSecondaryAction} className={accountSecondaryBtn}>
+          Back
+        </button>
+      )}
+    </div>
 
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <button 
-            type="button" 
-            onClick={handleSaveDraft} 
-            disabled={!hasFormContent} 
-            className={`${accountSecondaryBtn} ${!hasFormContent ? 'opacity-30 cursor-not-allowed bg-slate-100' : ''}`}
-          >
-            Save as Draft
-          </button>
+    <div className="flex-1 flex items-center justify-center gap-3">
+      <button 
+        type="button" 
+        onClick={handleSaveDraft} 
+        disabled={!hasFormContent} 
+        className={`${accountSecondaryBtn} whitespace-nowrap px-5 ${!hasFormContent ? 'opacity-30 cursor-not-allowed bg-slate-100' : ''}`}
+      >
+        Save as Draft
+      </button>
 
-          <button 
-            type="button" 
-            onClick={handleProceed} 
-            disabled={!hasFormContent} 
-            className={`${accountPrimaryBtn} ${!hasFormContent ? 'opacity-30 cursor-not-allowed bg-blue-300' : ''}`}
-          >
-            <span>{activeStep === steps.length ? 'Submit' : steps[activeStep].label}</span>
-          </button>
-        </div>
+      <button 
+        type="button" 
+        onClick={handleProceed} 
+        disabled={!hasFormContent} 
+        className={`${accountPrimaryBtn} whitespace-nowrap px-6 min-w-[140px] ${!hasFormContent ? 'opacity-30 cursor-not-allowed bg-blue-300' : ''}`}
+      >
+        <span>{activeStep === steps.length ? 'Submit' : steps[activeStep].label}</span>
+      </button>
+    </div>
 
-        <div className="flex-1"></div>
-      </div>
-    </footer>
+    <div className="flex-1"></div>
+  </div>
+</footer>
     </div>
   );
 };

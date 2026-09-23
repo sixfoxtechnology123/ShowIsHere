@@ -201,10 +201,12 @@ const MyEvents = () => {
                 const location = venueString ? venueString : '';
 
                 return (
-                  <div
-                    key={evt._id || evt.createEventId}
-                    className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-xs flex flex-col md:flex-row items-stretch relative transition hover:shadow-md"
-                  >
+                 <Link
+                      to="/event-dashboard"
+                      state={{ eventId: evt._id || evt.createEventId }}
+                      key={evt._id || evt.createEventId}
+                      className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-xs flex flex-col md:flex-row items-stretch relative transition hover:shadow-md no-underline block"
+                    >
                     <div className={`absolute top-0 right-0 ${status.statusColor} text-white text-[10px] font-extrabold px-3 py-1 uppercase tracking-wider z-10`}>
                       {status.label}
                     </div>
@@ -310,7 +312,7 @@ const MyEvents = () => {
                       );
                     })()}
                   </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
