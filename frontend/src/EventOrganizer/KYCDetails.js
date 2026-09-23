@@ -28,7 +28,8 @@ const KYCDetails = () => {
     branch: '',
     ifscCode: '',
     panNumber: '',
-    gstNumber: ''
+    gstNumber: '',
+    approvalStatus: '',
   });
 
   // Fetch live database profile data on component load
@@ -69,6 +70,7 @@ const KYCDetails = () => {
           setFormData({
             id: userData._id || userData.id || '',
             orgId: userData.orgId || '',
+            approvalStatus: userData.approvalStatus || 'pending',
             accountHolderName: userData.accountHolderName || userData.orgName || userData.contactFullName || '',
             accountNumber: userData.accountNumber || '',
             accountType: userData.accountType || 'Savings',
@@ -120,7 +122,7 @@ const handleSaveChanges = async () => {
       
       // 🛡️ Safe unwrapping: handles both axios response wrappers and direct returns
       const resData = response?.data?.success !== undefined ? response.data : response;
-
+ 
       if (resData && resData.success) {
         toast.success('KYC details updated successfully!');
         setIsEditing(false);
@@ -169,9 +171,23 @@ const handleSaveChanges = async () => {
                   <div>
                     <div className="flex items-center space-x-3">
                       <h1 className="text-xl font-bold text-slate-900">KYC Info</h1>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-600 border border-amber-200">
-                        ⊙ In-progress
-                      </span>
+               {formData.approvalStatus?.toLowerCase() === 'approved' ? (
+                          /* Verified Badge (Outlined Icon) */
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-emerald-600">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                            Verified
+                          </span>
+                        ) : (
+                          /* In-progress Badge */
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-amber-700">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9-3.75h.008v.008H12V8.25z" />
+                            </svg>
+                            In-progress
+                          </span>
+                        )}
                     </div>
                     <p className="text-xs text-slate-500 mt-1">Trust starts with being verified.</p>
                   </div>
