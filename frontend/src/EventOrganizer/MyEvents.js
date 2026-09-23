@@ -286,22 +286,22 @@ const MyEvents = () => {
                       if (!timeLeft || timeLeft.expired) return null;
 
                       return (
-                        <div className="mt-3 pt-3  w-full flex items-center justify-center space-x-2 text-slate-900 font-bold text-sm">
+                        <div className="mt-3 pt-3  w-full flex items-center justify-center space-x-1 text-slate-900 font-bold text-sm">
                           <div className="flex flex-col items-center">
                             <span className="text-base font-black text-slate-900">{timeLeft.days}</span>
                             <span className="text-[10px] font-medium text-slate-600">Days</span>
                           </div>
-                          <span className="text-slate-900 font-extrabold pb-3 px-0.5">:</span>
+                          <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
                           <div className="flex flex-col items-center">
                             <span className="text-base font-black text-slate-900">{timeLeft.hours}</span>
                             <span className="text-[10px] font-medium text-slate-600">Hours</span>
                           </div>
-                          <span className="text-slate-900 font-extrabold pb-3 px-0.5">:</span>
+                          <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
                           <div className="flex flex-col items-center">
                             <span className="text-base font-black text-slate-900">{timeLeft.minutes}</span>
                             <span className="text-[10px] font-medium text-slate-600">Minutes</span>
                           </div>
-                          <span className="text-slate-900 font-extrabold pb-3 px-0.5">:</span>
+                          <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
                           <div className="flex flex-col items-center">
                             <span className="text-base font-black text-slate-900">{timeLeft.seconds}</span>
                             <span className="text-[10px] font-medium text-slate-600">Seconds</span>
