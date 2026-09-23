@@ -260,10 +260,10 @@ const MyEvents = () => {
                   <div className="w-full md:w-56 px-4 py-4 border-t md:border-t-0 flex flex-col items-center justify-center text-center relative bg-white">
                     {dateParts.day && dateParts.month && (
                       <div className="flex flex-col items-center">
-                        <h4 className={`text-2xl font-black ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
+                        <h4 className={`text-3xl font-semibold ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
                           {dateParts.day}
                         </h4>
-                        <span className={`text-[10px] font-extrabold tracking-wider block uppercase ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
+                        <span className={`text-[12px] font-bold uppercase ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
                           {dateParts.month}
                         </span>
                         {dateParts.timeRange && (
@@ -286,25 +286,25 @@ const MyEvents = () => {
                       if (!timeLeft || timeLeft.expired) return null;
 
                       return (
-                        <div className="mt-3 pt-3  w-full flex items-center justify-center space-x-1 text-slate-900 font-bold text-sm">
+                        <div className="mt-2 pt-2  pr-20 w-full flex items-center justify-center space-x-1 text-slate-900 font-bold text-sm">
                           <div className="flex flex-col items-center">
-                            <span className="text-base font-black text-slate-900">{timeLeft.days}</span>
-                            <span className="text-[10px] font-medium text-slate-600">Days</span>
+                            <span className="text-xl font-bold text-slate-900">{timeLeft.days}</span>
+                            <span className="text-[10px] font-medium text-slate-700">Days</span>
                           </div>
                           <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
                           <div className="flex flex-col items-center">
-                            <span className="text-base font-black text-slate-900">{timeLeft.hours}</span>
-                            <span className="text-[10px] font-medium text-slate-600">Hours</span>
+                            <span className="text-xl font-bold text-slate-900">{timeLeft.hours}</span>
+                            <span className="text-[10px] font-medium text-slate-700">Hours</span>
                           </div>
                           <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
                           <div className="flex flex-col items-center">
-                            <span className="text-base font-black text-slate-900">{timeLeft.minutes}</span>
-                            <span className="text-[10px] font-medium text-slate-600">Minutes</span>
+                            <span className="text-xl font-bold text-slate-900">{timeLeft.minutes}</span>
+                            <span className="text-[10px] font-medium text-slate-700">Minutes</span>
                           </div>
                           <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
                           <div className="flex flex-col items-center">
-                            <span className="text-base font-black text-slate-900">{timeLeft.seconds}</span>
-                            <span className="text-[10px] font-medium text-slate-600">Seconds</span>
+                            <span className="text-xl font-bold text-slate-900">{timeLeft.seconds}</span>
+                            <span className="text-[10px] font-medium text-slate-700">Seconds</span>
                           </div>
                         </div>
                       );
