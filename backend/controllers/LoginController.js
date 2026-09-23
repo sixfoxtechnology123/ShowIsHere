@@ -2,6 +2,17 @@ const EventOrgAccount = require('../models/eventOrgAccountModel.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs'); 
 const crypto = require('crypto'); 
+
+const verifySaltedPassword = (password, salt, hash) => {
+  if (!password || !salt || !hash) return false;
+  try {
+    const candidate = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(candidate, 'hex'), Buffer.from(hash, 'hex'));
+  } catch (error) {
+    return false;
+  }
+};
+
 const generateToken = (id, orgId) => {
   return jwt.sign({ id, orgId }, process.env.JWT_SECRET || 'fallback_secret_key', {
     expiresIn: '7d'
@@ -68,10 +79,12 @@ const loginWithPassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Account not found.' });
     }
 
-    // Check if password matches plain text OR bcrypt
+    // Passwords may exist from older plain/bcrypt flows or from settings (salted PBKDF2).
     let isMatch = false;
-    if (existingOrg.passwordHash === password) {
-      isMatch = true; // Matches plain text from signup page
+    if (existingOrg.passwordSalt) {
+      isMatch = verifySaltedPassword(password, existingOrg.passwordSalt, existingOrg.passwordHash);
+    } else if (existingOrg.passwordHash === password) {
+      isMatch = true;
     } else if (existingOrg.passwordHash && (existingOrg.passwordHash.startsWith('$2b$') || existingOrg.passwordHash.startsWith('$2a$'))) {
       isMatch = await bcrypt.compare(password, existingOrg.passwordHash);
     }
@@ -108,6 +121,7 @@ const resetPassword = async (req, res) => {
       { 
         $set: { 
           passwordHash: hashedPassword,
+          passwordSalt: '',
           passwordUpdatedAt: new Date()
         } 
       },

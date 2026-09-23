@@ -1,6 +1,7 @@
 const EventOrgAccount = require('../models/eventOrgAccountModel.js');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -30,6 +31,15 @@ const verifyPassword = (password, salt, hash) => {
   if (!password || !salt || !hash) return false;
   const candidate = hashPassword(password, salt).hash;
   return crypto.timingSafeEqual(Buffer.from(candidate, 'hex'), Buffer.from(hash, 'hex'));
+};
+
+const verifyStoredPassword = async (password, org) => {
+  if (!password || !org?.passwordHash) return false;
+  if (org.passwordSalt) return verifyPassword(password, org.passwordSalt, org.passwordHash);
+  if (org.passwordHash.startsWith('$2b$') || org.passwordHash.startsWith('$2a$')) {
+    return bcrypt.compare(password, org.passwordHash);
+  }
+  return org.passwordHash === password;
 };
 
 const findOrgByIdentity = async ({ id, orgId, tenantKey, loginMobileNumber, contactEmail }) => {
@@ -723,7 +733,7 @@ const updatePassword = async (req, res) => {
 
     const org = await EventOrgAccount.findById(id);
     if (!org) return res.status(404).json({ success: false, message: 'Account not found.' });
-    if (org.passwordHash && !verifyPassword(oldPassword, org.passwordSalt, org.passwordHash)) {
+    if (org.passwordHash && !(await verifyStoredPassword(oldPassword, org))) {
       return res.status(400).json({ success: false, message: 'Old password is incorrect.' });
     }
 
@@ -812,10 +822,6 @@ const updateApprovalStatus = async (req, res) => {
     if (!['pending', 'approved', 'rejected'].includes(approvalStatus)) {
       return res.status(400).json({ success: false, message: 'Invalid approval status.' });
     }
-    if (approvalStatus === 'rejected' && !reason.trim()) {
-      return res.status(400).json({ success: false, message: 'Reject reason is required.' });
-    }
-
     const updated = await EventOrgAccount.findByIdAndUpdate(
       id,
       {

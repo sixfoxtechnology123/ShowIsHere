@@ -130,7 +130,18 @@ orgId: {
     type: String,
     enum: ['DRAFT', 'PUBLISHED', 'CANCELLED'],
     default: 'DRAFT'
-  }
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  rejectionReason: { type: String, default: '' },
+  approvalHistory: [{
+    status: { type: String, enum: ['pending', 'approved', 'rejected'] },
+    reason: { type: String, default: '' },
+    changedAt: { type: Date, default: Date.now }
+  }]
 }, {
   timestamps: true,
   strict: true,

@@ -30,6 +30,7 @@ import Profile from './EventOrganizer/Profile';
 import KYCDetails from './EventOrganizer/KYCDetails';
 import Setting from './EventOrganizer/Setting';
 import EventDashboard from './Event/EventDashboard';
+import AdminApproval from './EventOrganizer/AdminApproval';
 
 
 import { Toaster } from 'react-hot-toast';
@@ -68,6 +69,7 @@ const AppContent = () => {
   const isprofilesettings = routerLocation.pathname === '/profile/settings';
   const isEventDashboard = routerLocation.pathname === '/event-dashboard';
   const isLoginPage = routerLocation.pathname === '/loginPage';
+  const isAdminApprovalPage = routerLocation.pathname === '/admin-approval';
 
 
   useEffect(() => {
@@ -191,7 +193,7 @@ const AppContent = () => {
       />
 
       {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
-      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isLoginPage && (
+      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isLoginPage && !isAdminApprovalPage && (
         <>
           <Navbar 
             location={location} 
@@ -224,6 +226,7 @@ const AppContent = () => {
         <Route path="/my-events" element={<MyEvents />} />
         <Route path="/paycheque" element={<Paycheque />} />
         <Route path="/report" element={<Report />} />
+        <Route path="/admin-approval" element={<AdminApproval />} />
         <Route path="/event-category-master" element={<EventCategoryMaster />} />
         <Route path="/category-master" element={<CategoryMaster />} />
         <Route path="/question-databse-master" element={<QuestionDatabseMaster />} />

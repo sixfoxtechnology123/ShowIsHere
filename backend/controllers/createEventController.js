@@ -40,10 +40,10 @@ exports.saveEventStepData = async (req, res) => {
     const { eventId, currentActiveStep, loginMobileNumber, ...eventData } = req.body;
     const tenantKey = req.tenantKey || req.headers['x-tenant-key'] || 'default-tenant';
 
-    // Force the correct string orgId ("ORG1") using mobile number, completely ignoring whatever frontend sent
-    const orgDoc = await mongoose.connection.db.collection('organizers').findOne({
-      loginMobileNumber: loginMobileNumber || req.headers['x-login-mobile']
-    });
+    const mobile = loginMobileNumber || req.headers['x-login-mobile'];
+    const orgDoc = mobile ? await Organizer.findOne({
+      $or: [{ loginMobileNumber: mobile }, { contactMobile: mobile }]
+    }) : null;
     const orgId = orgDoc?.orgId || 'ORG1';
 
     if (!eventData.eventName || !eventData.eventCategoryId) {
@@ -218,7 +218,9 @@ exports.publishEvent = async (req, res) => {
           ...rest,
           tenantKey,
           currentActiveStep: 6,
-          status: 'PUBLISHED'
+          status: 'PUBLISHED',
+          approvalStatus: 'pending',
+          rejectionReason: ''
         }
       },
       { new: true, runValidators: false }
@@ -255,6 +257,65 @@ exports.getAllEvents = async (req, res) => {
     const tenantKey = req.tenantKey || req.headers['x-tenant-key'] || 'default-tenant';
     const events = await CreateEvent.find({ tenantKey }).sort({ createdAt: -1 });
     return res.status(200).json({ success: true, data: events });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getMyEvents = async (req, res) => {
+  try {
+    const { loginMobileNumber, orgId } = req.query;
+    const conditions = [];
+
+    if (orgId) conditions.push({ orgId: String(orgId).trim() });
+    if (loginMobileNumber) {
+      const mobile = String(loginMobileNumber).trim();
+      conditions.push({ loginMobileNumber: mobile }, { 'contactPerson.mobile': mobile });
+    }
+
+    if (conditions.length === 0) {
+      return res.status(400).json({ success: false, message: 'Organizer identity is required.' });
+    }
+
+    const events = await CreateEvent.find({ $or: conditions }).sort({ updatedAt: -1 });
+    return res.status(200).json({ success: true, data: events });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getAdminEvents = async (req, res) => {
+  try {
+    const events = await CreateEvent.find().sort({ updatedAt: -1 });
+    return res.status(200).json({ success: true, data: events });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateEventApprovalStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approvalStatus, reason = '' } = req.body;
+
+    if (!['pending', 'approved', 'rejected'].includes(approvalStatus)) {
+      return res.status(400).json({ success: false, message: 'Invalid approval status.' });
+    }
+
+    const updated = await CreateEvent.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          approvalStatus,
+          rejectionReason: approvalStatus === 'rejected' ? reason : ''
+        },
+        $push: { approvalHistory: { status: approvalStatus, reason } }
+      },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ success: false, message: 'Event not found.' });
+    return res.status(200).json({ success: true, message: 'Event approval status updated.', data: updated });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
