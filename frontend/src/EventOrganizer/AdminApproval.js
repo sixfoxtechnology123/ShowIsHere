@@ -22,6 +22,7 @@ const AdminApproval = () => {
   const [events, setEvents] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPanImage, setSelectedPanImage] = useState(null);
 
   const fetchApprovals = async () => {
     setLoading(true);
@@ -87,7 +88,6 @@ const AdminApproval = () => {
     <div className={dashLayoutWrapper}>
       <EventOrgHeader />
       <div className={dashBodyFlexContainer}>
-        {/* <EventOrgLefSidebar /> */}
         <main className={dashMainContentArea}>
           <div className={`${dashScrollableBody} px-8 lg:px-12 py-6`}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
@@ -121,40 +121,67 @@ const AdminApproval = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {events.map((event) => (
-                      <tr key={event._id} className="align-top">
-                        <td className="px-4 py-4">
-                          <div className="font-bold text-slate-900">{event.eventName || 'Untitled'}</div>
-                          <div className="text-slate-500 mt-1">{event.createEventId} / {event.eventCategoryName || event.eventCategoryId}</div>
-                          <div className="text-slate-500 mt-1">{event.eventDescription || 'No description'}</div>
-                        </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          <div>{event.orgId}</div>
-                          <div>{event.loginMobileNumber}</div>
-                          <div>{event.contactPerson?.email}</div>
-                        </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          <div>{event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleDateString() : 'No date'} {event.schedule?.startTime || ''}</div>
-                          <div>{[event.venue?.name, event.venue?.city].filter(Boolean).join(', ') || 'No venue'}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          {renderStatus(event.approvalStatus)}
-                          <div className="text-slate-500 mt-2">{event.status}</div>
-                          {event.rejectionReason && <div className="text-red-600 mt-2">Reason: {event.rejectionReason}</div>}
-                        </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          <div>Format: {event.eventFormat || '-'}</div>
-                          <div>Languages: {(event.eventLanguages || []).join(', ') || '-'}</div>
-                          <div>Tickets: {event.ticketTiers?.length || 0}</div>
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="inline-flex gap-2">
-                            <button type="button" onClick={() => updateEventStatus(event, 'approved')} className="px-3 py-1.5 bg-emerald-600 text-white rounded text-[11px] font-bold">Approve</button>
-                            <button type="button" onClick={() => updateEventStatus(event, 'rejected')} className="px-3 py-1.5 bg-red-600 text-white rounded text-[11px] font-bold">Reject</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {events.map((event) => {
+                      const isApproved = event.approvalStatus === 'approved';
+                      const isRejected = event.approvalStatus === 'rejected';
+
+                      return (
+                        <tr key={event._id} className="align-top">
+                          <td className="px-4 py-4">
+                            <div className="font-bold text-slate-900">{event.eventName || 'Untitled'}</div>
+                            <div className="text-slate-500 mt-1">{event.eventCategoryName || 'General Event'}</div>
+                            <div className="text-slate-500 mt-1">{event.eventDescription || 'No description'}</div>
+                          </td>
+                          <td className="px-4 py-4 text-slate-600">
+                            <div>{event.loginMobileNumber}</div>
+                            <div>{event.contactPerson?.email}</div>
+                          </td>
+                          <td className="px-4 py-4 text-slate-600">
+                            <div>{event.schedule?.startDate ? new Date(event.schedule.startDate).toLocaleDateString() : 'No date'}</div>
+                            <div>{event.schedule?.startTime || '--'} to {event.schedule?.endTime || '--'}</div>
+                            <div>{[event.venue?.name, event.venue?.city].filter(Boolean).join(', ') || 'No venue'}</div>
+                          </td>
+                          <td className="px-4 py-4">
+                            {renderStatus(event.approvalStatus)}
+                            
+                            {event.rejectionReason && <div className="text-red-600 mt-2">Reason: {event.rejectionReason}</div>}
+                          </td>
+                          <td className="px-4 py-4 text-slate-600">
+                            <div>Format: {event.eventFormat || '-'}</div>
+                            <div>Languages: {(event.eventLanguages || []).join(', ') || '-'}</div>
+                            <div>Tickets: {event.ticketTiers?.length || 0}</div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="inline-flex gap-2">
+                              <button 
+                                type="button" 
+                                disabled={isApproved} 
+                                onClick={() => updateEventStatus(event, 'approved')} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isApproved 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                type="button" 
+                                disabled={isRejected} 
+                                onClick={() => updateEventStatus(event, 'rejected')} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isRejected 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-red-600 text-white hover:bg-red-700'
+                                }`}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {events.length === 0 && <tr><td colSpan="6" className="px-4 py-8 text-center text-slate-500 font-semibold">No events found.</td></tr>}
                   </tbody>
                 </table>
@@ -172,35 +199,73 @@ const AdminApproval = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {accounts.map((account) => (
-                      <tr key={account._id} className="align-top">
-                        <td className="px-4 py-4">
-                          <div className="font-bold text-slate-900">{account.orgName}</div>
-                          <div className="text-slate-500 mt-1">{account.orgId} / {account.tenantKey}</div>
-                          <div className="text-slate-500 mt-1">{account.orgAddress || account.city || '-'}</div>
-                        </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          <div>{account.contactFullName || '-'}</div>
-                          <div>{account.contactEmail}</div>
-                          <div>{account.loginMobileNumber || account.contactMobile}</div>
-                        </td>
-                        <td className="px-4 py-4 text-slate-600">
-                          <div>PAN: {account.panNumber || '-'}</div>
-                          <div>GST: {account.gstinNumber || '-'}</div>
-                          <div>Bank: {account.bankName || '-'} {account.accountNumber || ''}</div>
-                        </td>
-                        <td className="px-4 py-4">
-                          {renderStatus(account.approvalStatus)}
-                          {account.rejectionReason && <div className="text-red-600 mt-2">Reason: {account.rejectionReason}</div>}
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="inline-flex gap-2">
-                            <button type="button" onClick={() => updateAccountStatus(account, 'approved')} className="px-3 py-1.5 bg-emerald-600 text-white rounded text-[11px] font-bold">Approve</button>
-                            <button type="button" onClick={() => updateAccountStatus(account, 'rejected')} className="px-3 py-1.5 bg-red-600 text-white rounded text-[11px] font-bold">Reject</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {accounts.map((account) => {
+                      const isApproved = account.approvalStatus === 'approved';
+                      const isRejected = account.approvalStatus === 'rejected';
+                      const panImageUrl = account.panCardDocument?.base64Data || account.panCardImage || account.panImage;
+
+                      return (
+                        <tr key={account._id} className="align-top">
+                          <td className="px-4 py-4">
+                            <div className="font-bold text-slate-900">{account.orgName}</div>
+                            <div className="text-slate-500 mt-1">{account.orgAddress || account.city || '-'}</div>
+                          </td>
+                          <td className="px-4 py-4 text-slate-600">
+                            <div>{account.contactFullName || '-'}</div>
+                            <div>{account.contactEmail}</div>
+                            <div>{account.loginMobileNumber || account.contactMobile}</div>
+                          </td>
+                          <td className="px-4 py-4 text-slate-600 space-y-1">
+                            <div>PAN: {account.panNumber || '-'}</div>
+                            {panImageUrl && (
+                              <div>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setSelectedPanImage(panImageUrl)} 
+                                  className="text-blue-600 underline font-semibold hover:text-blue-800 cursor-pointer"
+                                >
+                                  View PAN Card Image
+                                </button>
+                              </div>
+                            )}
+                            <div>GST: {account.gstinNumber || '-'}</div>
+                            <div>Bank: {account.bankName || '-'} {account.accountNumber || ''}</div>
+                          </td>
+                          <td className="px-4 py-4">
+                            {renderStatus(account.approvalStatus)}
+                            {account.rejectionReason && <div className="text-red-600 mt-2">Reason: {account.rejectionReason}</div>}
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="inline-flex gap-2">
+                              <button 
+                                type="button" 
+                                disabled={isApproved} 
+                                onClick={() => updateAccountStatus(account, 'approved')} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isApproved 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                type="button" 
+                                disabled={isRejected} 
+                                onClick={() => updateAccountStatus(account, 'rejected')} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isRejected 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-red-600 text-white hover:bg-red-700'
+                                }`}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {accounts.length === 0 && <tr><td colSpan="5" className="px-4 py-8 text-center text-slate-500 font-semibold">No accounts found.</td></tr>}
                   </tbody>
                 </table>
@@ -209,6 +274,28 @@ const AdminApproval = () => {
           </div>
         </main>
       </div>
+
+      {/* PAN Card Image Popup Modal */}
+      {selectedPanImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-md max-w-lg w-full p-4 relative shadow-lg">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-slate-900">PAN Card Document</h3>
+              <button 
+                type="button" 
+                onClick={() => setSelectedPanImage(null)} 
+                className="text-slate-400 hover:text-slate-600 text-base font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex justify-center bg-slate-100 p-2 rounded-sm overflow-hidden">
+              <img src={selectedPanImage} alt="PAN Card" className="max-h-[70vh] w-auto object-contain" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <EventOrgFooter />
     </div>
   );

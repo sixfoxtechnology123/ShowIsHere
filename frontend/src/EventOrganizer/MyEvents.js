@@ -45,15 +45,15 @@ const buildEventStatus = (event) => {
 };
 
 const formatDateParts = (event) => {
-  const rawDate = event.schedule?.startDate || event.createdAt;
-  const date = new Date(rawDate);
-  if (Number.isNaN(date.getTime())) {
-    return { day: '--', month: 'DATE', timeRange: event.schedule?.startTime || '--' };
-  }
+  const rawDate = event.schedule?.startDate;
+  if (!rawDate) return { day: null, month: null, timeRange: null };
 
-  const startTime = event.schedule?.startTime || event.ticketTiers?.[0]?.eventStartTime || '--';
-  const endTime = event.schedule?.endTime || event.ticketTiers?.[0]?.eventEndTime || '';
-  const timeRange = endTime ? `${startTime}-${endTime}` : startTime;
+  const date = new Date(rawDate);
+  if (Number.isNaN(date.getTime())) return { day: null, month: null, timeRange: null };
+
+  const startTime = event.schedule?.startTime;
+  const endTime = event.schedule?.endTime;
+  const timeRange = startTime && endTime ? `${startTime}-${endTime}` : (startTime || null);
 
   return {
     day: String(date.getDate()).padStart(2, '0'),
@@ -67,6 +67,13 @@ const MyEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const [, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchMyEvents = async () => {
@@ -99,6 +106,22 @@ const MyEvents = () => {
 
     fetchMyEvents();
   }, []);
+
+  const calculateTimeLeft = (startDateStr, startTimeStr) => {
+    if (!startDateStr || !startTimeStr) return null;
+    
+    const eventDate = new Date(`${startDateStr.split('T')[0]}T${startTimeStr}`);
+    const difference = eventDate.getTime() - new Date().getTime();
+    if (difference <= 0) return { days: '00', hours: '00', minutes: '00', seconds: '00', expired: true };
+
+    return {
+      days: String(Math.floor(difference / (1000 * 60 * 60 * 24))).padStart(2, '0'),
+      hours: String(Math.floor((difference / (1000 * 60 * 60)) % 24)).padStart(2, '0'),
+      minutes: String(Math.floor((difference / 1000 / 60) % 60)).padStart(2, '0'),
+      seconds: String(Math.floor((difference / 1000) % 60)).padStart(2, '0'),
+      expired: false
+    };
+  };
 
   const filteredEvents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -173,7 +196,9 @@ const MyEvents = () => {
                 const status = buildEventStatus(evt);
                 const dateParts = formatDateParts(evt);
                 const image = evt.media?.thumbnailImage || evt.media?.bannerImage || Logo;
-                const location = [evt.venue?.name, evt.venue?.city].filter(Boolean).join(', ') || evt.venue?.addressLine1 || 'Venue not added';
+                
+                const venueString = [evt.venue?.name, evt.venue?.city].filter(Boolean).join(', ') || evt.venue?.addressLine1 || '';
+                const location = venueString ? venueString : '';
 
                 return (
                   <div
@@ -202,42 +227,89 @@ const MyEvents = () => {
                         </h3>
 
                         <div className="flex items-center space-x-3 text-xs text-slate-500">
-                          <span className="flex items-center space-x-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${status.muted ? 'bg-slate-300' : 'bg-pink-600'}`}></span>
-                            <span>{evt.eventCategoryName || evt.eventFormat || 'Event'}</span>
-                          </span>
+                          {(evt.eventCategoryName || evt.eventFormat) && (
+                            <span className="flex items-center space-x-1">
+                              <span className={`w-1.5 h-1.5 rounded-full ${status.muted ? 'bg-slate-300' : 'bg-pink-600'}`}></span>
+                              <span>{evt.eventCategoryName || evt.eventFormat}</span>
+                            </span>
+                          )}
                         </div>
 
-                        <p className={`text-xs leading-relaxed pt-1 ${status.muted ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {evt.eventDescription || 'No description added yet.'}
-                        </p>
+                        {evt.eventDescription && (
+                          <p className={`text-xs leading-relaxed pt-1 ${status.muted ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {evt.eventDescription}
+                          </p>
+                        )}
+
                         {evt.rejectionReason && (
                           <p className="text-xs font-semibold text-red-600 pt-1">Reason: {evt.rejectionReason}</p>
                         )}
                       </div>
 
-                      <div className={`flex items-center pb-6 text-xs font-medium ${status.muted ? 'text-slate-400' : 'text-slate-500'}`}>
-                        <span className="mr-1.5 text-sm">📍</span>
-                        <span>{location}</span>
-                      </div>
+                      {location ? (
+                        <div className={`flex items-center pb-6 text-xs font-medium ${status.muted ? 'text-slate-400' : 'text-slate-500'}`}>
+                          <span className="mr-1.5 text-sm">📍</span>
+                          <span>{location}</span>
+                        </div>
+                      ) : (
+                        <div className="pb-6"></div>
+                      )}
                     </div>
 
-                    <div className="w-full md:w-40 px-4 py-4 border-t md:border-t-0  flex flex-row md:flex-col items-center justify-between md:justify-center text-center relative bg-white">
-                      <div>
+               {/* Right column matching reference image alignment and layout */}
+                  <div className="w-full md:w-56 px-4 py-4 border-t md:border-t-0 flex flex-col items-center justify-center text-center relative bg-white">
+                    {dateParts.day && dateParts.month && (
+                      <div className="flex flex-col items-center">
                         <h4 className={`text-2xl font-black ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
                           {dateParts.day}
                         </h4>
                         <span className={`text-[10px] font-extrabold tracking-wider block uppercase ${status.muted ? 'text-slate-300' : 'text-pink-600'}`}>
                           {dateParts.month}
                         </span>
-                        <div className={`flex items-center justify-center space-x-1.5 text-xs font-bold mt-1.5 ${status.muted ? 'text-slate-300' : 'text-slate-900'}`}>
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5 shrink-0 text-slate-700">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                          </svg>
-                          <span>{dateParts.timeRange}</span>
-                        </div>
+                        {dateParts.timeRange && (
+                          <div className={`flex items-center justify-center space-x-1.5 text-xs font-bold mt-1 ${status.muted ? 'text-slate-300' : 'text-slate-900'}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5 shrink-0 text-slate-900">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                            <span className="font-bold text-slate-900">{dateParts.timeRange}</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )}
+
+                    {!status.muted && (() => {
+                      const rawDate = evt.schedule?.startDate;
+                      const startTime = evt.schedule?.startTime;
+                      if (!rawDate || !startTime) return null;
+
+                      const timeLeft = calculateTimeLeft(rawDate, startTime);
+                      if (!timeLeft || timeLeft.expired) return null;
+
+                      return (
+                        <div className="mt-3 pt-3  w-full flex items-center justify-center space-x-2 text-slate-900 font-bold text-sm">
+                          <div className="flex flex-col items-center">
+                            <span className="text-base font-black text-slate-900">{timeLeft.days}</span>
+                            <span className="text-[10px] font-medium text-slate-600">Days</span>
+                          </div>
+                          <span className="text-slate-900 font-extrabold pb-3 px-0.5">:</span>
+                          <div className="flex flex-col items-center">
+                            <span className="text-base font-black text-slate-900">{timeLeft.hours}</span>
+                            <span className="text-[10px] font-medium text-slate-600">Hours</span>
+                          </div>
+                          <span className="text-slate-900 font-extrabold pb-3 px-0.5">:</span>
+                          <div className="flex flex-col items-center">
+                            <span className="text-base font-black text-slate-900">{timeLeft.minutes}</span>
+                            <span className="text-[10px] font-medium text-slate-600">Minutes</span>
+                          </div>
+                          <span className="text-slate-900 font-extrabold pb-3 px-0.5">:</span>
+                          <div className="flex flex-col items-center">
+                            <span className="text-base font-black text-slate-900">{timeLeft.seconds}</span>
+                            <span className="text-[10px] font-medium text-slate-600">Seconds</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   </div>
                 );
               })}
