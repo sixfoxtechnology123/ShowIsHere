@@ -327,10 +327,10 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   <form onSubmit={async (e) => {
     e.preventDefault();
     try {
-      const response = await API.post('/login-page/login-password', { 
-        mobileNumber, 
-        password 
-      });
+    const response = await API.post('/login-page/login-password', { 
+  loginMobileNumber: mobileNumber, 
+  password 
+});
   if (response.success) {
         toast.success('Successfully Signed In!');
         if (response.token) localStorage.setItem('orgToken', response.token);
@@ -339,7 +339,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
           localStorage.setItem('orgId', response.data.orgId || response.data._id);
           localStorage.setItem('loginMobileNumber', mobileNumber);
         }
-        navigate('/profile');
+        navigate('/dashboard');
       } else {
         toast.error(response.message || 'Invalid credentials');
       }
