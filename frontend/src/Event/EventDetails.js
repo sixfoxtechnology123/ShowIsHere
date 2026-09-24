@@ -15,6 +15,14 @@ import {
   accountPrimaryBtn
 } from '../styles/MasterCSSClass';
 
+
+const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const cleanDate = dateStr.split('T')[0];
+    const [year, month, day] = cleanDate.split('-');
+    return year && month && day ? `${day}-${month}-${year}` : cleanDate;
+  };
+  
 const EventDetails = () => {
   const [activeTab, setActiveTab] = useState('Basics');
   const [isImagesEditable, setIsImagesEditable] = useState(false);
@@ -152,8 +160,9 @@ const EventDetails = () => {
             eventScheduleType: data.schedule?.eventScheduleType || 'single',
             schedules: data.schedule ? [{
               startDate: data.schedule.startDate ? data.schedule.startDate.split('T')[0] : '',
-              startTime: data.schedule.startTime || '',
-              endTime: data.schedule.endTime || ''
+              timeSlots: data.schedule.dailyTimeSlots?.length > 0 
+                ? data.schedule.dailyTimeSlots 
+                : (data.schedule.weeklyTimeSlots?.length > 0 ? data.schedule.weeklyTimeSlots : [{ startTime: data.schedule.startTime, endTime: data.schedule.endTime }])
             }] : [],
 
             venueName: data.venue?.name || '',
@@ -815,6 +824,7 @@ const handleSave = () => {
                       )}
 
                       {activeTab === 'Date & Location' && (() => {
+                        
                         return (
                           <div className="space-y-6">
                             
@@ -825,60 +835,28 @@ const handleSave = () => {
 
                             {/* Dynamic Date & Time Rows with Individual Edit Icons on the Right */}
                             <div className="space-y-6">
-                              {(eventData.schedules || [{ startDate: '', startTime: '', endTime: '' }]).map((schedule, index) => {
-                                const isRowEditable = editScheduleIndex === index;
-
-                                return (
-                                  <div key={index} className="flex items-center gap-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center flex-1">
-                                      <div>
-                                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Start date</label>
-                                        <input 
-                                          type="date" 
-                                          readOnly={!isRowEditable}
-                                          value={schedule.startDate || ''} 
-                                          onChange={(e) => {
-                                            const updated = [...eventData.schedules];
-                                            updated[index].startDate = e.target.value;
-                                            setEventData({ ...eventData, schedules: updated });
-                                            setIsDirty(true);
-                                          }}
-                                          className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Start time</label>
-                                        <input 
-                                          type="time" 
-                                          readOnly={!isRowEditable}
-                                          value={schedule.startTime || ''} 
-                                          onChange={(e) => {
-                                            const updated = [...eventData.schedules];
-                                            updated[index].startTime = e.target.value;
-                                            setEventData({ ...eventData, schedules: updated });
-                                            setIsDirty(true);
-                                          }}
-                                          className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
-                                        />
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">End time</label>
-                                        <input 
-                                          type="time" 
-                                          readOnly={!isRowEditable}
-                                          value={schedule.endTime || ''} 
-                                          onChange={(e) => {
-                                            const updated = [...eventData.schedules];
-                                            updated[index].endTime = e.target.value;
-                                            setEventData({ ...eventData, schedules: updated });
-                                            setIsDirty(true);
-                                          }}
-                                          className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
-                                        />
-                                      </div>
+                             {(eventData.schedules || [{ startDate: '', timeSlots: [] }]).map((schedule, index) => {
+                              const isRowEditable = editScheduleIndex === index;
+                              const timeSlots = schedule.timeSlots || [{ startTime: '', endTime: '' }];
+                              
+                              return (
+                                <div key={index} className="space-y-4 ">
+                                  <div className="flex items-center gap-4">
+                                    <div className="flex-1">
+                                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Start date</label>
+                                     <input 
+                                        type={isRowEditable ? "date" : "text"} 
+                                        readOnly={!isRowEditable}
+                                        value={isRowEditable ? (schedule.startDate ? schedule.startDate.split('T')[0] : '') : formatDateDisplay(schedule.startDate)} 
+                                        onChange={(e) => {
+                                          const updated = [...eventData.schedules];
+                                          updated[index].startDate = e.target.value;
+                                          setEventData({ ...eventData, schedules: updated });
+                                          setIsDirty(true);
+                                        }}
+                                        className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                      />
                                     </div>
-
-                                    {/* Edit Icon on the Right side of each row */}
                                     <div className="pt-5 shrink-0">
                                       <button 
                                         type="button" 
@@ -892,8 +870,47 @@ const handleSave = () => {
                                       </button>
                                     </div>
                                   </div>
-                                );
-                              })}
+
+                                  <div className="space-y-3">
+                                    {timeSlots.map((slot, slotIdx) => (
+                                      <div key={slotIdx} className="flex items-center gap-3">
+                                        <div className="flex-1">
+                                          <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">Start time</label>
+                                          <input 
+                                            type="time" 
+                                            readOnly={!isRowEditable}
+                                            value={slot.startTime || ''} 
+                                            onChange={(e) => {
+                                              const updated = [...eventData.schedules];
+                                              updated[index].timeSlots[slotIdx].startTime = e.target.value;
+                                              setEventData({ ...eventData, schedules: updated });
+                                              setIsDirty(true);
+                                            }}
+                                            className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                          />
+                                        </div>
+                                        <span className="text-slate-400 pt-5">-</span>
+                                        <div className="flex-1">
+                                          <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">End time</label>
+                                          <input 
+                                            type="time" 
+                                            readOnly={!isRowEditable}
+                                            value={slot.endTime || ''} 
+                                            onChange={(e) => {
+                                              const updated = [...eventData.schedules];
+                                              updated[index].timeSlots[slotIdx].endTime = e.target.value;
+                                              setEventData({ ...eventData, schedules: updated });
+                                              setIsDirty(true);
+                                            }}
+                                            className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                          />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
                             </div>
 
                             {/* Venue & Location Inputs */}
@@ -949,13 +966,22 @@ const handleSave = () => {
                             {/* Reset Location & Location Map Section */}
                             <div className=" space-y-3">
                               <div className="flex items-center gap-2">
-                                <button 
-                                  type="button" 
-                                  onClick={() => toast.success('Location reset')}
-                                  className="text-blue-600 text-xs font-semibold hover:underline bg-transparent p-0 flex items-center gap-1 cursor-pointer"
-                                >
-                                  <span>↺ Reset Location</span>
-                                </button>
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  setEventData({
+                                    ...eventData,
+                                    venueName: '',
+                                    address: '',
+                                    city: '',
+                                    pinCode: ''
+                                  });
+                                  setIsDirty(true);
+                                }}
+                                className="text-blue-600 text-xs font-semibold hover:underline bg-transparent p-0 flex items-center gap-1 cursor-pointer"
+                              >
+                                <span>↺ Reset Location</span>
+                              </button>
                                 <button 
                                   type="button" 
                                   onClick={() => setIsVenueEditable(!isVenueEditable)}
