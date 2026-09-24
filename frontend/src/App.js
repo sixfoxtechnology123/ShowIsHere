@@ -29,7 +29,11 @@ import EventQuestion from './Master/EventQuestion';
 import Profile from './EventOrganizer/Profile';
 import KYCDetails from './EventOrganizer/KYCDetails';
 import Setting from './EventOrganizer/Setting';
+
+
 import EventDashboard from './Event/EventDashboard';
+import EventDetails from './Event/EventDetails';
+
 import AdminApproval from './EventOrganizer/AdminApproval';
 
 
@@ -67,7 +71,10 @@ const AppContent = () => {
   const isprofile = routerLocation.pathname === '/profile';
   const iskyc = routerLocation.pathname === '/profile/kyc';
   const isprofilesettings = routerLocation.pathname === '/profile/settings';
+
   const isEventDashboard = routerLocation.pathname === '/event-dashboard';
+  const isEventDetails = routerLocation.pathname === '/event-details';
+
   const isLoginPage = routerLocation.pathname === '/loginPage';
   const isAdminApprovalPage = routerLocation.pathname === '/admin-approval';
 
@@ -193,7 +200,7 @@ const AppContent = () => {
       />
 
       {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
-      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isLoginPage && !isAdminApprovalPage && (
+      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isLoginPage && !isAdminApprovalPage && !isEventDetails && (
         <>
           <Navbar 
             location={location} 
@@ -238,9 +245,10 @@ const AppContent = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/kyc" element={<KYCDetails />} />
         <Route path="/profile/settings" element={<Setting />} />.
-       
+     
         <Route path="/event-dashboard" element={<EventDashboard />} />
-      </Routes>
+        <Route path="/event-details" element={<EventDetails />} />
+      </Routes> 
 
       {/* Global Footer shown only on the home page */}
       {isHomePage && <Footer />}

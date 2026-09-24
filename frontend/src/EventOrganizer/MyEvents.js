@@ -249,11 +249,12 @@ const handleDuplicateEvent = async (e, eventId) => {
                 const location = venueString ? venueString : '';
 
                 return (
-                <Link
+              <Link
                       to="/event-dashboard"
-                      state={{ eventId: evt._id || evt.createEventId }}
+                      state={{ createEventId: evt.createEventId }}
+                      onClick={() => localStorage.setItem('createEventId', evt.createEventId)}
                       key={evt._id || evt.createEventId}
-                      className={`bg-white rounded-sm border border-slate-200 overflow-hidden shadow-xs flex flex-col md:flex-row items-stretch relative transition shadow-md no-underline  group ${
+                      className={`bg-white rounded-sm border border-slate-200 overflow-hidden shadow-xs flex flex-col md:flex-row items-stretch relative transition shadow-md no-underline group ${
                         status.label === 'Live' ? 'hover:bg-[#cccccc]' : ''
                       }`}
                     >
@@ -397,17 +398,17 @@ const handleDuplicateEvent = async (e, eventId) => {
                         <span className="text-xl font-bold text-slate-900">{timeLeft.days}</span>
                         <span className="text-[10px] font-medium text-slate-700">Days</span>
                       </div>
-                      <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
+                      <span className="text-slate-900 font-extrabold pb-6">:</span>
                       <div className="flex flex-col items-center">
                         <span className="text-xl font-bold text-slate-900">{timeLeft.hours}</span>
                         <span className="text-[10px] font-medium text-slate-700">Hours</span>
                       </div>
-                      <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
+                      <span className="text-slate-900 font-extrabold pb-6">:</span>
                       <div className="flex flex-col items-center">
                         <span className="text-xl font-bold text-slate-900">{timeLeft.minutes}</span>
                         <span className="text-[10px] font-medium text-slate-700">Minutes</span>
                       </div>
-                      <span className="text-slate-900 font-extrabold pb-6 px-0.5">:</span>
+                      <span className="text-slate-900 font-extrabold pb-6">:</span>
                       <div className="flex flex-col items-center">
                         <span className="text-xl font-bold text-slate-900">{timeLeft.seconds}</span>
                         <span className="text-[10px] font-medium text-slate-700">Seconds</span>

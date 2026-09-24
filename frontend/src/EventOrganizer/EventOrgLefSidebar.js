@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation,useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   dashSidebarContainer,
   dashSidebarBlueStrip,
@@ -19,8 +19,14 @@ import {
 const EventOrgLefSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
   // Determine if we are currently looking at a profile page route
   const isProfileRoute = location.pathname.startsWith('/profile');
+  
+const isEventDashboardRoute = 
+  location.pathname.startsWith('/event-dashboard') || 
+  location.pathname.startsWith('/events/') || 
+  location.pathname === '/event-details';
 
   // Dashboard route checks
   const isOverviewActive = location.pathname === '/dashboard' || location.pathname === '/';
@@ -29,28 +35,34 @@ const EventOrgLefSidebar = () => {
   const isReportActive = location.pathname === '/report';
   const isAdminApprovalActive = location.pathname === '/admin-approval';
 
+  // Event Dashboard sub-route checks
+  const isEventOverviewActive = location.pathname.includes('/overview') || location.pathname === '/event-dashboard';
+  const isExportListActive = location.pathname.includes('/export-list');
+  const isEventDetailsActive = location.pathname.includes('/event-details');
+  const isEventTicketsActive = location.pathname.includes('/tickets');
+  const isEventDiscountActive = location.pathname.includes('/discount');
+  const isEventSettingsActive = location.pathname.includes('/settings');
+
   // Profile route checks
   const isPersonalDetailsActive = location.pathname === '/profile' || location.pathname === '/profile/personal-details';
   const isKycActive = location.pathname === '/profile/kyc';
   const isSettingActive = location.pathname === '/profile/settings';
 
-const handleLogout = () => {
-  localStorage.removeItem('orgToken');
-  localStorage.removeItem('orgUserData');
-  navigate('/');
-};
+  const handleLogout = () => {
+    localStorage.removeItem('orgToken');
+    localStorage.removeItem('orgUserData');
+    navigate('/');
+  };
 
   return (
     <aside className={dashSidebarContainer}>
       {/* Blue Strip */}
       <div className={dashSidebarBlueStrip}>
         <div className={dashSidebarBlueIconsTop}>
-          
-          
           {/* Home Icon links back to dashboard overview */}
           <Link 
             to="/dashboard" 
-            className={!isProfileRoute ? dashBlueIconButtonActive : dashBlueIconButton} 
+            className={(!isProfileRoute && !isEventDashboardRoute) ? dashBlueIconButtonActive : dashBlueIconButton} 
             title="Home"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -82,9 +94,62 @@ const handleLogout = () => {
         </div>
       </div>
 
-      {/* White Sub-Menu Panel */}
-      <div className={dashSidebarSubPanel}>
-        {!isProfileRoute ? (
+      {/* White Sub-Menu Panel - Scrollbar hidden by default, shows up on hover */}
+      <div className={`${dashSidebarSubPanel} overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full`}>
+        {isEventDashboardRoute ? (
+          /* --- EVENT DASHBOARD MENU --- */
+          <div className="flex flex-col h-full justify-between p-2">
+            <div>
+              <div className="p-3 mb-2">
+                <h2 className="font-bold text-slate-900 text-lg leading-snug">Design thinking and innovation</h2>
+                <span className="text-blue-600 font-semibold text-sm">week #7</span>
+                <div className="mt-3 space-y-1 text-xs text-slate-500">
+                  <p className="flex items-center gap-1">📍 London, UK</p>
+                  <p className="flex items-center gap-1">📅 March 19 - 25, 2018 <br/>from 8:00 AM to 7:00 PM</p>
+                </div>
+                {/* Progress Bar */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs font-bold text-slate-800 mb-1">
+                    <span>18%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-blue-600 h-full w-[18%]"></div>
+                  </div>
+                </div>
+              </div>
+
+              <nav className={`${dashNavList} p-2 space-y-1`}>
+              <Link to="/event-dashboard" className={isEventOverviewActive ? dashNavItemActive : dashNavItemInactive}>
+              <span>Overview</span>
+            </Link>
+                <Link to="" className={isExportListActive ? dashNavItemActive : dashNavItemInactive}>
+                  <span>Export list</span>
+                </Link>
+               <Link to="/event-details" className={isEventDetailsActive ? dashNavItemActive : dashNavItemInactive}>
+                  <span>Event Details</span>
+                </Link>
+                <Link to="" className={isEventTicketsActive ? dashNavItemActive : dashNavItemInactive}>
+                  <span>Tickets</span>
+                </Link>
+                <Link to="" className={isEventDiscountActive ? dashNavItemActive : dashNavItemInactive}>
+                  <span>Discount</span>
+                </Link>
+                <Link to="" className={isEventSettingsActive ? dashNavItemActive : dashNavItemInactive}>
+                  <span>Settings</span>
+                </Link>
+              </nav>
+            </div>
+
+            {/* Event is Live Toggle Switch */}
+            <div className="p-3 border-t border-slate-100 flex items-center justify-between mt-4">
+              <span className="text-xs font-semibold text-slate-900">Event is Live</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" defaultChecked className="sr-only peer" />
+                <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+        ) : !isProfileRoute ? (
           /* --- DEFAULT DASHBOARD MENU --- */
           <div>
             <div className={dashSidebarHeaderBox}>
@@ -97,14 +162,14 @@ const handleLogout = () => {
 
             <nav className={`${dashNavList} p-3`}>
               <Link to="/dashboard" className={isOverviewActive ? dashNavItemActive : dashNavItemInactive}>
-               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="bi bi-graph-up-arrow" viewBox="0 0 16 16">
+                <path fillRule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
               </svg>
                 <span>Overview</span>
               </Link>
 
               <Link to="/my-events" className={isMyEventsActive ? dashNavItemActive : dashNavItemInactive}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-calendar4" viewBox="0 0 16 16">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="bi bi-calendar4" viewBox="0 0 16 16">
               <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M2 2a1 1 0 0 0-1 1v1h14V3a1 1 0 0 0-1-1zm13 3H1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
             </svg>
 
@@ -112,7 +177,7 @@ const handleLogout = () => {
               </Link>
 
               <Link to="/paycheque" className={isPaychequeActive ? dashNavItemActive : dashNavItemInactive}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" className="bi bi-wallet" viewBox="0 0 16 16">
                 <path d="M0 3a2 2 0 0 1 2-2h13.5a.5.5 0 0 1 0 1H15v2a1 1 0 0 1 1 1v8.5a1.5 1.5 0 0 1-1.5 1.5h-12A2.5 2.5 0 0 1 0 12.5zm1 1.732V12.5A1.5 1.5 0 0 0 2.5 14h12a.5.5 0 0 0 .5-.5V5H2a2 2 0 0 1-1-.268M1 3a1 1 0 0 0 1 1h12V2H2a1 1 0 0 0-1 1"/>
               </svg>
                 <span>Paycheque</span>
@@ -122,15 +187,10 @@ const handleLogout = () => {
                 <svg className={`w-5 h-5 shrink-0 ${isReportActive ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 <span>Report</span>
               </Link>
-
-              {/* <Link to="/admin-approval" className={isAdminApprovalActive ? dashNavItemActive : dashNavItemInactive}>
-                <svg className={`w-5 h-5 shrink-0 ${isAdminApprovalActive ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" /></svg>
-                <span>Admin Approval</span>
-              </Link> */}
             </nav>
           </div>
         ) : (
-          /* --- PROFILE MENU (Matched to exact Dashboard styling using dashNavItemActive / dashNavItemInactive) --- */
+          /* --- PROFILE MENU --- */
           <div>
             <div className={dashSidebarHeaderBox}>
               <h2 className={dashSidebarHeaderTitle}>Profile</h2>
@@ -151,7 +211,7 @@ const handleLogout = () => {
               </Link>
 
               <Link to="/profile/settings" className={isSettingActive ? dashNavItemActive : dashNavItemInactive}>
-                <svg className={`w-4 h-4 shrink-0 ${isSettingActive ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <svg className={`w-4 h-4 shrink-0 ${isSettingActive ? 'text-blue-600' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1.1 1.1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 <span>Setting</span>
               </Link>
             </nav>

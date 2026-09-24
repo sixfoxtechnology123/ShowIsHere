@@ -305,7 +305,31 @@ exports.getMyEvents = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Organizer identity is required.' });
     }
 
-    const events = await CreateEvent.find({ $or: conditions }).sort({ updatedAt: -1 });
+    const events = await CreateEvent.find({ $or: conditions }).lean().sort({ updatedAt: -1 });
+
+    for (let event of events) {
+      if (Array.isArray(event.artists) && event.artists.length > 0) {
+        const artistIds = event.artists.map((a) => a.artistId || a.id).filter(Boolean);
+        const artistDocs = await ArtistMaster.find({
+          $or: [
+            { artistId: { $in: artistIds } },
+            { _id: { $in: artistIds.filter((id) => mongoose.Types.ObjectId.isValid(id)) } }
+          ]
+        }).lean();
+
+        event.artists = event.artists.map((a) => {
+          const searchId = a.artistId || a.id;
+          const match = artistDocs.find(
+            (doc) => doc.artistId === searchId || String(doc._id) === String(searchId)
+          );
+          return {
+            ...a,
+            photoUrl: match?.photoUrl || match?.photo || match?.photoBase64 || a.photoUrl || ''
+          };
+        });
+      }
+    }
+
     return res.status(200).json({ success: true, data: events });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
