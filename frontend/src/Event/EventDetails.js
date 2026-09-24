@@ -42,6 +42,10 @@ const EventDetails = () => {
  const [isDateEditable, setIsDateEditable] = useState(false);
  const [editScheduleIndex, setEditScheduleIndex] = useState(null);
  const [isVenueEditable, setIsVenueEditable] = useState(false);
+  const [isAgeEditable, setIsAgeEditable] = useState(false);
+  const [isDurationEditable, setIsDurationEditable] = useState(false);
+  const [isGuideEditable, setIsGuideEditable] = useState(false);
+  const [isContactEditable, setIsContactEditable] = useState(false);
 
   const [eventData, setEventData] = useState({
     title: '',
@@ -153,9 +157,10 @@ const EventDetails = () => {
             thumbnailImage: data.media?.thumbnailImage || '',
             artists: mappedArtists,
             hashtags: data.hashtags || [],
-            minAge: data.minAgeLimit || '',
+           minAgeLimit: data.minAgeLimit || '',
             durationHours: data.durationHours || '',
             durationMinutes: data.durationMinutes || '',
+            guideResponses: Array.isArray(data.guideResponses) ? data.guideResponses : [],
             eventType: data.eventFormat || '',
             eventScheduleType: data.schedule?.eventScheduleType || 'single',
              schedules: (() => {
@@ -594,9 +599,9 @@ const handleSave = () => {
                                   </div>
                                 );
                               })}
-                              {eventData.artists.length === 0 && (
+                              {/* {eventData.artists.length === 0 && (
                                 <p className="text-xs text-slate-400">No artists assigned.</p>
-                              )}
+                              )} */}
                             </div>
                           </div>
 
@@ -1071,41 +1076,215 @@ const handleSave = () => {
                           </div>
                         );
                       })()}
-              {activeTab === 'Features' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                  <h3 className="text-base font-bold text-slate-900 border-b pb-3">Event Features & Guidelines</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Minimum Age Limit</label>
-                      <input type="text" value={eventData.minAge} onChange={(e) => setEventData({ ...eventData, minAge: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Duration (Hours)</label>
-                      <input type="text" value={eventData.durationHours} onChange={(e) => setEventData({ ...eventData, durationHours: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                  </div>
-                </div>
-              )}
+                {activeTab === 'Features' && (() => {
+                  return (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                      
+                      {/* 1. Minimum Age Limit Section */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-900">Minimum Age Limit</label>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <select 
+                              name="minAgeLimit" 
+                              disabled={!isAgeEditable}
+                              value={eventData.minAgeLimit || ''} 
+                              onChange={handleChange} 
+                              className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isAgeEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
+                            >
+                              <option value="">Select</option>
+                              {Array.from({ length: 99 }, (_, i) => i + 1).map((age) => (
+                                <option key={age} value={age}>{age}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <span className="text-sm font-medium text-slate-700 whitespace-nowrap">& above</span>
+                          
+                          <button 
+                            type="button" 
+                            onClick={() => setIsAgeEditable(!isAgeEditable)}
+                            className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0"
+                            title={isAgeEditable ? "Lock age limit" : "Edit age limit"}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
 
-              {activeTab === 'Contact' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                  <h3 className="text-base font-bold text-slate-900 border-b pb-3">Contact Person Details</h3>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Name</label>
-                    <input type="text" name="contactName" value={eventData.contactName} onChange={handleChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                    {/* 2. Duration Section */}
+                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <label className="text-sm font-bold text-slate-900 mb-0">Duration</label>
+                      
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          name="durationHours" 
+                          min="0"
+                          readOnly={!isDurationEditable}
+                          value={eventData.durationHours || ''} 
+                          onChange={handleChange} 
+                          className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                        />
+                        <span className="text-sm text-slate-700">Hours</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input 
+                          type="number" 
+                          name="durationMinutes" 
+                          min="0"
+                          max="59"
+                          readOnly={!isDurationEditable}
+                          value={eventData.durationMinutes || ''} 
+                          onChange={handleChange} 
+                          className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                        />
+                        <span className="text-sm text-slate-700">Minutes</span>
+                      </div>
+
+                      <button 
+                        type="button" 
+                        onClick={() => setIsDurationEditable(!isDurationEditable)}
+                        className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0 ml-2"
+                        title={isDurationEditable ? "Lock duration" : "Edit duration"}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Duration Preview Badge */}
+                    {(eventData.durationHours || eventData.durationMinutes) && (
+                      <div className="flex pl-[72px]">
+                        <div className="bg-[#eff6ff] border border-[#dbeafe] text-[#1e40af] text-xs font-semibold px-12 py-2 rounded-lg text-center shadow-2xs">
+                          Duration : {eventData.durationHours || 0} Hours {eventData.durationMinutes || 0} Minutes
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+
+                      {/* 3. Event Guide Section (Attempted Questions) */}
+                      <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-bold text-base text-slate-900">Event Guide</h3>
+                            <p className="text-xs text-slate-500">Provide attendees with valuable information and address their questions</p>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsGuideEditable(!isGuideEditable)}
+                            className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0"
+                            title={isGuideEditable ? "Lock guide" : "Edit guide"}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <div className="space-y-4">
+                          {Array.isArray(eventData.guideResponses) && eventData.guideResponses
+                            .filter(g => (g.answerText && g.answerText.trim() !== '') || (g.selectedOptions && g.selectedOptions.length > 0 && g.selectedOptions[0] !== ''))
+                            .map((resp, idx) => {
+                              const answerValue = resp.answerText || (resp.selectedOptions ? resp.selectedOptions.join(', ') : '');
+                              return (
+                                <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 gap-2 border-b border-slate-100 last:border-none">
+                                  <span className="text-xs font-medium text-slate-800">{resp.question}</span>
+                                  
+                                  <div className="w-full sm:w-1/3">
+                                    <input 
+                                      type="text" 
+                                      readOnly={!isGuideEditable}
+                                      value={answerValue}
+                                      onChange={(e) => {
+                                        const updated = [...eventData.guideResponses];
+                                        const targetIdx = updated.findIndex(item => item.questionId === resp.questionId);
+                                        if (targetIdx > -1) {
+                                          if (updated[targetIdx].answerText !== undefined) {
+                                            updated[targetIdx].answerText = e.target.value;
+                                          } else {
+                                            updated[targetIdx].selectedOptions = [e.target.value];
+                                          }
+                                        }
+                                        setEventData({ ...eventData, guideResponses: updated });
+                                        setIsDirty(true);
+                                      }}
+                                      className={`w-full border rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })()}
+             {activeTab === 'Contact' && (() => {
+              return (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-slate-900">Contact Person</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Name</label>
+                      <input 
+                        type="text" 
+                        name="contactName" 
+                        readOnly={!isContactEditable}
+                        value={eventData.contactName || ''} 
+                        onChange={handleChange} 
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                      />
+                    </div>
+
                     <div>
                       <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Email</label>
-                      <input type="email" name="contactEmail" value={eventData.contactEmail} onChange={handleChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                      <input 
+                        type="email" 
+                        name="contactEmail" 
+                        readOnly={!isContactEditable}
+                        value={eventData.contactEmail || ''} 
+                        onChange={handleChange} 
+                        className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                      />
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Mobile</label>
-                      <input type="text" name="contactMessage" value={eventData.contactMobile} onChange={handleChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Mobile</label>
+                        <input 
+                          type="text" 
+                          name="contactMobile" 
+                          readOnly={!isContactEditable}
+                          value={eventData.contactMobile || ''} 
+                          onChange={handleChange} 
+                          className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                        />
+                      </div>
+
+                      <button 
+                        type="button" 
+                        onClick={() => setIsContactEditable(!isContactEditable)}
+                        className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0 mt-6"
+                        title={isContactEditable ? "Lock contact" : "Edit contact"}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 </div>
-              )}
+              );
+            })()}
             </div>
 
             {/* Bottom Save Changes Button */}
