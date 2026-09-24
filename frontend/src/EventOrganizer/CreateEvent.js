@@ -350,11 +350,21 @@ useEffect(() => {
             artistsList: mappedArtists,
             hashtags: ev.hashtags || [],
 
-            // Schedule & Venue
+           // Schedule & Venue
             eventScheduleType: ev.schedule?.eventScheduleType || 'single',
+            recurringType: ev.schedule?.recurringType || 'daily',
             startDate: ev.schedule?.startDate ? new Date(ev.schedule.startDate).toISOString().split('T')[0] : '',
             startTime: ev.schedule?.startTime || '',
             endTime: ev.schedule?.endTime || '',
+            dailyTimeSlots: Array.isArray(ev.schedule?.dailyTimeSlots) && ev.schedule.dailyTimeSlots.length > 0 
+              ? ev.schedule.dailyTimeSlots 
+              : [{ startTime: '', endTime: '' }],
+            weeklyTimeSlots: Array.isArray(ev.schedule?.weeklyTimeSlots) ? ev.schedule.weeklyTimeSlots : [],
+            selectedWeeklyDates: Array.isArray(ev.schedule?.selectedWeeklyDates) && ev.schedule.selectedWeeklyDates.length > 0
+              ? ev.schedule.selectedWeeklyDates
+              : (Array.isArray(ev.schedule?.weeklyTimeSlots) ? [...new Set(ev.schedule.weeklyTimeSlots.map(s => s.date).filter(Boolean))] : []),
+
+
             venueName: ev.venue?.name || '',
             venueAddress: ev.venue?.addressLine1 || '',
             venueCity: ev.venue?.city || '',

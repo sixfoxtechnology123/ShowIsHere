@@ -158,12 +158,48 @@ const EventDetails = () => {
             durationMinutes: data.durationMinutes || '',
             eventType: data.eventFormat || '',
             eventScheduleType: data.schedule?.eventScheduleType || 'single',
-            schedules: data.schedule ? [{
-              startDate: data.schedule.startDate ? data.schedule.startDate.split('T')[0] : '',
-              timeSlots: data.schedule.dailyTimeSlots?.length > 0 
-                ? data.schedule.dailyTimeSlots 
-                : (data.schedule.weeklyTimeSlots?.length > 0 ? data.schedule.weeklyTimeSlots : [{ startTime: data.schedule.startTime, endTime: data.schedule.endTime }])
-            }] : [],
+             schedules: (() => {
+            const sch = data.schedule || data.eventData?.schedule || {};
+            
+            const parseDate = (d) => {
+              if (!d) return '';
+              if (typeof d === 'string') return d.split('T')[0];
+              try { return new Date(d).toISOString().split('T')[0]; } catch (e) { return ''; }
+            };
+
+            // Group weeklyTimeSlots by date so each date appears only once
+            if (sch.weeklyTimeSlots?.length > 0) {
+              const grouped = {};
+              sch.weeklyTimeSlots.forEach(item => {
+                const dStr = parseDate(item.date);
+                if (!dStr) return;
+                if (!grouped[dStr]) grouped[dStr] = [];
+                grouped[dStr].push({ 
+                  startTime: item.startTime || '', 
+                  endTime: item.endTime || '' 
+                });
+              });
+
+              return Object.keys(grouped).map(dateStr => ({
+                startDate: dateStr,
+                timeSlots: grouped[dateStr]
+              }));
+            }
+
+            // If it's a daily event with dailyTimeSlots
+            if (sch.dailyTimeSlots?.length > 0) {
+              return [{
+                startDate: parseDate(sch.startDate),
+                timeSlots: sch.dailyTimeSlots
+              }];
+            }
+
+            // Fallback single event
+            return [{
+              startDate: parseDate(sch.startDate),
+              timeSlots: [{ startTime: sch.startTime || '', endTime: sch.endTime || '' }]
+            }];
+          })(),
 
             venueName: data.venue?.name || '',
             address: data.venue?.addressLine1 || '',
@@ -835,28 +871,49 @@ const handleSave = () => {
 
                             {/* Dynamic Date & Time Rows with Individual Edit Icons on the Right */}
                             <div className="space-y-6">
-                             {(eventData.schedules || [{ startDate: '', timeSlots: [] }]).map((schedule, index) => {
-                              const isRowEditable = editScheduleIndex === index;
-                              const timeSlots = schedule.timeSlots || [{ startTime: '', endTime: '' }];
-                              
-                              return (
-                                <div key={index} className="space-y-4 ">
-                                  <div className="flex items-center gap-4">
-                                    <div className="flex-1">
+                            {(eventData.schedules || [{ startDate: '', timeSlots: [] }]).map((schedule, index) => {
+                                  const isRowEditable = editScheduleIndex === index;
+                                  const timeSlots = schedule.timeSlots || [{ startTime: '', endTime: '' }];
+
+                                  const formatDateDisplay = (dateStr) => {
+                                    if (!dateStr) return '';
+                                    const cleanDate = dateStr.split('T')[0];
+                                    const [year, month, day] = cleanDate.split('-');
+                                    return year && month && day ? `${day}-${month}-${year}` : cleanDate;
+                                  };
+
+                                  return (
+                                    <div key={index} className="space-y-4 p-2">
+                                      
+                                   {/* Date Row with Edit Icon on the Right */}
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-full md:w-1/2">
                                       <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Start date</label>
-                                     <input 
-                                        type={isRowEditable ? "date" : "text"} 
-                                        readOnly={!isRowEditable}
-                                        value={isRowEditable ? (schedule.startDate ? schedule.startDate.split('T')[0] : '') : formatDateDisplay(schedule.startDate)} 
-                                        onChange={(e) => {
-                                          const updated = [...eventData.schedules];
-                                          updated[index].startDate = e.target.value;
-                                          setEventData({ ...eventData, schedules: updated });
-                                          setIsDirty(true);
-                                        }}
-                                        className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
-                                      />
+                                      {(() => {
+                                        const formatDateDisplay = (dateStr) => {
+                                          if (!dateStr) return '';
+                                          const cleanDate = dateStr.split('T')[0];
+                                          const [year, month, day] = cleanDate.split('-');
+                                          return year && month && day ? `${day}-${month}-${year}` : cleanDate;
+                                        };
+
+                                        return (
+                                          <input 
+                                            type={isRowEditable ? "date" : "text"} 
+                                            readOnly={!isRowEditable}
+                                            value={isRowEditable ? (schedule.startDate ? schedule.startDate.split('T')[0] : '') : formatDateDisplay(schedule.startDate)} 
+                                            onChange={(e) => {
+                                              const updated = [...eventData.schedules];
+                                              updated[index].startDate = e.target.value;
+                                              setEventData({ ...eventData, schedules: updated });
+                                              setIsDirty(true);
+                                            }}
+                                            className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                          />
+                                        );
+                                      })()}
                                     </div>
+
                                     <div className="pt-5 shrink-0">
                                       <button 
                                         type="button" 
@@ -871,46 +928,48 @@ const handleSave = () => {
                                     </div>
                                   </div>
 
-                                  <div className="space-y-3">
-                                    {timeSlots.map((slot, slotIdx) => (
-                                      <div key={slotIdx} className="flex items-center gap-3">
-                                        <div className="flex-1">
-                                          <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">Start time</label>
-                                          <input 
-                                            type="time" 
-                                            readOnly={!isRowEditable}
-                                            value={slot.startTime || ''} 
-                                            onChange={(e) => {
-                                              const updated = [...eventData.schedules];
-                                              updated[index].timeSlots[slotIdx].startTime = e.target.value;
-                                              setEventData({ ...eventData, schedules: updated });
-                                              setIsDirty(true);
-                                            }}
-                                            className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
-                                          />
-                                        </div>
-                                        <span className="text-slate-400 pt-5">-</span>
-                                        <div className="flex-1">
-                                          <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">End time</label>
-                                          <input 
-                                            type="time" 
-                                            readOnly={!isRowEditable}
-                                            value={slot.endTime || ''} 
-                                            onChange={(e) => {
-                                              const updated = [...eventData.schedules];
-                                              updated[index].timeSlots[slotIdx].endTime = e.target.value;
-                                              setEventData({ ...eventData, schedules: updated });
-                                              setIsDirty(true);
-                                            }}
-                                            className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
-                                          />
-                                        </div>
+                                      {/* Time slots row underneath */}
+                                      <div className="space-y-3">
+                                        {timeSlots.map((slot, slotIdx) => (
+                                          <div key={slotIdx} className="flex items-center gap-3">
+                                            <div className="flex-1">
+                                              <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">Start time</label>
+                                              <input 
+                                                type="time" 
+                                                readOnly={!isRowEditable}
+                                                value={slot.startTime || ''} 
+                                                onChange={(e) => {
+                                                  const updated = [...eventData.schedules];
+                                                  updated[index].timeSlots[slotIdx].startTime = e.target.value;
+                                                  setEventData({ ...eventData, schedules: updated });
+                                                  setIsDirty(true);
+                                                }}
+                                                className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                              />
+                                            </div>
+                                            <span className="text-slate-400 pt-5">-</span>
+                                            <div className="flex-1">
+                                              <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">End time</label>
+                                              <input 
+                                                type="time" 
+                                                readOnly={!isRowEditable}
+                                                value={slot.endTime || ''} 
+                                                onChange={(e) => {
+                                                  const updated = [...eventData.schedules];
+                                                  updated[index].timeSlots[slotIdx].endTime = e.target.value;
+                                                  setEventData({ ...eventData, schedules: updated });
+                                                  setIsDirty(true);
+                                                }}
+                                                className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                              />
+                                            </div>
+                                          </div>
+                                        ))}
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            })}
+
+                                    </div>
+                                  );
+                                })}
                             </div>
 
                             {/* Venue & Location Inputs */}
