@@ -31,6 +31,9 @@ const EventDetails = () => {
   const [isSavingArtist, setIsSavingArtist] = useState(false);
   const [isHashtagsEditable, setIsHashtagsEditable] = useState(false);
  const [isDirty, setIsDirty] = useState(false);
+ const [isDateEditable, setIsDateEditable] = useState(false);
+ const [editScheduleIndex, setEditScheduleIndex] = useState(null);
+ const [isVenueEditable, setIsVenueEditable] = useState(false);
 
   const [eventData, setEventData] = useState({
     title: '',
@@ -44,6 +47,8 @@ const EventDetails = () => {
     durationHours: '',
     durationMinutes: '',
     eventType: '',
+    eventScheduleType: 'single', 
+    schedules: [],
     venueName: '',
     address: '',
     city: '',
@@ -144,10 +149,19 @@ const EventDetails = () => {
             durationHours: data.durationHours || '',
             durationMinutes: data.durationMinutes || '',
             eventType: data.eventFormat || '',
+            eventScheduleType: data.schedule?.eventScheduleType || 'single',
+            schedules: data.schedule ? [{
+              startDate: data.schedule.startDate ? data.schedule.startDate.split('T')[0] : '',
+              startTime: data.schedule.startTime || '',
+              endTime: data.schedule.endTime || ''
+            }] : [],
+
             venueName: data.venue?.name || '',
             address: data.venue?.addressLine1 || '',
             city: data.venue?.city || '',
-            pinCode: data.venue?.pinCode || '',
+            
+           
+            pinCode: data.venue?.pincode || data.venue?.pinCode || '',
             contactName: data.contactPerson?.name || '',
             contactEmail: data.contactPerson?.email || '',
             contactMobile: data.contactPerson?.mobile || '',
@@ -408,9 +422,9 @@ const handleSave = () => {
                 </div>
               )}
 
-          {activeTab === 'Artists & Tags' && (
-                        <div className="bg-white rounded-xl shadow-sm  space-y-6 relative">
-                        <div className="flex items-center justify-between border-b pb-3">
+                  {activeTab === 'Artists & Tags' && (
+                        <div className="space-y-6 relative">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <h3 className="text-base font-bold text-slate-900">Artists</h3>
                             <button 
@@ -493,9 +507,9 @@ const handleSave = () => {
                           )}
 
                           {/* Selected Artists Grid */}
-                          <div className="pt-4 border-t border-slate-100">
-                            <label className="block text-xs font-semibold text-slate-600 uppercase mb-3">Artists</label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-10 gap-1 pt-1">
+                          <div >
+                            
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-10 gap-1 ">
                               {eventData.artists.map((artist, idx) => {
                                 const artistName = artist.name || '';
                                 const artistRole = artist.role || 'Artist';
@@ -542,7 +556,7 @@ const handleSave = () => {
                           </div>
 
                        {/* Exactly 5 Hashtag Input Boxes */}
-                      <div className="pt-4 border-t border-slate-100">
+                      <div className="">
                         <div className="flex items-center justify-between mb-3">
                           <label className="block text-xs font-semibold text-slate-600 uppercase">Event Hashtag</label>
                           <button 
@@ -630,64 +644,64 @@ const handleSave = () => {
 
                             <form 
                               onSubmit={async (e) => {
-          e.preventDefault();
-          if (!newArtistName.trim()) {
-            toast.error('Please enter artist name',{ id: 'event-error' });
-            return;
-          }
-          setIsSavingArtist(true);
-          try {
-            const payload = {
-              artistName: newArtistName,
-              artistType: newArtistType,
-              description: newArtistDesc,
-              photoBase64: newArtistPhoto
-            };
+                                    e.preventDefault();
+                                    if (!newArtistName.trim()) {
+                                      toast.error('Please enter artist name',{ id: 'event-error' });
+                                      return;
+                                    }
+                                    setIsSavingArtist(true);
+                                    try {
+                                      const payload = {
+                                        artistName: newArtistName,
+                                        artistType: newArtistType,
+                                        description: newArtistDesc,
+                                        photoBase64: newArtistPhoto
+                                      };
 
-            const res = await API.post('/artists', payload);
-            const savedArtist = res.data?.data || res.data || res;
+                                      const res = await API.post('/artists', payload);
+                                      const savedArtist = res.data?.data || res.data || res;
 
-            toast.success('Artist saved and added successfully!');
+                                      toast.success('Artist saved and added successfully!');
 
-            const formattedNewArtist = {
-              id: savedArtist.artistId || savedArtist._id || Date.now(),
-              name: savedArtist.artistName || newArtistName,
-              role: savedArtist.artistType || newArtistType,
-              description: savedArtist.description || newArtistDesc,
-              photo: savedArtist.photoUrl || savedArtist.photoBase64 || newArtistPhoto
-            };
+                                      const formattedNewArtist = {
+                                        id: savedArtist.artistId || savedArtist._id || Date.now(),
+                                        name: savedArtist.artistName || newArtistName,
+                                        role: savedArtist.artistType || newArtistType,
+                                        description: savedArtist.description || newArtistDesc,
+                                        photo: savedArtist.photoUrl || savedArtist.photoBase64 || newArtistPhoto
+                                      };
 
-            // ✅ Functional update ensures state always includes current items instantly
-            let updatedList = [];
-            setEventData(prev => {
-              updatedList = [...(prev.artists || []), formattedNewArtist];
-              return { ...prev, artists: updatedList };
-            });
-            setIsDirty(true);
+                                      // ✅ Functional update ensures state always includes current items instantly
+                                      let updatedList = [];
+                                      setEventData(prev => {
+                                        updatedList = [...(prev.artists || []), formattedNewArtist];
+                                        return { ...prev, artists: updatedList };
+                                      });
+                                      setIsDirty(true);
 
-            setMasterArtists(prev => [savedArtist, ...prev]);
+                                      setMasterArtists(prev => [savedArtist, ...prev]);
 
-            try {
-              const createEventId = localStorage.getItem('createEventId');
-              await API.post('/events/save-step', {
-                eventId: createEventId,
-                artists: updatedList.map(a => ({ artistId: a.id, artistName: a.name, role: a.role }))
-              });
-            } catch (err) {
-              console.error('Failed to save artist to event', err);
-            }
+                                      try {
+                                        const createEventId = localStorage.getItem('createEventId');
+                                        await API.post('/events/save-step', {
+                                          eventId: createEventId,
+                                          artists: updatedList.map(a => ({ artistId: a.id, artistName: a.name, role: a.role }))
+                                        });
+                                      } catch (err) {
+                                        console.error('Failed to save artist to event', err);
+                                      }
 
-            setNewArtistName('');
-            setNewArtistType('Artist');
-            setNewArtistDesc('');
-            setNewArtistPhoto('');
-            setIsArtistModalOpen(false);
-          } catch (err) {
-            toast.error('Failed to save artist');
-          } finally {
-            setIsSavingArtist(false);
-          }
-        }}
+                                      setNewArtistName('');
+                                      setNewArtistType('Artist');
+                                      setNewArtistDesc('');
+                                      setNewArtistPhoto('');
+                                      setIsArtistModalOpen(false);
+                                    } catch (err) {
+                                      toast.error('Failed to save artist');
+                                    } finally {
+                                      setIsSavingArtist(false);
+                                    }
+                                  }}
                                   className="space-y-4"
                                 >
                                   <div>
@@ -800,36 +814,178 @@ const handleSave = () => {
                         </div>
                       )}
 
-              {activeTab === 'Date & Location' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                  <h3 className="text-base font-bold text-slate-900 border-b pb-3">Date, Time & Location</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Event Type</label>
-                      <input type="text" value={eventData.eventType} disabled className="w-full border border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-600" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Venue Name</label>
-                      <input type="text" name="venueName" value={eventData.venueName} onChange={handleChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Address</label>
-                    <input type="text" name="address" value={eventData.address} onChange={handleChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">City</label>
-                      <input type="text" name="city" value={eventData.city} onChange={handleChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">PIN Code</label>
-                      <input type="text" name="pinCode" value={eventData.pinCode} onChange={handleChange} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                  </div>
-                </div>
-              )}
+                      {activeTab === 'Date & Location' && (() => {
+                        return (
+                          <div className="space-y-6">
+                            
+                            {/* Section Header */}
+                            <div className="flex justify-between items-center">
+                              <h3 className="text-base font-bold text-slate-900">Date and Time</h3>
+                            </div>
 
+                            {/* Dynamic Date & Time Rows with Individual Edit Icons on the Right */}
+                            <div className="space-y-6">
+                              {(eventData.schedules || [{ startDate: '', startTime: '', endTime: '' }]).map((schedule, index) => {
+                                const isRowEditable = editScheduleIndex === index;
+
+                                return (
+                                  <div key={index} className="flex items-center gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center flex-1">
+                                      <div>
+                                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Start date</label>
+                                        <input 
+                                          type="date" 
+                                          readOnly={!isRowEditable}
+                                          value={schedule.startDate || ''} 
+                                          onChange={(e) => {
+                                            const updated = [...eventData.schedules];
+                                            updated[index].startDate = e.target.value;
+                                            setEventData({ ...eventData, schedules: updated });
+                                            setIsDirty(true);
+                                          }}
+                                          className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Start time</label>
+                                        <input 
+                                          type="time" 
+                                          readOnly={!isRowEditable}
+                                          value={schedule.startTime || ''} 
+                                          onChange={(e) => {
+                                            const updated = [...eventData.schedules];
+                                            updated[index].startTime = e.target.value;
+                                            setEventData({ ...eventData, schedules: updated });
+                                            setIsDirty(true);
+                                          }}
+                                          className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">End time</label>
+                                        <input 
+                                          type="time" 
+                                          readOnly={!isRowEditable}
+                                          value={schedule.endTime || ''} 
+                                          onChange={(e) => {
+                                            const updated = [...eventData.schedules];
+                                            updated[index].endTime = e.target.value;
+                                            setEventData({ ...eventData, schedules: updated });
+                                            setIsDirty(true);
+                                          }}
+                                          className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Edit Icon on the Right side of each row */}
+                                    <div className="pt-5 shrink-0">
+                                      <button 
+                                        type="button" 
+                                        onClick={() => setEditScheduleIndex(isRowEditable ? null : index)}
+                                        className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 cursor-pointer"
+                                        title={isRowEditable ? "Lock row" : "Edit row"}
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Venue & Location Inputs */}
+                            <div className="space-y-4 ">
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Venue Name <span className="text-red-600">*</span></label>
+                                <input 
+                                  type="text" 
+                                  name="venueName" 
+                                  readOnly={!isVenueEditable}
+                                  value={eventData.venueName} 
+                                  onChange={handleChange} 
+                                  className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Address <span className="text-red-600">*</span></label>
+                                <input 
+                                  type="text" 
+                                  name="address" 
+                                  readOnly={!isVenueEditable}
+                                  value={eventData.address} 
+                                  onChange={handleChange} 
+                                  className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">City <span className="text-red-600">*</span></label>
+                                  <input 
+                                    type="text" 
+                                    name="city" 
+                                    readOnly={!isVenueEditable}
+                                    value={eventData.city} 
+                                    onChange={handleChange} 
+                                    className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">PIN Code</label>
+                                  <input 
+                                    type="text" 
+                                    name="pinCode" 
+                                    readOnly={!isVenueEditable}
+                                    value={eventData.pinCode} 
+                                    onChange={handleChange} 
+                                    className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Reset Location & Location Map Section */}
+                            <div className=" space-y-3">
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  type="button" 
+                                  onClick={() => toast.success('Location reset')}
+                                  className="text-blue-600 text-xs font-semibold hover:underline bg-transparent p-0 flex items-center gap-1 cursor-pointer"
+                                >
+                                  <span>↺ Reset Location</span>
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setIsVenueEditable(!isVenueEditable)}
+                                  className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer"
+                                  title={isVenueEditable ? "Lock venue" : "Edit venue"}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                    <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                                  </svg>
+                                </button>
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-600 uppercase mb-2">Location Map</label>
+                                <div className="w-full h-96 rounded-lg border border-slate-200 overflow-hidden bg-slate-100 relative">
+                                  <iframe
+                                    title="Dynamic Event Location Map"
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    loading="lazy"
+                                    src={'https://maps.google.com/maps?q=' + encodeURIComponent((eventData.venueName || '') + ' ' + (eventData.address || '') + ' ' + (eventData.city || '') + ' ' + (eventData.pinCode || '')) + '&t=&z=14&ie=UTF8&iwloc=&output=embed'}
+                                  ></iframe>
+                                </div>
+                              </div>
+                            </div>
+
+                          </div>
+                        );
+                      })()}
               {activeTab === 'Features' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                   <h3 className="text-base font-bold text-slate-900 border-b pb-3">Event Features & Guidelines</h3>
