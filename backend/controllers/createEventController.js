@@ -54,10 +54,18 @@ exports.saveEventStepData = async (req, res) => {
       });
     }
 
-    // A. UPDATE EXISTING DRAFT
-    if (eventId && mongoose.Types.ObjectId.isValid(eventId)) {
-      const updatedEvent = await CreateEvent.findByIdAndUpdate(
-        eventId,
+    
+    if (eventId) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(eventId);
+      const query = isObjectId ? { _id: eventId } : { createEventId: eventId };
+
+      const existingEvent = await CreateEvent.findOne(query).lean();
+      if (existingEvent && existingEvent.status === 'APPROVED') {
+        eventData.status = 'PENDING';
+      }
+
+      const updatedEvent = await CreateEvent.findOneAndUpdate(
+        query,
         {
           $set: {
             ...eventData,
@@ -241,36 +249,48 @@ exports.publishEvent = async (req, res) => {
   }
 };
 
-// 4. Get Event By ID (With Artist Image Lookup)
 exports.getEventById = async (req, res) => {
   try {
-    // 1. Fetch event as a plain JS object (.lean())
-    const event = await CreateEvent.findById(req.params.id).lean();
+    // 1. Fetch event and lean it for speed
+    const id = req.params.id;
+const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
+const event = await CreateEvent.findOne(query).lean();
     if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
 
     // 2. Check if the event has artists
     if (Array.isArray(event.artists) && event.artists.length > 0) {
-      // Collect all artistId values
-      const artistIds = event.artists.map((a) => a.artistId).filter(Boolean);
+      const artistIds = event.artists.map((a) => a.artistId || a.id).filter(Boolean);
 
-      // 3. Find matching artists in ArtistMaster DB using artistId or _id
-      const artistDocs = await ArtistMaster.find({
-        $or: [
-          { artistId: { $in: artistIds } },
-          { _id: { $in: artistIds.filter((id) => mongoose.Types.ObjectId.isValid(id)) } }
-        ]
-      }).lean();
+      if (artistIds.length > 0) {
+        const validObjectIds = artistIds
+          .filter((id) => mongoose.Types.ObjectId.isValid(id))
+          .map((id) => new mongoose.Types.ObjectId(id));
 
-      // 4. Merge photoUrl into each artist object
-      event.artists = event.artists.map((a) => {
-        const match = artistDocs.find(
-          (doc) => doc.artistId === a.artistId || String(doc._id) === String(a.artistId)
-        );
-        return {
-          ...a,
-          photoUrl: match?.photoUrl || match?.photo || null
-        };
-      });
+        // 3. Batch fetch all artists in ONE query (using .select to avoid heavy blobs)
+        const artistDocs = await ArtistMaster.find({
+          $or: [
+            { artistId: { $in: artistIds } },
+            { _id: { $in: validObjectIds } }
+          ]
+        }).select('artistId photoUrl photo photoBase64').lean();
+
+        // 4. Create a quick lookup map
+        const artistMap = new Map();
+        artistDocs.forEach((doc) => {
+          if (doc.artistId) artistMap.set(String(doc.artistId), doc);
+          if (doc._id) artistMap.set(String(doc._id), doc);
+        });
+
+        // 5. Map photo URLs safely using your original fallback logic
+        event.artists = event.artists.map((a) => {
+          const searchId = String(a.artistId || a.id || '');
+          const match = artistMap.get(searchId);
+          return {
+            ...a,
+            photoUrl: match?.photoUrl || match?.photo || match?.photoBase64 || a.photoUrl || ''
+          };
+        });
+      }
     }
 
     return res.status(200).json({ success: true, data: event });
@@ -292,7 +312,7 @@ exports.getAllEvents = async (req, res) => {
 
 exports.getMyEvents = async (req, res) => {
   try {
-    const { loginMobileNumber, orgId } = req.query;
+    const { loginMobileNumber, orgId, page = 1, limit = 10 } = req.query;
     const conditions = [];
 
     if (orgId) conditions.push({ orgId: String(orgId).trim() });
@@ -305,23 +325,60 @@ exports.getMyEvents = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Organizer identity is required.' });
     }
 
-    const events = await CreateEvent.find({ $or: conditions }).lean().sort({ updatedAt: -1 });
+    // Pagination: Load events in smaller chunks so it doesn't fetch everything together
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 10;
+    const skip = (pageNum - 1) * limitNum;
 
+    const events = await CreateEvent.find({ $or: conditions })
+      .lean()
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    if (!events || events.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Collect all artist IDs for this chunk
+    const allArtistIds = new Set();
+    events.forEach((event) => {
+      if (Array.isArray(event.artists) && event.artists.length > 0) {
+        event.artists.forEach((a) => {
+          const id = a.artistId || a.id;
+          if (id) allArtistIds.add(String(id));
+        });
+      }
+    });
+
+    const uniqueArtistIdsArray = Array.from(allArtistIds);
+
+    let artistDocs = [];
+    if (uniqueArtistIdsArray.length > 0) {
+      const validObjectIds = uniqueArtistIdsArray
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+
+      artistDocs = await ArtistMaster.find({
+        $or: [
+          { artistId: { $in: uniqueArtistIdsArray } },
+          { _id: { $in: validObjectIds } }
+        ]
+      }).lean();
+    }
+
+    const artistMap = new Map();
+    artistDocs.forEach((doc) => {
+      if (doc.artistId) artistMap.set(String(doc.artistId), doc);
+      if (doc._id) artistMap.set(String(doc._id), doc);
+    });
+
+    // Enrich events using your exact original fallback logic
     for (let event of events) {
       if (Array.isArray(event.artists) && event.artists.length > 0) {
-        const artistIds = event.artists.map((a) => a.artistId || a.id).filter(Boolean);
-        const artistDocs = await ArtistMaster.find({
-          $or: [
-            { artistId: { $in: artistIds } },
-            { _id: { $in: artistIds.filter((id) => mongoose.Types.ObjectId.isValid(id)) } }
-          ]
-        }).lean();
-
         event.artists = event.artists.map((a) => {
           const searchId = a.artistId || a.id;
-          const match = artistDocs.find(
-            (doc) => doc.artistId === searchId || String(doc._id) === String(searchId)
-          );
+          const match = artistMap.get(String(searchId));
           return {
             ...a,
             photoUrl: match?.photoUrl || match?.photo || match?.photoBase64 || a.photoUrl || ''
@@ -355,8 +412,8 @@ const targetStatus = status?.toUpperCase();
       return res.status(400).json({ success: false, message: 'Invalid approval status.' });
     }
 
-    const updated = await CreateEvent.findByIdAndUpdate(
-      id,
+    const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
+const updated = await CreateEvent.findOneAndUpdate(query,
       {
           $set: {
           status: targetStatus,
@@ -378,7 +435,8 @@ exports.duplicateEvent = async (req, res) => {
     const { id } = req.params;
     const tenantKey = req.tenantKey || req.headers['x-tenant-key'] || 'default-tenant';
 
-    const originalEvent = await CreateEvent.findById(id).lean();
+    const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
+const originalEvent = await CreateEvent.findOne(query).lean();
 
     if (!originalEvent) {
       return res.status(404).json({ success: false, message: 'Event not found.' });

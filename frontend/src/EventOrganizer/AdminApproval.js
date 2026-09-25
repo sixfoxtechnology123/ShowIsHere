@@ -124,7 +124,9 @@ const AdminApproval = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {events.map((event) => {
+                    {events
+                      .filter((event) => (event.status || '').toUpperCase() !== 'DRAFT')
+                      .map((event) => {
                       const normalizedStatus = (event.status || '').toLowerCase();
                       const isApproved = normalizedStatus === 'approved';
                       const isRejected = normalizedStatus === 'rejected';

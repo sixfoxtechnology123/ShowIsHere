@@ -162,6 +162,8 @@ useEffect(() => {
           setEventData({
             title: data.eventName || '',
             subTitle: data.eventFormat || '',
+            eventCategoryId: data.eventCategoryId || '', 
+            eventCategoryName: data.eventCategoryName || '',
             fullDescription: data.eventDescription || '',
             bannerImage: data.media?.bannerImage || '',
             thumbnailImage: data.media?.thumbnailImage || '',
@@ -268,6 +270,7 @@ useEffect(() => {
       } else if (type === 'thumbnail') {
         setEventData((prev) => ({ ...prev, thumbnailImage: compressedDataUrl }));
       }
+      setIsDirty(true);
       toast.success(`${type === 'banner' ? 'Banner' : 'Thumbnail'} attached!`);
     };
 
@@ -297,6 +300,7 @@ const handleImageChange = (e, field) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setEventData((prev) => ({ ...prev, [field]: reader.result }));
+        setIsDirty(true);
       };
       reader.readAsDataURL(file);
     }
@@ -312,10 +316,64 @@ const handleChange = (e) => {
   setIsDirty(true); // <--- Add this here
 };
 
-const handleSave = () => {
-  localStorage.setItem('currentEventData', JSON.stringify(eventData));
-  setIsDirty(false);
-  alert('Event details updated successfully!');
+const handleSave = async () => {
+  try {
+    const createEventId = localStorage.getItem('createEventId');
+    if (!createEventId) {
+      toast.error('Event ID not found.');
+      return;
+    }
+
+    const payload = {
+      eventId: createEventId,
+      status: 'PENDING',
+      eventName: eventData.title,
+      eventCategoryId: eventData.eventCategoryId || 'DEFAULT_CAT',
+      eventCategoryName: eventData.eventCategoryName || '',
+      eventFormat: eventData.subTitle || eventData.eventType,
+      eventDescription: eventData.fullDescription,
+      media: {
+        bannerImage: eventData.bannerImage,
+        thumbnailImage: eventData.thumbnailImage
+      },
+      artists: eventData.artists.map(a => ({
+        artistId: a.id,
+        artistName: a.name,
+        role: a.role,
+        description: a.description,
+        photoUrl: a.photo
+      })),
+      hashtags: eventData.hashtags,
+      minAgeLimit: eventData.minAgeLimit,
+      durationHours: eventData.durationHours,
+      durationMinutes: eventData.durationMinutes,
+      guideResponses: eventData.guideResponses,
+      venue: {
+        name: eventData.venueName,
+        addressLine1: eventData.address,
+        city: eventData.city,
+        pincode: eventData.pinCode
+      },
+      contactPerson: {
+        name: eventData.contactName,
+        email: eventData.contactEmail,
+        mobile: eventData.contactMobile
+      }
+    };
+
+    const response = await API.post('/events/save-step', payload);
+    const result = response?.success !== undefined ? response : response?.data;
+
+    if (result?.success) {
+      setIsDirty(false);
+      toast.success('Event details updated successfully in database!');
+    } else {
+      toast.error(result?.message || 'Failed to save changes.');
+    }
+  } catch (err) {
+    console.error('Save error:', err);
+    toast.error(err.response?.data?.message || 'Error saving event details.');
+  }
 };
 
   return (

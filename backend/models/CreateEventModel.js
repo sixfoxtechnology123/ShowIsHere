@@ -147,5 +147,7 @@ orgId: {
   strict: true,
   collection: 'createevents'
 });
-
+createEventSchema.index({ orgId: 1, updatedAt: -1 });
+createEventSchema.index({ loginMobileNumber: 1, updatedAt: -1 });
+createEventSchema.index({ 'contactPerson.mobile': 1, updatedAt: -1 });
 module.exports = mongoose.model('CreateEvent', createEventSchema);

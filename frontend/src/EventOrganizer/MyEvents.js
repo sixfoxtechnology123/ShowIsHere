@@ -254,32 +254,43 @@ const handleDuplicateEvent = async (e, eventId) => {
                 const venueString = [evt.venue?.name, evt.venue?.city].filter(Boolean).join(', ') || evt.venue?.addressLine1 || '';
                 const location = venueString ? venueString : '';
 
-                return (
-              <Link
-                      to="/event-dashboard"
-                      state={{ createEventId: evt.createEventId }}
-                      onClick={() => localStorage.setItem('createEventId', evt.createEventId)}
-                      key={evt._id || evt.createEventId}
-                      className={`bg-white rounded-sm border border-slate-200 overflow-hidden shadow-xs flex flex-col md:flex-row items-stretch relative transition shadow-md no-underline group ${
-                        status.label === 'Live' ? 'hover:bg-[#cccccc]' : ''
-                      }`}
-                    >
-                    <div 
-                        onClick={(e) => {
-                          if (status.label === 'Draft') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            navigate('/create-event', { 
-                              state: { eventId: evt._id || evt.createEventId } 
-                            });
-                          }
-                        }}
-                        className={`absolute top-0 right-0 ${status.statusColor} text-white text-[10px] font-extrabold px-3 py-1 uppercase tracking-wider z-10 ${
-                          status.label === 'Draft' ? 'cursor-pointer hover:opacity-90' : ''
-                        }`}
-                      >
-                        {status.label}
-                      </div>
+              return (
+                <Link
+                  to="/event-dashboard"
+                  state={{ createEventId: evt.createEventId }}
+                  onClick={() => localStorage.setItem('createEventId', evt.createEventId)}
+                  key={evt._id || evt.createEventId}
+                  className={`bg-white rounded-sm border border-slate-200 overflow-hidden shadow-xs flex flex-col md:flex-row items-stretch relative transition shadow-md no-underline group ${
+                    status.label === 'Live' ? 'hover:bg-[#cccccc]' : ''
+                  }`}
+                >
+                  <div 
+                    onClick={(e) => {
+                      if (status.label === 'Draft') {
+                        e.preventDefault();
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                       // Check duplicate status
+                        if (evt.duplicate === true) {
+                          localStorage.setItem('createEventId', evt.createEventId); // <--- ADD THIS LINE
+                          navigate('/event-details', { 
+                            state: { createEventId: evt.createEventId } 
+                          });
+                        } else {
+                          localStorage.setItem('createEventId', evt.createEventId); // <--- (Optional) Good practice here too
+                          navigate('/create-event', { 
+                            state: { eventId: evt._id || evt.createEventId } 
+                          });
+                        }
+                      }
+                    }}
+                    className={`absolute top-0 right-0 ${status.statusColor} text-white text-[10px] font-extrabold px-3 py-1 uppercase tracking-wider z-10 ${
+                      status.label === 'Draft' ? 'cursor-pointer hover:opacity-90' : ''
+                    }`}
+                  >
+                    {status.label}
+                  </div>
 
                     {/* Strict 3:4 Aspect Ratio Thumbnail Container */}
                     <div className="w-full md:w-36 lg:w-40 aspect-[3/4] shrink-0 relative bg-slate-100 overflow-hidden flex items-center justify-center">
