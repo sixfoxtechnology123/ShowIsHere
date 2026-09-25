@@ -46,6 +46,7 @@ const EventDetails = () => {
   const [isDurationEditable, setIsDurationEditable] = useState(false);
   const [isGuideEditable, setIsGuideEditable] = useState(false);
   const [isContactEditable, setIsContactEditable] = useState(false);
+  const [masterQuestions, setMasterQuestions] = useState([]);
 
   const [eventData, setEventData] = useState({
     title: '',
@@ -71,6 +72,15 @@ const EventDetails = () => {
   });
 
 
+// Fetch master questions list on mount
+useEffect(() => {
+  API.get('/question-database')
+    .then((res) => {
+      const qArray = Array.isArray(res) ? res : (res?.data || res?.questions || []);
+      setMasterQuestions(qArray);
+    })
+    .catch((err) => console.error("Error loading master questions:", err));
+}, []);
 
   // Fetch master artists list for searching
   useEffect(() => {
@@ -341,12 +351,12 @@ const handleSave = () => {
             {/* Tab Content Body Sections */}
             <div className="w-full max-w-full pr-10 space-y-6 p-6 text-sm">
               {activeTab === 'Basics' && (
-                <div className="bg-transparent space-y-6">
+                <div className="bg-transparent space-y-6 ">
                   
                   {/* Event Title */}
                   <div>
-                    <label className="text-base font-semibold text-slate-900">Event Title <span className="text-red-600">*</span></label>
-                    <div className="flex items-center gap-3">
+                    <label className=" text-base font-semibold text-slate-900 mb-3 block">Event Title <span className="text-red-600">*</span></label>
+                    <div className="flex items-center gap-3 ">
                       <input
                         type="text"
                         name="title"
@@ -361,7 +371,7 @@ const handleSave = () => {
                         className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0"
                         title={isTitleEditable ? "Lock field" : "Edit field"}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                         </svg>
                       </button>
@@ -371,8 +381,8 @@ const handleSave = () => {
                   {/* Full Description */}
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
-                      <label className="text-base font-semibold text-slate-900">Full Description</label>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 text-slate-400">
+                      <label className="text-base font-semibold text-slate-900 mb-3 block">Full Description</label>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 text-slate-400">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                       </svg>
                     </div>
@@ -397,7 +407,7 @@ const handleSave = () => {
                         className="mb-6 text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0"
                         title={isDescEditable ? "Lock field" : "Edit field"}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                         </svg>
                       </button>
@@ -406,7 +416,7 @@ const handleSave = () => {
 
         {/* Event Banners section */}
                   <div>
-                    <label className="text-base font-semibold text-slate-900">Event banner</label>
+                    <label className="text-base font-semibold text-slate-900 mb-3 block">Event banner</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                       
                       {/* Banner Image Preview with Drag & Drop */}
@@ -460,7 +470,7 @@ const handleSave = () => {
                           className="mb-2 text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0 cursor-pointer"
                           title={isImagesEditable ? "Lock Images" : "Edit Images"}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-blue-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
                             <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                           </svg>
                         </button>
@@ -493,7 +503,7 @@ const handleSave = () => {
                           {/* Search & Add Artist Section */}
                           {isArtistsEditable && (
                             <div className="relative space-y-2">
-                              <label className="block text-xs font-semibold text-slate-700 uppercase">Search & Add Artist/Performer</label>
+                              <label className="block text-xs font-semibold text-slate-700 ">Search & Add Artist/Performer</label>
                               <div className="flex gap-4">
                                 <input
                                   type="text"
@@ -580,7 +590,7 @@ const handleSave = () => {
                                           setEventData({ ...eventData, artists: updated });
                                           setIsDirty(true);
                                         }}
-                                        className="absolute top-0 right-0 w-5 h-5 rounded-full bg-white text-slate-600 shadow-md border border-slate-200 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                        className="absolute top-0 right-0 w-4 h-4 rounded-full bg-white text-slate-600 shadow-md border border-slate-200 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                         title="Remove artist"
                                       >
                                         ×
@@ -605,45 +615,45 @@ const handleSave = () => {
                             </div>
                           </div>
 
-                       {/* Exactly 5 Hashtag Input Boxes */}
-                      <div className="">
-                        <div className="flex items-center justify-between mb-3">
-                          <label className="block text-xs font-semibold text-slate-600 uppercase">Event Hashtag</label>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsHashtagsEditable(!isHashtagsEditable)}
-                            className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0 cursor-pointer"
-                            title={isHashtagsEditable ? "Lock hashtags" : "Edit hashtags"}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                            </svg>
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-2">
-                          {Array.from({ length: 5 }).map((_, index) => {
-                            const tag = (eventData.hashtags || [])[index] || '';
-                            return (
-                              <input
-                                key={index}
-                                type="text"
-                                readOnly={!isHashtagsEditable}
-                                placeholder={`#hashtag ${index + 1}`}
-                                value={tag}
-                                onChange={(e) => {
-                                  let val = e.target.value.replace(/\s+/g, '');
-                                  if (val.length > 0 && !val.startsWith('#')) val = '#' + val;
-                                  const newTags = [...(eventData.hashtags || ['', '', '', '', ''])];
-                                  newTags[index] = val;
-                                  setEventData({ ...eventData, hashtags: newTags });
-                                  setIsDirty(true);
-                                }}
-                                className={`${inputFieldStyle} border-2 text-center ${!isHashtagsEditable ? 'bg-slate-50 cursor-default' : ''}`}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
+                        {/* Exactly 5 Hashtag Input Boxes */}
+                            <div className="">
+                              <label className="block text-base font-bold text-slate-900 mb-3">Event Hashtag</label>
+                              <div className="flex items-center gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 flex-1">
+                                  {Array.from({ length: 5 }).map((_, index) => {
+                                    const tag = (eventData.hashtags || [])[index] || '';
+                                    return (
+                                      <input
+                                        key={index}
+                                        type="text"
+                                        readOnly={!isHashtagsEditable}
+                                        placeholder={`#hashtag ${index + 1}`}
+                                        value={tag}
+                                        onChange={(e) => {
+                                          let val = e.target.value.replace(/\s+/g, '');
+                                          if (val.length > 0 && !val.startsWith('#')) val = '#' + val;
+                                          const newTags = [...(eventData.hashtags || ['', '', '', '', ''])];
+                                          newTags[index] = val;
+                                          setEventData({ ...eventData, hashtags: newTags });
+                                          setIsDirty(true);
+                                        }}
+                                        className={`${inputFieldStyle} border-2 text-center ${!isHashtagsEditable ? 'bg-slate-50 cursor-default' : ''}`}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setIsHashtagsEditable(!isHashtagsEditable)}
+                                  className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0 cursor-pointer self-center"
+                                  title={isHashtagsEditable ? "Lock hashtags" : "Edit hashtags"}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                    <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
 
                           {/* Artist Details Popup Modal */}
                           {selectedArtistModal && (
@@ -893,7 +903,7 @@ const handleSave = () => {
                                    {/* Date Row with Edit Icon on the Right */}
                                   <div className="flex items-center gap-3">
                                     <div className="w-full md:w-1/2">
-                                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Start date</label>
+                                      <label className="block text-xs font-semibold text-slate-600 mb-1">Start date</label>
                                       {(() => {
                                         const formatDateDisplay = (dateStr) => {
                                           if (!dateStr) return '';
@@ -926,7 +936,7 @@ const handleSave = () => {
                                         className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 cursor-pointer"
                                         title={isRowEditable ? "Lock row" : "Edit row"}
                                       >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                                         </svg>
                                       </button>
@@ -938,7 +948,7 @@ const handleSave = () => {
                                         {timeSlots.map((slot, slotIdx) => (
                                           <div key={slotIdx} className="flex items-center gap-3">
                                             <div className="flex-1">
-                                              <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">Start time</label>
+                                              <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">Start time</label>
                                               <input 
                                                 type="time" 
                                                 readOnly={!isRowEditable}
@@ -954,7 +964,7 @@ const handleSave = () => {
                                             </div>
                                             <span className="text-slate-400 pt-5">-</span>
                                             <div className="flex-1">
-                                              <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-0.5">End time</label>
+                                              <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">End time</label>
                                               <input 
                                                 type="time" 
                                                 readOnly={!isRowEditable}
@@ -980,7 +990,7 @@ const handleSave = () => {
                             {/* Venue & Location Inputs */}
                             <div className="space-y-4 ">
                               <div>
-                                <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Venue Name <span className="text-red-600">*</span></label>
+                                <label className="block text-sm font-semibold text-slate-600  mb-1">Venue Name <span className="text-red-600">*</span></label>
                                 <input 
                                   type="text" 
                                   name="venueName" 
@@ -991,7 +1001,7 @@ const handleSave = () => {
                                 />
                               </div>
                               <div>
-                                <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Address <span className="text-red-600">*</span></label>
+                                <label className="block text-sm font-semibold text-slate-600  mb-1">Address <span className="text-red-600">*</span></label>
                                 <input 
                                   type="text" 
                                   name="address" 
@@ -1003,7 +1013,7 @@ const handleSave = () => {
                               </div>
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">City <span className="text-red-600">*</span></label>
+                                  <label className="block text-sm font-semibold text-slate-600  mb-1">City <span className="text-red-600">*</span></label>
                                   <input 
                                     type="text" 
                                     name="city" 
@@ -1014,7 +1024,7 @@ const handleSave = () => {
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">PIN Code</label>
+                                  <label className="block text-sm font-semibold text-slate-600  mb-1">PIN Code</label>
                                   <input 
                                     type="text" 
                                     name="pinCode" 
@@ -1059,7 +1069,7 @@ const handleSave = () => {
                               </div>
 
                               <div>
-                                <label className="block text-sm font-semibold text-slate-600 uppercase mb-2">Location Map</label>
+                                <label className="block text-sm font-semibold text-slate-600  mb-2">Location Map</label>
                                 <div className="w-full h-96 rounded-lg border border-slate-200 overflow-hidden bg-slate-100 relative">
                                   <iframe
                                     title="Dynamic Event Location Map"
@@ -1078,7 +1088,7 @@ const handleSave = () => {
                       })()}
                 {activeTab === 'Features' && (() => {
                   return (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                    <div className="space-y-6">
                       
                       {/* 1. Minimum Age Limit Section */}
                       <div className="space-y-2">
@@ -1106,7 +1116,7 @@ const handleSave = () => {
                             className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0"
                             title={isAgeEditable ? "Lock age limit" : "Edit age limit"}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                               <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                             </svg>
                           </button>
@@ -1151,7 +1161,7 @@ const handleSave = () => {
                         className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0 ml-2"
                         title={isDurationEditable ? "Lock duration" : "Edit duration"}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                         </svg>
                       </button>
@@ -1167,60 +1177,126 @@ const handleSave = () => {
                     )}
                   </div>
 
-                      {/* 3. Event Guide Section (Attempted Questions) */}
-                      <div className="space-y-4 pt-4 border-t border-slate-100">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-bold text-base text-slate-900">Event Guide</h3>
-                            <p className="text-xs text-slate-500">Provide attendees with valuable information and address their questions</p>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsGuideEditable(!isGuideEditable)}
-                            className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0"
-                            title={isGuideEditable ? "Lock guide" : "Edit guide"}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                            </svg>
-                          </button>
-                        </div>
+               {/* 3. Event Guide Section (Attempted Questions matched with Master DB Options) */}
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-base text-slate-900">Event Guide</h3>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsGuideEditable(!isGuideEditable)}
+                        className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0"
+                        title={isGuideEditable ? "Lock guide" : "Edit guide"}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 -mt-2">Provide attendees with valuable information and address their questions</p>
 
-                        <div className="space-y-4">
-                          {Array.isArray(eventData.guideResponses) && eventData.guideResponses
-                            .filter(g => (g.answerText && g.answerText.trim() !== '') || (g.selectedOptions && g.selectedOptions.length > 0 && g.selectedOptions[0] !== ''))
-                            .map((resp, idx) => {
-                              const answerValue = resp.answerText || (resp.selectedOptions ? resp.selectedOptions.join(', ') : '');
-                              return (
-                                <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 gap-2 border-b border-slate-100 last:border-none">
-                                  <span className="text-xs font-medium text-slate-800">{resp.question}</span>
-                                  
-                                  <div className="w-full sm:w-1/3">
-                                    <input 
-                                      type="text" 
-                                      readOnly={!isGuideEditable}
-                                      value={answerValue}
-                                      onChange={(e) => {
-                                        const updated = [...eventData.guideResponses];
-                                        const targetIdx = updated.findIndex(item => item.questionId === resp.questionId);
-                                        if (targetIdx > -1) {
-                                          if (updated[targetIdx].answerText !== undefined) {
-                                            updated[targetIdx].answerText = e.target.value;
-                                          } else {
-                                            updated[targetIdx].selectedOptions = [e.target.value];
+                  <div className="space-y-4">
+                    {Array.isArray(eventData.guideResponses) && eventData.guideResponses
+                      .filter(g => g.questionId)
+                      .map((resp, idx) => {
+                        // Cross-reference with master questions database using questionId
+                        const masterQ = masterQuestions.find(
+                          mq => String(mq.questionId || '') === String(resp.questionId || '')
+                        );
+
+                        const questionTitle = masterQ?.question || resp.question;
+                        
+                        // Extract optionA through optionE dynamically from master schema
+                        const allOptions = [
+                          masterQ?.optionA,
+                          masterQ?.optionB,
+                          masterQ?.optionC,
+                          masterQ?.optionD,
+                          masterQ?.optionE
+                        ].filter(Boolean); // Filters out any undefined/empty options
+
+                        const optionsCount = allOptions.length;
+                        const currentAnswer = resp.selectedOptions?.[0] || resp.answerText || '';
+
+                        return (
+                          <div key={idx} className="space-y-2">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 gap-2">
+                              <span className="text-sm font-medium text-slate-800">{questionTitle}</span>
+                              
+                              {optionsCount > 0 && optionsCount <= 2 ? (
+                                <div className="w-full sm:w-1/3 flex items-center gap-6 px-2">
+                                  {allOptions.map((opt, oIdx) => (
+                                    <label key={oIdx} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        disabled={!isGuideEditable}
+                                        name={`question_${resp.questionId}`}
+                                        value={opt}
+                                        checked={currentAnswer === opt}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          const updated = [...(eventData.guideResponses || [])];
+                                          const targetIdx = updated.findIndex(item => String(item.questionId) === String(resp.questionId));
+                                          if (targetIdx > -1) {
+                                            updated[targetIdx].selectedOptions = [val];
                                           }
-                                        }
-                                        setEventData({ ...eventData, guideResponses: updated });
-                                        setIsDirty(true);
-                                      }}
-                                      className={`w-full border rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
-                                    />
-                                  </div>
+                                          setEventData({ ...eventData, guideResponses: updated });
+                                          setIsDirty(true);
+                                        }}
+                                        className="w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer"
+                                      />
+                                      {opt}
+                                    </label>
+                                  ))}
                                 </div>
-                              );
-                            })}
-                        </div>
-                      </div>
+                              ) : optionsCount > 2 ? (
+                                <select 
+                                  disabled={!isGuideEditable}
+                                  value={currentAnswer} 
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const updated = [...(eventData.guideResponses || [])];
+                                    const targetIdx = updated.findIndex(item => String(item.questionId) === String(resp.questionId));
+                                    if (targetIdx > -1) {
+                                      updated[targetIdx].selectedOptions = [val];
+                                    }
+                                    setEventData({ ...eventData, guideResponses: updated });
+                                    setIsDirty(true);
+                                  }}
+                                  className={`w-full sm:w-1/3 text-xs p-2 rounded-md border-2 border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`}
+                                >
+                                  <option value="">Select</option>
+                                  {allOptions.map((opt, oIdx) => (
+                                    <option key={oIdx} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input 
+                                  type="text" 
+                                  readOnly={!isGuideEditable}
+                                  placeholder="Type answer..." 
+                                  value={currentAnswer} 
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const updated = [...(eventData.guideResponses || [])];
+                                    const targetIdx = updated.findIndex(item => String(item.questionId) === String(resp.questionId));
+                                    if (targetIdx > -1) {
+                                      updated[targetIdx].answerText = val;
+                                    }
+                                    setEventData({ ...eventData, guideResponses: updated });
+                                    setIsDirty(true);
+                                  }} 
+                                  className={`w-full sm:w-1/3 text-xs p-2 rounded-md border border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`} 
+                                />
+                              )}
+                            </div>
+                            <div className="border-b border-slate-100"></div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
 
                     </div>
                   );
@@ -1234,7 +1310,7 @@ const handleSave = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Name</label>
+                      <label className="block text-sm font-semibold text-slate-600  mb-1">Name</label>
                       <input 
                         type="text" 
                         name="contactName" 
@@ -1246,7 +1322,7 @@ const handleSave = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Email</label>
+                      <label className="block text-sm font-semibold text-slate-600  mb-1">Email</label>
                       <input 
                         type="email" 
                         name="contactEmail" 
@@ -1259,7 +1335,7 @@ const handleSave = () => {
 
                     <div className="flex items-center gap-3">
                       <div className="flex-1">
-                        <label className="block text-sm font-semibold text-slate-600 uppercase mb-1">Mobile</label>
+                        <label className="block text-sm font-semibold text-slate-600  mb-1">Mobile</label>
                         <input 
                           type="text" 
                           name="contactMobile" 
@@ -1276,7 +1352,7 @@ const handleSave = () => {
                         className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0 mt-6"
                         title={isContactEditable ? "Lock contact" : "Edit contact"}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                         </svg>
                       </button>

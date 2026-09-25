@@ -13,3 +13,4 @@ router.get('/:id', createEventController.getEventById);
 router.post('/duplicate/:id', createEventController.duplicateEvent);
 
 module.exports = router;
+ 
