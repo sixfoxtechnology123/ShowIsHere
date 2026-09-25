@@ -395,6 +395,7 @@ exports.duplicateEvent = async (req, res) => {
       ...originalEvent,
       createEventId,
       tenantKey,
+      duplicate: true,
       status: 'DRAFT',              // Set status to DRAFT
      
       rejectionReason: '',          // Reset rejection reason

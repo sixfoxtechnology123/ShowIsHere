@@ -659,6 +659,7 @@ const hasFormContent = useMemo(() => {
     orgId: localStorage.getItem('orgId') || undefined,
     loginMobileNumber: localStorage.getItem('loginMobileNumber') || undefined,
     eventName: formData.eventTitle,
+    duplicate: formData.duplicate || false,
     eventDescription: formData.fullDescription || '',
     eventCategoryId: formData.eventCategory,
     eventCategoryName: selectedMasterCardObj?.categoryName || formData.eventCategory,

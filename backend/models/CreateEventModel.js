@@ -132,6 +132,10 @@ orgId: {
     default: 'DRAFT',
     index: true
   },
+    duplicate: {
+    type: Boolean,
+    default: false
+    },
   rejectionReason: { type: String, default: '' },
   approvalHistory: [{
     status: { type: String, enum: ['pending', 'approved', 'rejected'] },
