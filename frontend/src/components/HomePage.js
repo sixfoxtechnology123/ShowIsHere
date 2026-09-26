@@ -15,7 +15,7 @@ const HomePage = () => {
 
   return (
     // Outer container matching your page background so the notches punch out cleanly
-    <div className="w-full flex justify-center bg-slate-100 p-4 ">
+    <div className="w-full flex justify-center bg-[e8f2fe] p-14 ">
       
       {/* Main Ticket Wrapper */}
       <div className="relative flex w-full max-w-6xl  rounded-2xl overflow-hidden  items-stretch">
@@ -107,12 +107,10 @@ const HomePage = () => {
 
         {/* ================= SECTION 2: MIDDLE PERFORATED DIVIDER ================= */}
         <div className="relative w-0 flex items-center justify-center z-20">
-          {/* 3 & 4. Middle Seam Notches (Top-Middle & Bottom-Middle) */}
-          <div className="absolute -top-3 -left-3 w-6 h-6 bg-slate-100 rounded-full z-30"></div>
-          <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-slate-100 rounded-full z-30"></div>
+         
           
           {/* Dashed line */}
-          <div className="h-full border-r-2 border-dashed border-slate-300"></div>
+          <div className="h-full border-r-4  border-dashed"></div>
         </div>
 
       {/* ================= SECTION 3: RIGHT ART SECTION ================= */}
