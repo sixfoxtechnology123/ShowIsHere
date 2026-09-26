@@ -92,7 +92,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
         } else {
           toast.success('New user! Please complete your registration.', { id: 'signin-toast' });
           localStorage.setItem('loginMobileNumber', mobileNumber);
-          navigate('/event-org-account', { state: { prefilledMobile: mobileNumber } });
+          navigate('/org-kyc', { state: { prefilledMobile: mobileNumber } });
         }
       } else {
         toast.error(response.message || 'Login failed.', { id: 'signin-toast' });

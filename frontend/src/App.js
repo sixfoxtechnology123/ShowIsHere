@@ -13,7 +13,7 @@ import AboutPage from './components/AboutPage';
 import SeatMap from './components/SeatMap';
 import LoginPage from './components/LoginPage';
 import ArtistMaster from './Master/ArtistMaster';
-import EventOrgAccount from './EventOrganizer/EventOrgAccount';
+import OrgKyc from './EventOrganizer/OrgKyc';
 import TermsOfUse from './components/TermsOfUse'; 
 import RefundAndCancellation from './components/RefundAndCancellation';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -28,6 +28,7 @@ import QuestionDatabseMaster from './Master/QuestionDatabseMaster';
 import EventQuestion from './Master/EventQuestion';
 import Profile from './EventOrganizer/Profile';
 import KYCDetails from './EventOrganizer/KYCDetails';
+import AgreementPdf from './EventOrganizer/AgreementPdf';
 import Setting from './EventOrganizer/Setting';
 
 
@@ -61,7 +62,7 @@ const AppContent = () => {
 
   const routerLocation = useLocation();
   const isSeatMapPage = routerLocation.pathname === '/seatmap';
-  const isEventOrgAccountPage = routerLocation.pathname === '/event-org-account'; 
+  const isOrgKycPage = routerLocation.pathname === '/org-kyc'; 
   const isCreateevent = routerLocation.pathname === '/create-event'; 
   const isDashboardPage = routerLocation.pathname === '/dashboard';
   const isHomePage = routerLocation.pathname === '/';
@@ -199,8 +200,8 @@ const AppContent = () => {
         }}
       />
 
-      {/* Hide main headers on SeatMap, EventOrgAccount, and Dashboard pages */}
-      {!isSeatMapPage && !isEventOrgAccountPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isLoginPage && !isAdminApprovalPage && !isEventDetails && (
+      {/* Hide main headers on SeatMap, OrgKyc, and Dashboard pages */}
+      {!isSeatMapPage && !isOrgKycPage && !isDashboardPage && !isMyEventsPage && !isPaychequePage && !isReportPage && !isCreateevent && !isprofile && !iskyc && !isprofilesettings && !isEventDashboard && !isLoginPage && !isAdminApprovalPage && !isEventDetails && (
         <>
           <Navbar 
             location={location} 
@@ -224,7 +225,7 @@ const AppContent = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/seatmap" element={<SeatMap />} />
         <Route path="/artist-master" element={<ArtistMaster />} />
-        <Route path="/event-org-account" element={<EventOrgAccount />} />
+        <Route path="/org-kyc" element={<OrgKyc />} />
         <Route path="/create-event" element={<CreateEvent />} />
         <Route path="/terms" element={<TermsOfUse />} />
         <Route path="/refund-policy" element={<RefundAndCancellation />} />
@@ -245,6 +246,7 @@ const AppContent = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/kyc" element={<KYCDetails />} />
         <Route path="/profile/settings" element={<Setting />} />.
+        <Route path="/agreement/:id" element={<AgreementPdf />} />
      
         <Route path="/event-dashboard" element={<EventDashboard />} />
         <Route path="/event-details" element={<EventDetails />} />
@@ -271,3 +273,4 @@ const App = () => {
 };
 
 export default App;
+

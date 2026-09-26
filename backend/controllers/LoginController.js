@@ -1,4 +1,4 @@
-const EventOrgAccount = require('../models/eventOrgAccountModel.js');
+const OrgKyc = require('../models/orgKycModel.js');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs'); 
 const crypto = require('crypto'); 
@@ -27,7 +27,7 @@ const loginWithMobile = async (req, res) => {
     }
 
     const trimmedMobile = loginMobileNumber.trim();
-    const existingOrg = await EventOrgAccount.findOne({
+    const existingOrg = await OrgKyc.findOne({
       $or: [
         { loginMobileNumber: trimmedMobile },
         { contactMobile: trimmedMobile }
@@ -68,7 +68,7 @@ const loginWithPassword = async (req, res) => {
 
     const trimmedMobile = String(finalMobile).trim();
 
-    const existingOrg = await EventOrgAccount.findOne({
+    const existingOrg = await OrgKyc.findOne({
       $or: [
         { loginMobileNumber: trimmedMobile },
         { contactMobile: trimmedMobile }
@@ -116,7 +116,7 @@ const resetPassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    const updatedAccount = await EventOrgAccount.findOneAndUpdate(
+    const updatedAccount = await OrgKyc.findOneAndUpdate(
       { $or: [{ loginMobileNumber: trimmedMobile }, { contactMobile: trimmedMobile }] },
       { 
         $set: { 
@@ -147,3 +147,4 @@ module.exports = {
   loginWithPassword,
   resetPassword,
 };
+

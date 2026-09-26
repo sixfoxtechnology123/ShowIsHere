@@ -46,43 +46,15 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(initialForm);
 
-  const loadProfile = async () => {
-    // 2. Add this check at the very beginning of loadProfile
-    if (routerLocation.state?.updatedOrgData) {
-      const u = routerLocation.state.updatedOrgData;
-      setFormData({
-        id: u.id || u._id || '',
-        orgName: u.orgName || '',
-        websiteUrl: u.websiteUrl || '',
-        address1: u.address1 || u.orgAddress || '',
-        address2: u.address2 || '',
-        country: u.country || 'India',
-        state: u.state || '',
-        city: u.city || '',
-        contactMobile: u.contactMobile || u.loginMobileNumber || '',
-        contactEmail: u.contactEmail || '',
-        verifiedEmail: Boolean(u.verifiedEmail),
-        about: u.about || '',
-        instagram: u.instagram || '',
-        facebook: u.facebook || '',
-        twitter: u.twitter || '',
-        linkedin: u.linkedin || '',
-        profilePhoto: u.profilePhoto || '',
-        approvalStatus: u.approvalStatus || 'pending'
-      });
-      return;
-    }
-
+const loadProfile = async () => {
     const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
-    const userId = savedUser._id || savedUser.id;
     const mobile = savedUser.loginMobileNumber || savedUser.contactMobile;
-    if (!userId && !mobile) return;
+    if (!mobile) return;
 
-    const query = userId ? `id=${userId}` : `loginMobileNumber=${mobile}`;
-    const resData = await API.get(`/org/get-profile?${query}`);
+    const query = new URLSearchParams({ loginMobileNumber: mobile });
+    const resData = await API.get(`/profile?${query.toString()}`);
     if (resData.success && resData.data) {
       const u = resData.data;
-      localStorage.setItem('orgUserData', JSON.stringify(u));
       setFormData({
         id: u._id || u.id || '',
         orgName: u.orgName || '',
@@ -106,9 +78,22 @@ const Profile = () => {
     }
   };
 
-  useEffect(() => {
-    loadProfile().catch((error) => console.error('Error fetching profile:', error));
-  }, [routerLocation]); // 3. Must depend on routerLocation here
+useEffect(() => {
+    if (routerLocation.state?.updatedOrgData) {
+      const u = routerLocation.state.updatedOrgData;
+      setFormData((prev) => ({
+        ...prev,
+        orgName: u.orgName || prev.orgName,
+        address1: u.orgAddress || prev.address1,
+        state: u.state || prev.state,
+        contactEmail: u.contactEmail || prev.contactEmail,
+        contactMobile: u.contactMobile || prev.contactMobile,
+        verifiedEmail: u.verifiedEmail ?? prev.verifiedEmail
+      }));
+    } else {
+      loadProfile().catch((error) => console.error('Error fetching profile:', error));
+    }
+  }, [routerLocation]);
   
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -118,6 +103,7 @@ const Profile = () => {
     try {
       const payload = {
         id: formData.id,
+        loginMobileNumber: JSON.parse(localStorage.getItem('orgUserData') || '{}').loginMobileNumber || formData.contactMobile,
         orgName: formData.orgName,
         websiteUrl: formData.websiteUrl,
         address1: formData.address1,
@@ -126,6 +112,8 @@ const Profile = () => {
         state: formData.state,
         city: formData.city,
         contactMobile: formData.contactMobile,
+        contactEmail: formData.contactEmail,
+        verifiedEmail: formData.verifiedEmail,
         about: formData.about,
         instagram: formData.instagram,
         facebook: formData.facebook,
@@ -133,10 +121,9 @@ const Profile = () => {
         linkedin: formData.linkedin,
         profilePhoto: formData.profilePhoto
       };
-      const resData = await API.put('/org/update-profile', payload);
+      const resData = await API.put('/profile', payload);
       if (resData.success) {
         toast.success('Profile updated successfully!', { id: 'profile-toast' });
-        localStorage.setItem('orgUserData', JSON.stringify(resData.data));
         setIsEditing(false);
         loadProfile();
       }
@@ -310,7 +297,7 @@ const Profile = () => {
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address *</label>
                     <div className="flex items-center gap-2">
-                      <input type="email" disabled value={formData.contactEmail} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-500" />
+                      <input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                       <span className={`shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border ${formData.verifiedEmail ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
                         {formData.verifiedEmail ? 'Verified' : 'Not verified'}
                       </span>

@@ -24,7 +24,8 @@ app.use((req, res, next) => {
 
 // Import Routes
 const artistRoutes = require('./routes/artistRoutes');
-const eventOrgAccountRoutes = require('./routes/eventOrgAccountRoutes');
+const orgKycRoutes = require('./routes/orgKycRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 const eventCategoryRoutes = require('./routes/eventCategoryRoutes');
 const categoryMasterRoutes = require('./routes/categoryMasterRoutes');
 const questionDatabaseRoutes = require('./routes/questionDatabaseRoutes');
@@ -41,7 +42,8 @@ app.get('/', (req, res) => {
 // Register Routes
 app.use('/events', eventRoutes);
 app.use('/artists', artistRoutes);
-app.use('/org', eventOrgAccountRoutes);
+app.use('/org', orgKycRoutes);
+app.use('/profile', profileRoutes);
 app.use('/event-categories', eventCategoryRoutes);
 app.use('/categories', categoryMasterRoutes);
 app.use('/question-database', questionDatabaseRoutes);

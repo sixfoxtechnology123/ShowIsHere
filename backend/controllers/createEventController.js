@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const CreateEvent = require('../models/CreateEventModel');
 const EventQuestionMaster = require('../models/EventQuestionmodel');
 const QuestionDatabase = require('../models/questionDatabaseModel');
-const Organizer = require('../models/eventOrgAccountModel');
+const Organizer = require('../models/orgKycModel');
 const ArtistMaster = require('../models/Artist');
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

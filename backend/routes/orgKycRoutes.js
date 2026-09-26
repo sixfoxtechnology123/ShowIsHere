@@ -7,8 +7,7 @@ const {
   sendEmailOtp,
   verifyEmailOtp,
   submitAgreement,
-  getProfile,
-  updateProfile,
+  getKycDetails,
   updateKycDetails,
   getPasswordStatus,
   updatePassword,
@@ -16,8 +15,9 @@ const {
   resetPasswordWithOtp,
   listOrgAccounts,
   adminUpdateOrgAccount,
-  updateApprovalStatus
-} = require('../controllers/eventOrgAccountController.js');
+  updateApprovalStatus,
+  requestReKyc
+} = require('../controllers/orgKycController.js');
 
 const router = express.Router();
 
@@ -27,8 +27,7 @@ router.post('/save-step', saveOrgStep);
 router.post('/send-email-otp', sendEmailOtp);
 router.post('/verify-email-otp', verifyEmailOtp);
 router.post('/submit-agreement', submitAgreement);
-router.get('/get-profile', getProfile);
-router.put('/update-profile', updateProfile);
+router.get('/get-kyc', getKycDetails);
 router.put('/update-kyc', updateKycDetails);
 router.get('/password-status', getPasswordStatus);
 router.put('/password', updatePassword);
@@ -37,6 +36,8 @@ router.post('/password/reset', resetPasswordWithOtp);
 router.get('/admin/accounts', listOrgAccounts);
 router.put('/admin/accounts/:id', adminUpdateOrgAccount);
 router.put('/admin/accounts/:id/approval', updateApprovalStatus);
+router.post('/admin/accounts/:id/rekyc', requestReKyc);
 router.get('/:identifier', getOrgAccount);
 
 module.exports = router;
+

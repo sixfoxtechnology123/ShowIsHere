@@ -79,7 +79,7 @@ import {
   dashBrandTitle
 } from '../styles/MasterCSSClass';
 
-const EventOrgAccount = () => {
+const OrgKyc = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeStep, setActiveStep] = useState(1);
@@ -123,7 +123,6 @@ const initialMobile = location.state?.prefilledMobile ||
   // Form Data State initialized completely blank with default empty values
   const [formData, setFormData] = useState({
     orgId: '',       // <--- ADD THIS
-    tenantKey: '',
     orgName: '',
     orgAddress: '',
     panLinkedAadhaar: '',
@@ -445,7 +444,6 @@ const processUploadedFile = async (file) => {
 
         const response = await API.post('/org/verify-pan', {
           orgId: formData.orgId,
-          tenantKey: formData.tenantKey,
           userPan: formData.panNumber,
           userName: formData.orgName,
           panCardBase64: base64Result
@@ -625,7 +623,7 @@ const saveToDatabase = async () => {
     const response = await API.post('/org/save-step', payload);
     setIsSaving(false);
 
-    const resData = response.data || response;
+    const resData = response;
     
     if (resData && resData.success === false) {
       toast.dismiss();
@@ -633,6 +631,10 @@ const saveToDatabase = async () => {
       return false;
     }
 
+    if (resData?.data) {
+      const current = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+      localStorage.setItem('orgUserData', JSON.stringify({ ...current, ...resData.data }));
+    }
     setIsDataSaved(true);
     toast.dismiss();
     toast.success('Successfully Saved !', { id: 'unique-save-toast' });
@@ -660,15 +662,14 @@ useEffect(() => {
         if (!userId && !mobile) return;
 
         const query = userId ? `id=${userId}` : `loginMobileNumber=${mobile}`;
-        const response = await API.get(`/org/get-profile?${query}`);
-        const resData = response.data || response;
+        const response = await API.get(`/org/get-kyc?${query}`);
+        const resData = response;
 
         if (resData.success && resData.data) {
           const u = resData.data;
           setFormData((prev) => ({
             ...prev,
             orgId: u.orgId || '',
-            tenantKey: u.tenantKey || '',
             orgName: u.orgName || '',
             orgAddress: u.orgAddress || u.address1 || '',
             panLinkedAadhaar: u.panLinkedAadhaar || '',
@@ -775,7 +776,7 @@ const handleProceed = async () => {
               return (
                 <div
                   key={step.id}
-                  // onClick={() => setActiveStep(step.id)}
+                   onClick={() => setActiveStep(step.id)}
                   className={isActive ? accountStepItemActive : accountStepItemInactive}
                 >
                   <span className={isActive ? accountStepBadgeActive : accountStepBadgeInactive}>
@@ -1625,4 +1626,4 @@ const handleProceed = async () => {
   );
 };
 
-export default EventOrgAccount;
+export default OrgKyc;

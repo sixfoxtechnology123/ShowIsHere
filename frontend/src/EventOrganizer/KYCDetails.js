@@ -32,8 +32,7 @@ const KYCDetails = () => {
     approvalStatus: '',
   });
 
-  // Fetch live database profile data on component load
-  useEffect(() => {
+useEffect(() => {
     const fetchKycData = async () => {
       try {
         let savedUser = {};
@@ -63,7 +62,7 @@ const KYCDetails = () => {
           return;
         }
 
-        const response = await API.get(`/org/get-profile?${params.toString()}`);
+        const response = await API.get(`/org/get-kyc?${params.toString()}`);
         const userData = response?.data?.data || response?.data || response;
 
         if (userData && (userData._id || userData.orgId || userData.contactEmail)) {

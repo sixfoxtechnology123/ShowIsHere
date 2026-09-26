@@ -1,8 +1,18 @@
 const mongoose = require('mongoose');
 
-const eventOrgAccountSchema = new mongoose.Schema({
+const reKycHistorySchema = new mongoose.Schema({
+  fields: [{
+    type: String,
+    enum: ['organizationName', 'panDetails', 'accountDetails', 'organizationAddress', 'uploadPanDocuments', 'contactDetails']
+  }],
+  reason: { type: String, trim: true, default: '' },
+  requestedAt: { type: Date, default: Date.now },
+  requestedBy: { type: String, default: 'admin' }
+}, { _id: false });
+
+const orgKycSchema = new mongoose.Schema({
+  orgkycId: { type: String, required: true, unique: true },
   orgId: { type: String, required: true, unique: true },
-  tenantKey: { type: String, required: true, unique: true },
   orgName: { type: String, required: true },
   orgAddress: { type: String },
   panLinkedAadhaar: { type: String },
@@ -10,17 +20,6 @@ const eventOrgAccountSchema = new mongoose.Schema({
   gstinNumber: { type: String, uppercase: true, default: null },
   gstDeclaration: { type: Boolean, default: false },
   state: { type: String },
-  country: { type: String },
-  city: { type: String },
-  address1: { type: String },
-  address2: { type: String },
-  websiteUrl: { type: String },
-  about: { type: String },
-  instagram: { type: String },
-  facebook: { type: String },
-  twitter: { type: String },
-  linkedin: { type: String },
-  profilePhoto: { type: String, default: null },
   contactFullName: { type: String }, 
   contactEmail: { type: String, required: true },
   loginMobileNumber: { type: String, trim: true },
@@ -31,7 +30,6 @@ const eventOrgAccountSchema = new mongoose.Schema({
   accountNumber: { type: String },
   bankIfsc: { type: String, uppercase: true },
   bankName: { type: String },
-  branch: { type: String },
   panCardDocument: { type: Object, default: null },
   approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   rejectionReason: { type: String, default: '' },
@@ -50,8 +48,13 @@ const eventOrgAccountSchema = new mongoose.Schema({
   default: false
 },
   signingAt: { type: Date, default: null },
-  signingIp: { type: String, default: null }
+  signingIp: { type: String, default: null },
+  rekyc: { type: Boolean, default: false },
+  reKycFields: [{
+    type: String,
+    enum: ['organizationName', 'panDetails', 'accountDetails', 'organizationAddress', 'uploadPanDocuments', 'contactDetails']
+  }],
+  reKycHistory: { type: [reKycHistorySchema], default: [] }
 }, { timestamps: true });
 
-// Ensure this export is correct so Mongoose methods like .findOne() are available
-module.exports = mongoose.model('EventOrgAccount', eventOrgAccountSchema);
+module.exports = mongoose.model('OrgKyc', orgKycSchema);

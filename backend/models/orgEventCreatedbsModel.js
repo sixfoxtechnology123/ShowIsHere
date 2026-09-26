@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const orgEventCreatedbsSchema = new mongoose.Schema({
-  organizerAccount: { type: mongoose.Schema.Types.ObjectId, ref: 'EventOrgAccount', default: null },
+  organizerAccount: { type: mongoose.Schema.Types.ObjectId, ref: 'OrgKyc', default: null },
   orgId: { type: String, default: '' },
   tenantKey: { type: String, required: true, index: true },
   loginMobile: { type: String, default: '' },
@@ -20,3 +20,4 @@ const orgEventCreatedbsSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('OrgEventCreatedbs', orgEventCreatedbsSchema);
+

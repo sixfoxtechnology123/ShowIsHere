@@ -567,6 +567,7 @@ const SignAgrement = ({
             <p className="break-all"><span className="font-semibold text-slate-900">Signed with IP:</span> <span className="font-normal">{signatureImage ? (signedIp || '') : ''}</span></p>
           </div>
           {/* Right Side Signature Action / Preview Box */}
+          {/* Right Side Signature Action / Preview Box */}
           <div className="w-full md:w-auto min-w-[240px] flex flex-col items-center">
             {signatureImage ? (
               <div className="flex flex-col space-y-2 w-[240px]">
@@ -575,13 +576,15 @@ const SignAgrement = ({
                 </div>
                 <div className="flex items-center justify-between w-full px-1">
                   <span className="text-xs font-medium text-slate-800">Signature</span>
-                  <button 
-                    type="button" 
-                    onClick={onDeleteSignature} 
-                    className={sigDeleteButtonStyled}
-                  >
-                    Delete Signature
-                  </button>
+                  {onDeleteSignature && (
+                    <button 
+                      type="button" 
+                      onClick={onDeleteSignature} 
+                      className={sigDeleteButtonStyled}
+                    >
+                      Delete Signature
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (

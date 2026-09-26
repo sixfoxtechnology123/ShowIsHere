@@ -1,4 +1,4 @@
-const EventOrgAccount = require('../models/eventOrgAccountModel.js');
+const OrgKyc = require('../models/orgKycModel.js');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
@@ -43,14 +43,14 @@ const verifyStoredPassword = async (password, org) => {
 };
 
 const findOrgByIdentity = async ({ id, orgId, tenantKey, loginMobileNumber, contactEmail }) => {
-  if (id) return EventOrgAccount.findById(id);
-  if (orgId) return EventOrgAccount.findOne({ orgId });
-  if (tenantKey) return EventOrgAccount.findOne({ tenantKey });
+  if (id) return OrgKyc.findById(id);
+  if (orgId) return OrgKyc.findOne({ orgId });
+  if (tenantKey) return OrgKyc.findOne({ tenantKey });
   if (loginMobileNumber) {
     const mobile = loginMobileNumber.trim();
-    return EventOrgAccount.findOne({ $or: [{ loginMobileNumber: mobile }, { contactMobile: mobile }] });
+    return OrgKyc.findOne({ $or: [{ loginMobileNumber: mobile }, { contactMobile: mobile }] });
   }
-  if (contactEmail) return EventOrgAccount.findOne({ contactEmail });
+  if (contactEmail) return OrgKyc.findOne({ contactEmail });
   return null;
 };
 
@@ -160,7 +160,7 @@ const verifyPanDocument = async (req, res) => {
     else if (tenantKey) query.tenantKey = tenantKey;
     else query.panNumber = inputPan;
 
-    const org = await EventOrgAccount.findOne(query);
+    const org = await OrgKyc.findOne(query);
 
     if (org) {
       org.panVerified = isMatch;
@@ -211,7 +211,7 @@ const generateToken = (id, orgId) => {
 };
 
 const generateNextOrgId = async () => {
-  const lastOrg = await EventOrgAccount.findOne({}, {}, { sort: { createdAt: -1 } });
+  const lastOrg = await OrgKyc.findOne({}, {}, { sort: { createdAt: -1 } });
   if (!lastOrg || !lastOrg.orgId) {
     return 'ORG1';
   }
@@ -219,11 +219,17 @@ const generateNextOrgId = async () => {
   return `ORG${numericPart + 1}`;
 };
 
+const generateNextOrgKycId = async () => {
+  const records = await OrgKyc.find({ orgkycId: /^OK\d+$/ }, { orgkycId: 1 }).lean();
+  const highest = records.reduce((max, record) => Math.max(max, Number(record.orgkycId.slice(2)) || 0), 0);
+  return `OK${highest + 1}`;
+};
+
 const generateTenantKey = async (orgName) => {
   const cleanName = (orgName || 'org').replace(/[^a-zA-Z]/g, '').toLowerCase();
   const prefix = cleanName.length >= 3 ? cleanName.substring(0, 3) : (cleanName + 'xyz').substring(0, 3);
   
-  const count = await EventOrgAccount.countDocuments({ tenantKey: new RegExp(`^${prefix}`) });
+  const count = await OrgKyc.countDocuments({ tenantKey: new RegExp(`^${prefix}`) });
   const suffix = String(count + 1).padStart(3, '0');
   return `${prefix}${suffix}`;
 };
@@ -254,11 +260,11 @@ const registerOrgAccount = async (req, res) => {
     let existingOrg = null;
     
     if (orgId) {
-      existingOrg = await EventOrgAccount.findOne({ orgId, signinAgreement: false });
+      existingOrg = await OrgKyc.findOne({ orgId, signinAgreement: false });
     } else if (tenantKey) {
-      existingOrg = await EventOrgAccount.findOne({ tenantKey, signinAgreement: false });
+      existingOrg = await OrgKyc.findOne({ tenantKey, signinAgreement: false });
     } else if (panNumber) {
-      existingOrg = await EventOrgAccount.findOne({ panNumber: panNumber.toUpperCase(), signinAgreement: false });
+      existingOrg = await OrgKyc.findOne({ panNumber: panNumber.toUpperCase(), signinAgreement: false });
     }
 
     if (existingOrg) {
@@ -307,7 +313,8 @@ const registerOrgAccount = async (req, res) => {
     const newTenantKey = await generateTenantKey(orgName);
     const isSigningFinal = signinAgreement === true || signinAgreement === 'true';
 
-    const newOrg = await EventOrgAccount.create({
+    const newOrg = await OrgKyc.create({
+      orgkycId: await generateNextOrgKycId(),
       orgId: newOrgId,
       tenantKey: newTenantKey,
       orgName: orgName || 'Pending Name',
@@ -376,7 +383,7 @@ const getOrgAccount = async (req, res) => {
     const { identifier } = req.params;
     const query = identifier.startsWith('ORG') ? { orgId: identifier } : { tenantKey: identifier };
     
-    const org = await EventOrgAccount.findOne(query);
+    const org = await OrgKyc.findOne(query);
     if (!org) {
       return res.status(404).json({
         success: false,
@@ -406,19 +413,19 @@ const saveOrgStep = async (req, res) => {
     // by checking orgId, tenantKey, email, mobile, or PAN!
     let org = null;
     if (orgId) {
-      org = await EventOrgAccount.findOne({ orgId });
+      org = await OrgKyc.findOne({ orgId });
     }
     if (!org && tenantKey) {
-      org = await EventOrgAccount.findOne({ tenantKey });
+      org = await OrgKyc.findOne({ tenantKey });
     }
     if (!org && contactEmail) {
-      org = await EventOrgAccount.findOne({ contactEmail });
+      org = await OrgKyc.findOne({ contactEmail });
     }
     if (!org && contactMobile) {
-      org = await EventOrgAccount.findOne({ contactMobile });
+      org = await OrgKyc.findOne({ contactMobile });
     }
     if (!org && panNumber) {
-      org = await EventOrgAccount.findOne({ panNumber: panNumber.toUpperCase() });
+      org = await OrgKyc.findOne({ panNumber: panNumber.toUpperCase() });
     }
 
     // 2. Conflict check across OTHER accounts (excluding our own found record's ID)
@@ -434,7 +441,7 @@ const saveOrgStep = async (req, res) => {
         conflictQuery._id = { $ne: org._id }; // <--- Ignores our own record so we never block ourselves!
       }
 
-      const existingConflict = await EventOrgAccount.findOne(conflictQuery);
+      const existingConflict = await OrgKyc.findOne(conflictQuery);
       if (existingConflict) {
         let conflictMsg = 'Record already exists!';
         if (panNumber && existingConflict.panNumber === panNumber.toUpperCase()) conflictMsg = 'PAN number already exists in another account!';
@@ -472,7 +479,8 @@ const saveOrgStep = async (req, res) => {
       const newTenantKey = await generateTenantKey(stepData.orgName || 'org');
       const isSigningFinal = signinAgreement === true || signinAgreement === 'true';
 
-      org = await EventOrgAccount.create({
+      org = await OrgKyc.create({
+        orgkycId: await generateNextOrgKycId(),
         orgId: newOrgId,
         tenantKey: newTenantKey,
         panLinkedAadhaar,
@@ -494,8 +502,13 @@ const saveOrgStep = async (req, res) => {
       success: true,
       message: 'Progress saved to database successfully!',
       data: {
+        _id: org._id,
+        orgkycId: org.orgkycId,
         orgId: org.orgId,
         tenantKey: org.tenantKey,
+        loginMobileNumber: org.loginMobileNumber,
+        contactMobile: org.contactMobile,
+        contactEmail: org.contactEmail,
         panNumber: org.panNumber,
         signinAgreement: org.signinAgreement
       }
@@ -572,7 +585,7 @@ const verifyEmailOtp = async (req, res) => {
 
     // Clear record on successful match
     delete emailOtpStore[email];
-    await EventOrgAccount.findOneAndUpdate(
+    await OrgKyc.findOneAndUpdate(
       { contactEmail: email },
       { verifiedEmail: true }
     );
@@ -591,7 +604,7 @@ const submitAgreement = async (req, res) => {
     }
 
     //  ADD THIS: Update database record by contactEmail
-    const updatedOrg = await EventOrgAccount.findOneAndUpdate(
+    const updatedOrg = await OrgKyc.findOneAndUpdate(
       { contactEmail: email },
       { 
         signatureImage: signature,
@@ -632,52 +645,17 @@ const submitAgreement = async (req, res) => {
   }
 };
 
-const getProfile = async (req, res) => {
+const getKycDetails = async (req, res) => {
   try {
     const orgAccount = await findOrgByIdentity(req.query);
     if (!orgAccount) {
-      return res.status(404).json({ success: false, message: 'Profile not found.' });
+      return res.status(404).json({ success: false, message: 'KYC record not found.' });
     }
 
     return res.status(200).json({ success: true, data: orgAccount });
   } catch (error) {
-    console.error('Fetch Profile Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error while fetching profile.' });
-  }
-};
-
-const updateProfile = async (req, res) => {
-  try {
-    const { id, approvalStatus, contactEmail, verifiedEmail, ...body } = req.body;
-    if (!id) {
-      return res.status(400).json({ success: false, message: 'Organization ID is required for update.' });
-    }
-
-    const updateData = cleanUpdatePayload(body, ['panNumber', 'gstinNumber', 'panCardDocument']);
-    if (updateData.contactNumber !== undefined) {
-      updateData.contactMobile = updateData.contactNumber;
-      delete updateData.contactNumber;
-    }
-    if (updateData.email !== undefined) delete updateData.email;
-
-    const updatedAccount = await EventOrgAccount.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true }
-    );
-
-    if (!updatedAccount) {
-      return res.status(404).json({ success: false, message: 'Profile not found.' });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: 'Profile updated successfully!',
-      data: updatedAccount
-    });
-  } catch (error) {
-    console.error('Update Profile Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error while updating profile.' });
+    console.error('Fetch KYC Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error while fetching KYC.' });
   }
 };
 
@@ -689,11 +667,29 @@ const updateKycDetails = async (req, res) => {
     }
 
     // Block sensitive identifiers (PAN and GSTIN) from being overwritten via this specific route
-    const allowedData = cleanUpdatePayload(updateData, ['panNumber', 'gstinNumber', 'panCardDocument']);
+    const account = await OrgKyc.findById(id);
+    if (!account) return res.status(404).json({ success: false, message: 'Profile not found.' });
+
+    const allowedData = cleanUpdatePayload(updateData, [
+      'approvalStatus', 'rejectionReason', 'approvalHistory', 'rekyc', 'reKycFields',
+      'reKycHistory', 'signinAgreement', 'signatureImage', 'signingAt', 'signingIp', 'orgkycId'
+    ]);
+    if (account.rekyc) {
+      const groupFields = {
+        organizationName: ['orgName'],
+        panDetails: ['panNumber', 'gstinNumber', 'panLinkedAadhaar'],
+        accountDetails: ['accountHolderName', 'accountNumber', 'accountType', 'bankName', 'bankIfsc'],
+        organizationAddress: ['orgAddress', 'state'],
+        uploadPanDocuments: ['panCardDocument'],
+        contactDetails: ['contactFullName', 'contactEmail', 'contactMobile']
+      };
+      const permitted = new Set((account.reKycFields || []).flatMap((group) => groupFields[group] || []));
+      Object.keys(allowedData).forEach((field) => { if (!permitted.has(field)) delete allowedData[field]; });
+    }
     allowedData.approvalStatus = 'pending';
     allowedData.rejectionReason = '';
 
-    const updatedAccount = await EventOrgAccount.findByIdAndUpdate(
+    const updatedAccount = await OrgKyc.findByIdAndUpdate(
       id,
       {
         $set: allowedData,
@@ -731,12 +727,11 @@ const updatePassword = async (req, res) => {
     const { id, oldPassword, newPassword } = req.body;
     if (!id || !newPassword) return res.status(400).json({ success: false, message: 'Account and new password are required.' });
 
-    const org = await EventOrgAccount.findById(id);
+    const org = await OrgKyc.findById(id);
     if (!org) return res.status(404).json({ success: false, message: 'Account not found.' });
     if (org.passwordHash && !(await verifyStoredPassword(oldPassword, org))) {
       return res.status(400).json({ success: false, message: 'Old password is incorrect.' });
     }
-
     const { salt, hash } = hashPassword(newPassword);
     org.passwordSalt = salt;
     org.passwordHash = hash;
@@ -796,7 +791,7 @@ const resetPasswordWithOtp = async (req, res) => {
 
 const listOrgAccounts = async (req, res) => {
   try {
-    const accounts = await EventOrgAccount.find().sort({ updatedAt: -1 });
+    const accounts = await OrgKyc.find().sort({ updatedAt: -1 });
     return res.status(200).json({ success: true, data: accounts });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error while fetching accounts.' });
@@ -807,7 +802,7 @@ const adminUpdateOrgAccount = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = cleanUpdatePayload(req.body);
-    const updated = await EventOrgAccount.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+    const updated = await OrgKyc.findByIdAndUpdate(id, { $set: updateData }, { new: true });
     if (!updated) return res.status(404).json({ success: false, message: 'Account not found.' });
     return res.status(200).json({ success: true, message: 'Account updated successfully.', data: updated });
   } catch (error) {
@@ -818,11 +813,12 @@ const adminUpdateOrgAccount = async (req, res) => {
 const updateApprovalStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { approvalStatus, reason = '' } = req.body;
+    const { approvalStatus: requestedApprovalStatus, status, reason = '' } = req.body;
+    const approvalStatus = requestedApprovalStatus || status;
     if (!['pending', 'approved', 'rejected'].includes(approvalStatus)) {
       return res.status(400).json({ success: false, message: 'Invalid approval status.' });
     }
-    const updated = await EventOrgAccount.findByIdAndUpdate(
+    const updated = await OrgKyc.findByIdAndUpdate(
       id,
       {
         $set: {
@@ -839,6 +835,28 @@ const updateApprovalStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error while updating approval.' });
   }
 };
+
+const requestReKyc = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fields, reason = '' } = req.body;
+    const validFields = ['organizationName', 'panDetails', 'accountDetails', 'organizationAddress', 'uploadPanDocuments', 'contactDetails'];
+    const selectedFields = [...new Set((Array.isArray(fields) ? fields : []).filter((field) => validFields.includes(field)))];
+    if (!selectedFields.length) return res.status(400).json({ success: false, message: 'Select at least one Re-KYC field.' });
+    const updated = await OrgKyc.findByIdAndUpdate(
+      id,
+      {
+        $set: { rekyc: true, reKycFields: selectedFields, approvalStatus: 'pending', rejectionReason: '' },
+        $push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } }
+      },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: 'Account not found.' });
+    return res.json({ success: true, message: 'Re-KYC requested.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Unable to request Re-KYC.' });
+  }
+};
 module.exports = {
   registerOrgAccount,
   getOrgAccount,
@@ -847,8 +865,7 @@ module.exports = {
   sendEmailOtp,
   verifyEmailOtp,
   submitAgreement,
-  updateProfile,
-  getProfile,
+  getKycDetails,
   updateKycDetails,
   getPasswordStatus,
   updatePassword,
@@ -856,5 +873,7 @@ module.exports = {
   resetPasswordWithOtp,
   listOrgAccounts,
   adminUpdateOrgAccount,
-  updateApprovalStatus
+  updateApprovalStatus,
+  requestReKyc
 };
+
