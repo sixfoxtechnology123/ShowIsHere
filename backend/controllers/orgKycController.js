@@ -47,6 +47,7 @@ const findOrgByIdentity = async ({ id, orgkycId, tenantKey, loginMobileNumber, c
   if (tenantKey) return OrgKyc.findOne({ tenantKey });
   if (loginMobileNumber) {
     const mobile = loginMobileNumber.trim();
+    // Return ONLY the record belonging to this exact mobile number, or null if it doesn't exist
     return OrgKyc.findOne({ loginMobileNumber: mobile });
   }
   if (contactEmail) return OrgKyc.findOne({ contactEmail });
@@ -625,6 +626,7 @@ const getKycDetails = async (req, res) => {
   }
 };
 
+// controllers/orgKycController.js
 const updateKycDetails = async (req, res) => {
   try {
     const { id, ...updateData } = req.body;
@@ -641,23 +643,28 @@ const updateKycDetails = async (req, res) => {
     ]);
     if (account.rekyc) {
       const groupFields = {
-        organizationName: ['orgName'],
-        panDetails: ['panNumber', 'gstinNumber', 'panLinkedAadhaar'],
-        accountDetails: ['accountHolderName', 'accountNumber', 'accountType', 'bankName', 'bankIfsc'],
-        organizationAddress: ['orgAddress', 'state'],
-        uploadPanDocuments: ['panCardDocument'],
-        contactDetails: ['contactFullName', 'contactEmail', 'loginMobileNumber']
+        accountHolderName: ['accountHolderName'],
+        accountNumber: ['accountNumber'],
+        accountType: ['accountType'],
+        bankName: ['bankName'],
+        bankIfsc: ['bankIfsc'],
+        panNumber: ['panNumber'],
+        gstinNumber: ['gstinNumber'],
+        uploadPanDocuments: ['panCardDocument']
       };
-      const permitted = new Set((account.reKycFields || []).flatMap((group) => groupFields[group] || []));
+      const permitted = new Set((account.reKycFields || []).flatMap((field) => groupFields[field] || []));
       Object.keys(allowedData).forEach((field) => { if (!permitted.has(field)) delete allowedData[field]; });
     }
     allowedData.approvalStatus = 'pending';
     allowedData.rejectionReason = '';
+    allowedData.rekyc = false;
+    allowedData.reKycFields = [];
 
     const updatedAccount = await OrgKyc.findByIdAndUpdate(
       id,
       {
-        $set: allowedData,$push: { approvalHistory: { status: 'pending', reason: 'KYC banking details updated by organizer' } }
+        $set: allowedData,
+        $push: { approvalHistory: { status: 'pending', reason: 'KYC banking details updated by organizer' } }
       },
       { new: true }
     );
@@ -783,6 +790,18 @@ const updateApprovalStatus = async (req, res) => {
     if (!['pending', 'approved', 'rejected'].includes(approvalStatus)) {
       return res.status(400).json({ success: false, message: 'Invalid approval status.' });
     }
+
+    if (approvalStatus === 'rejected') {
+      const deletedAccount = await OrgKyc.findByIdAndDelete(id);
+      if (!deletedAccount) {
+        return res.status(404).json({ success: false, message: 'Account not found.' });
+      }
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Account rejected and deleted successfully.', 
+        deletedId: id 
+      });
+    }
     const updated = await OrgKyc.findByIdAndUpdate(
       id,
       {
@@ -805,13 +824,23 @@ const requestReKyc = async (req, res) => {
   try {
     const { id } = req.params;
     const { fields, reason = '' } = req.body;
-    const validFields = ['organizationName', 'panDetails', 'accountDetails', 'organizationAddress', 'uploadPanDocuments', 'contactDetails'];
+    const validFields = [
+      'accountHolderName', 
+      'accountNumber', 
+      'accountType', 
+      'bankName', 
+      'bankIfsc', 
+      'panNumber', 
+      'gstinNumber', 
+      'uploadPanDocuments'
+    ];
     const selectedFields = [...new Set((Array.isArray(fields) ? fields : []).filter((field) => validFields.includes(field)))];
     if (!selectedFields.length) return res.status(400).json({ success: false, message: 'Select at least one Re-KYC field.' });
     const updated = await OrgKyc.findByIdAndUpdate(
       id,
       {
-        $set: { rekyc: true, reKycFields: selectedFields, approvalStatus: 'pending', rejectionReason: '' },$push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } }
+        $set: { rekyc: true, reKycFields: selectedFields, approvalStatus: 'pending', rejectionReason: '' },
+        $push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } }
       },
       { new: true }
     );

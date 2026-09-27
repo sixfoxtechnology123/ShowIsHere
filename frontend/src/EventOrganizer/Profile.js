@@ -121,21 +121,9 @@ const loadProfile = async () => {
 
 
 useEffect(() => {
-    if (routerLocation.state?.updatedOrgData) {
-      const u = routerLocation.state.updatedOrgData;
-      setFormData((prev) => ({
-        ...prev,
-        orgName: u.orgName || prev.orgName,
-        address1: u.orgAddress || prev.address1,
-        state: u.state || prev.state,
-        contactEmail: u.contactEmail || prev.contactEmail,
-        contactMobile: u.contactMobile || prev.contactMobile,
-        verifiedEmail: u.verifiedEmail ?? prev.verifiedEmail
-      }));
-    } else {
-      loadProfile().catch((error) => console.error('Error fetching profile:', error));
-    }
-  }, [routerLocation]);
+  // Always fetch the latest data from the backend database immediately when landing on this page
+  loadProfile().catch((error) => console.error('Error fetching profile:', error));
+}, [routerLocation]);
   
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

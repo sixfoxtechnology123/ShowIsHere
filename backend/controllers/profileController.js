@@ -87,6 +87,8 @@ const findProfile = (query = {}) => {
   return null;
 };
 
+// controllers/profileController.js
+
 const getProfile = async (req, res) => {
   try {
     const mobile = req.query.loginMobileNumber;
@@ -97,25 +99,20 @@ const getProfile = async (req, res) => {
     // 1. Fetch master data from the OrgKyc model
     const kycData = await OrgKyc.findOne({ loginMobileNumber: mobile });
 
-    // 2. Fetch or create record in the Profile model for custom profile fields
-    let profile = await Profile.findOne({ loginMobileNumber: mobile });
-    if (!profile) {
-      profile = await Profile.create({
-        profileId: await generateNextProfileId(),
-        loginMobileNumber: mobile
-      });
-    }
+    // 2. Fetch record in the Profile model IF it already exists (DO NOT create one automatically here)
+    const profile = await Profile.findOne({ loginMobileNumber: mobile });
 
-    // 3. Combine them: Profile database fields + Live OrgKyc master fields
-    const profileData = profile.toObject();
+    // 3. Combine them: Profile database fields (if saved before) + Live OrgKyc master fields
+    const profileData = profile ? profile.toObject() : {};
     
     if (kycData) {
-      profileData.orgName = kycData.orgName || '';
-      profileData.contactEmail = kycData.contactEmail || '';
+      profileData.orgName = kycData.orgName || profileData.orgName || '';
+      profileData.contactEmail = kycData.contactEmail || profileData.contactEmail || '';
       profileData.loginMobileNumber = kycData.loginMobileNumber || mobile;
-      profileData.state = kycData.state || '';
-      profileData.mobileVerified = kycData.mobileVerified || false; // <-- Add this
-      profileData.verifiedEmail = kycData.verifiedEmail || false;     // <-- Add this
+      profileData.state = kycData.state || profileData.state || '';
+      profileData.mobileVerified = kycData.mobileVerified || false;
+      profileData.verifiedEmail = kycData.verifiedEmail || false;
+      profileData.approvalStatus = kycData.approvalStatus || 'pending';
     }
 
     return res.json({ success: true, data: profileData });

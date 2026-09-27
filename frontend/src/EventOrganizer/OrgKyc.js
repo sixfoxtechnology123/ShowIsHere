@@ -138,6 +138,24 @@ const initialMobile = location.state?.prefilledMobile ||
     bankName: ''
   });
 
+  const initialForm = {
+  orgId: '',
+  orgName: '',
+  orgAddress: '',
+  panLinkedAadhaar: '',
+  panNumber: '',
+  gstinNumber: '',
+  gstDeclaration: false,
+  state: '',
+  contactFullName: '',
+  contactEmail: '',
+  contactMobile: '',
+  accountNumber: '',
+  bankIfsc: '',
+  bankName: '',
+  accountHolderName: '',
+  accountType: ''
+};
   useEffect(() => {
   if (location.state?.prefilledMobile) {
     setFormData((prev) => ({
@@ -666,41 +684,44 @@ useEffect(() => {
     const fetchDraftData = async () => {
       try {
         const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
-        const userId = savedUser._id || savedUser.id;
-        const mobile = savedUser.loginMobileNumber || savedUser.contactMobile;
+        const activeMobile = location.state?.prefilledMobile || savedUser.loginMobileNumber || savedUser.contactMobile || localStorage.getItem('loginMobileNumber') || '';
         
-        if (!userId && !mobile) return;
+        if (!activeMobile) return;
 
-        const query = userId ? `id=${userId}` : `loginMobileNumber=${mobile}`;
-        const response = await API.get(`/org/get-kyc?${query}`);
-        const resData = response;
+        const response = await API.get(`/org/get-kyc?loginMobileNumber=${activeMobile}`);
+        const resData = response.data || response;
 
         if (resData.success && resData.data) {
           const u = resData.data;
-          setFormData((prev) => ({
-            ...prev,
-            orgId: u.orgId || '',
-            orgName: u.orgName || '',
-            orgAddress: u.orgAddress || u.address1 || '',
-            panLinkedAadhaar: u.panLinkedAadhaar || '',
-            panNumber: u.panNumber || '',
-            gstinNumber: u.gstinNumber || '',
-            gstDeclaration: Boolean(u.gstDeclaration),
-            state: u.state || '',
-            contactFullName: u.contactFullName || '',
-            contactEmail: u.contactEmail || '',
-            contactMobile: u.loginMobileNumber || u.contactMobile || mobile || '',
-            accountNumber: u.accountNumber || '',
-            bankIfsc: u.bankIfsc || '',
-            bankName: u.bankName || '',
-            accountHolderName: u.accountHolderName || '',
-            accountType: u.accountType || ''
-          }));
-          if (u.verifiedEmail) {
-            setIsEmailVerified(true);
+          
+          if (u.loginMobileNumber === activeMobile || u.contactMobile === activeMobile) {
+            setFormData((prev) => ({
+              ...prev,
+              orgId: u.orgId || '',
+              orgName: u.orgName || '',
+              orgAddress: u.orgAddress || u.address1 || '',
+              panLinkedAadhaar: u.panLinkedAadhaar || '',
+              panNumber: u.panNumber || '',
+              gstinNumber: u.gstinNumber || '',
+              gstDeclaration: Boolean(u.gstDeclaration),
+              state: u.state || '',
+              contactFullName: u.contactFullName || '',
+              contactEmail: u.contactEmail || '',
+              contactMobile: activeMobile,
+              accountNumber: u.accountNumber || '',
+              bankIfsc: u.bankIfsc || '',
+              bankName: u.bankName || '',
+              accountHolderName: u.accountHolderName || '',
+              accountType: u.accountType || ''
+            }));
+            if (u.verifiedEmail) {
+              setIsEmailVerified(true);
+            }
+          } else {
+            setFormData((prev) => ({ ...initialForm, contactMobile: activeMobile }));
           }
-        } else if (mobile) {
-          setFormData((prev) => ({ ...prev, contactMobile: mobile }));
+        } else {
+          setFormData((prev) => ({ ...initialForm, contactMobile: activeMobile }));
         }
       } catch (err) {
         console.error('Error fetching draft:', err);
@@ -708,7 +729,7 @@ useEffect(() => {
     };
 
     fetchDraftData();
-  }, []);
+  }, [location.state]);
 
 const handleSaveDetails = async () => {
     if (activeStep === 1) {
@@ -1531,9 +1552,11 @@ const handleProceed = async () => {
   onClick={() => {
     setIsSuccessModalOpen(false);
     navigate('/profile', { 
-      state: { 
+      state: {
+        refreshProfile: true, 
         updatedOrgData: {
           ...formData,
+          
           verifiedEmail: true,
           panCardDocument: panCardBase64,
           signatureImage: signatureImage

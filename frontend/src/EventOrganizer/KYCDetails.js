@@ -16,6 +16,8 @@ const KYCDetails = () => {
   const [loading, setLoading] = useState(true);
   const [docPreview, setDocPreview] = useState(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [rekycEnabled, setRekycEnabled] = useState(false);
+  const [reKycFields, setRekycFields] = useState([]);
 
   // Form state mapped to database attributes
   const [formData, setFormData] = useState({
@@ -32,7 +34,7 @@ const KYCDetails = () => {
     approvalStatus: '',
   });
 
-useEffect(() => {
+  useEffect(() => {
     const fetchKycData = async () => {
       try {
         let savedUser = {};
@@ -42,13 +44,12 @@ useEffect(() => {
           savedUser = {};
         }
 
-      // REPLACE WITH THIS:
         const orgkycId = savedUser.orgkycId || savedUser.orgId || localStorage.getItem('orgkycId');
         const userId = savedUser._id || savedUser.id;
         const tenantKey = savedUser.tenantKey;
         const mobile = savedUser.loginMobileNumber || 
-                  savedUser.contactMobile || 
-                  localStorage.getItem('loginMobileNumber');
+                     savedUser.contactMobile || 
+                     localStorage.getItem('loginMobileNumber');
         const email = savedUser.contactEmail || savedUser.email;
 
         const params = new URLSearchParams();
@@ -67,6 +68,8 @@ useEffect(() => {
         const userData = response?.data?.data || response?.data || response;
 
         if (userData && (userData._id || userData.orgId || userData.contactEmail)) {
+          setRekycEnabled(userData.rekyc || false);
+          setRekycFields(userData.reKycFields || []);
           setFormData({
             id: userData._id || userData.id || '',
             orgId: userData.orgId || '',
@@ -104,7 +107,7 @@ useEffect(() => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleSaveChanges = async () => {
+  const handleSaveChanges = async () => {
     try {
       const payload = {
         id: formData.id,
@@ -119,15 +122,14 @@ const handleSaveChanges = async () => {
       };
 
       const response = await API.put('/org/update-kyc', payload);
-      
-      // 🛡️ Safe unwrapping: handles both axios response wrappers and direct returns
       const resData = response?.data?.success !== undefined ? response.data : response;
  
       if (resData && resData.success) {
         toast.success('KYC details updated successfully!');
         setIsEditing(false);
+        setRekycEnabled(false);
+        setRekycFields([]);
       } else {
-        // Fallback if success is false or missing
         toast.error(resData?.message || 'Failed to update KYC details.');
       }
     } catch (error) {
@@ -171,37 +173,37 @@ const handleSaveChanges = async () => {
                   <div>
                     <div className="flex items-center space-x-3">
                       <h1 className="text-xl font-bold text-slate-900">KYC Info</h1>
-               {formData.approvalStatus?.toLowerCase() === 'approved' ? (
-                          /* Verified Badge (Outlined Icon) */
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-emerald-600">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                            </svg>
-                            Verified
-                          </span>
-                        ) : (
-                          /* In-progress Badge */
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-amber-700">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9-3.75h.008v.008H12V8.25z" />
-                            </svg>
-                            In-progress
-                          </span>
-                        )}
+                      {formData.approvalStatus?.toLowerCase() === 'approved' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-emerald-600">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                          Verified
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-amber-700">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-9-3.75h.008v.008H12V8.25z" />
+                          </svg>
+                          In-progress
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-1">Trust starts with being verified.</p>
                   </div>
 
-                  {/* <button
-                    type="button"
-                    onClick={() => setIsEditing(true)}
-                    className="px-6 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer"
-                  >
-                    Edit
-                  </button> */}
+                  {rekycEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(true)}
+                      className="px-6 py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition shadow-sm cursor-pointer"
+                    >
+                      Re-KYC
+                    </button>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-6 gap-x-12 text-smpt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-6 gap-x-12 text-sm pt-2">
                   <div>
                     <p className="text-slate-500 font-normal">Account Holder Name</p>
                     <p className="text-slate-700 mt-1">{formData.accountHolderName || 'N/A'}</p>
@@ -221,11 +223,6 @@ const handleSaveChanges = async () => {
                     <p className="text-slate-500 font-normal">Bank Name</p>
                     <p className="text-slate-700 mt-1">{formData.bankName || 'N/A'}</p>
                   </div>
-
-                  {/* <div>
-                    <p className="text-slate-500 font-normal">Branch</p>
-                    <p className="text-slate-700 mt-1">{formData.branch || 'N/A'}</p>
-                  </div> */}
 
                   <div>
                     <p className="text-slate-500 font-normal">IFSC Code</p>
@@ -281,7 +278,12 @@ const handleSaveChanges = async () => {
                       name="accountHolderName"
                       value={formData.accountHolderName}
                       onChange={handleChange}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={rekycEnabled && !reKycFields.includes('accountHolderName')}
+                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                        rekycEnabled && !reKycFields.includes('accountHolderName')
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                      }`}
                     />
                   </div>
 
@@ -292,7 +294,12 @@ const handleSaveChanges = async () => {
                       name="accountNumber"
                       value={formData.accountNumber}
                       onChange={handleChange}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={rekycEnabled && !reKycFields.includes('accountNumber')}
+                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                        rekycEnabled && !reKycFields.includes('accountNumber')
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                      }`}
                     />
                   </div>
 
@@ -302,7 +309,12 @@ const handleSaveChanges = async () => {
                       name="accountType"
                       value={formData.accountType}
                       onChange={handleChange}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={rekycEnabled && !reKycFields.includes('accountType')}
+                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                        rekycEnabled && !reKycFields.includes('accountType')
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                      }`}
                     >
                       <option value="Savings">Savings</option>
                       <option value="Current">Current</option>
@@ -316,20 +328,14 @@ const handleSaveChanges = async () => {
                       name="bankName"
                       value={formData.bankName}
                       onChange={handleChange}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={rekycEnabled && !reKycFields.includes('bankName')}
+                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                        rekycEnabled && !reKycFields.includes('bankName')
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                      }`}
                     />
                   </div>
-
-                  {/* <div>
-                    <label className="block font-semibold text-slate-700 mb-1.5">Branch *</label>
-                    <input 
-                      type="text" 
-                      name="branch"
-                      value={formData.branch}
-                      onChange={handleChange}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div> */}
 
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1.5">IFSC Code *</label>
@@ -338,31 +344,44 @@ const handleSaveChanges = async () => {
                       name="ifscCode"
                       value={formData.ifscCode}
                       onChange={handleChange}
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={rekycEnabled && !reKycFields.includes('bankIfsc')}
+                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                        rekycEnabled && !reKycFields.includes('bankIfsc')
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                      }`}
                     />
                   </div>
 
-                  {/* 🔒 PAN Number (Locked) */}
                   <div>
-                    <label className="block font-semibold text-slate-400 mb-1.5">PAN Number (Locked)</label>
+                    <label className="block font-semibold text-slate-700 mb-1.5">PAN Number</label>
                     <input 
                       type="text" 
                       name="panNumber"
                       value={formData.panNumber}
-                      disabled
-                      className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-500 cursor-not-allowed"
+                      onChange={handleChange}
+                      disabled={rekycEnabled && !reKycFields.includes('panNumber')}
+                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                        rekycEnabled && !reKycFields.includes('panNumber')
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                      }`}
                     />
                   </div>
 
-                  {/* 🔒 GST Number (Locked) */}
                   <div>
-                    <label className="block font-semibold text-slate-400 mb-1.5">GST Number (Locked)</label>
+                    <label className="block font-semibold text-slate-700 mb-1.5">GST Number</label>
                     <input 
                       type="text" 
                       name="gstNumber"
                       value={formData.gstNumber}
-                      disabled
-                      className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-500 cursor-not-allowed"
+                      onChange={handleChange}
+                      disabled={rekycEnabled && !reKycFields.includes('gstinNumber')}
+                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                        rekycEnabled && !reKycFields.includes('gstinNumber')
+                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                      }`}
                     />
                   </div>
                 </div>
