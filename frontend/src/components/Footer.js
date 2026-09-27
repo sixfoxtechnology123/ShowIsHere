@@ -61,8 +61,8 @@ const Footer = () => {
 
       {/* Right Section: Button */}
       <Link 
-        to="/loginPage" 
-        onClick={scrollToTop} 
+        to={localStorage.getItem('orgToken') ? '/create-event' : '/loginPage'} onClick={scrollToTop}
+      
         className="border border-slate-300 tracking-widest text-white text-xs font-medium px-4 py-2 rounded-md transition-all shrink-0 cursor-pointer"
         style={{ textDecoration: 'none' }}
       >

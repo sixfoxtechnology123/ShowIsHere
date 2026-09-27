@@ -157,22 +157,40 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
               <span className="text-xs font-bold text-slate-700">{orgName}</span>
             </div>
 
-            {isLogoutOpen && (
-              <div className="absolute right-0 top-full mt-2 w-36 bg-white border border-slate-200 rounded-lg shadow-xl py-1 z-[9999]">
-                <button 
-                  onClick={() => {
-                    setIsLogoutOpen(false);
-                    handleLogout();
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer bg-transparent border-none text-left"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Logout
-                </button>
-              </div>
-            )}
+           {isLogoutOpen && (
+            <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-slate-200 rounded-lg shadow-xl py-1.5 z-[9999]">
+              {/* Profile Option */}
+              <button 
+                onClick={() => {
+                  setIsLogoutOpen(false);
+                  navigate('/profile'); // Change '/profile' to your actual profile route path if different
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition cursor-pointer bg-transparent border-none text-left"
+              >
+                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Profile
+              </button>
+
+              {/* Divider line */}
+              <div className="border-t border-slate-100 my-1"></div>
+
+              {/* Logout Option */}
+              <button 
+                onClick={() => {
+                  setIsLogoutOpen(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer bg-transparent border-none text-left"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            </div>
+          )}
           </div>
         ) : (
           <button onClick={onSignInClick} className={signInButton}>

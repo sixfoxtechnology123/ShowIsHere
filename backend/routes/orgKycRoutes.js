@@ -29,6 +29,7 @@ router.post('/send-email-otp', sendEmailOtp);
 router.post('/verify-email-otp', verifyEmailOtp);
 router.post('/submit-agreement', submitAgreement);
 router.get('/get-kyc', getKycDetails);
+router.get('/profile', getKycDetails);
 router.put('/update-kyc', updateKycDetails);
 router.get('/password-status', getPasswordStatus);
 router.put('/password', updatePassword);

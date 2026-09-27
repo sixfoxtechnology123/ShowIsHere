@@ -18,7 +18,7 @@ const SubNavbar = () => {
   ];
 
   const rightLinks = [
-    { name: 'Create Events', path: '/loginPage' },
+    { name: 'Create Events', path: localStorage.getItem('orgToken') ? '/create-event' : '/loginPage' },
     // { name: 'Seat Map', path: '/seatmap' },
     // { name: 'Category Master', path: '/category-master' },
     // { name: 'Event Category Master', path: '/event-category-master' },

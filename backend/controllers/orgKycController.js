@@ -847,7 +847,13 @@ const updateApprovalStatus = async (req, res) => {
           approvalStatus,
           rejectionReason: approvalStatus === 'rejected' ? reason : ''
         },
-        $push: { approvalHistory: { status: approvalStatus, reason } }
+        $push: { approvalHistory: { status: approvalStatus, reason },
+      reasonNotifications: {
+            reason: reason || `Your account status was updated to ${approvalStatus}`,
+            link: approvalStatus === 'approved' ? '/dashboard' : '/profile',
+            createdAt: new Date()
+          }
+         }
       },
       { new: true }
     );
@@ -878,7 +884,13 @@ const requestReKyc = async (req, res) => {
       id,
       {
         $set: { rekyc: true, reKycFields: selectedFields, approvalStatus: 'pending', rejectionReason: '' },
-        $push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } }
+        $push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } ,
+         reasonNotifications: {
+            reason: reason || 'Admin requested Re-KYC update for your account.',
+            link: '/profile/kyc',
+            createdAt: new Date()
+          }
+        }
       },
       { new: true }
     );

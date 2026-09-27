@@ -5,10 +5,10 @@ export const logoContainer = "flex items-center space-x-3 cursor-pointer";
 export const logoImage = "h-9 w-auto object-contain rounded-md";
 export const brandTitle = "text-xl font-bold tracking-tight text-slate-900";
 export const navRightContainer = "flex items-center space-x-4";
-export const locationButton = "flex items-center space-x-1 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition border-2 border-slate-200";
+export const locationButton = "flex items-center space-x-1 text-sm font-medium text-slate-700 b px-3 py-1.5 rounded-lg transition ";
 
-export const navSearchWrapper = "flex-1 max-w-xl mx-8 hidden md:flex items-center bg-slate-100 border-2 border-slate-200 rounded-full px-4 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-rose-500 transition shadow-inner";
-export const navSearchInput = "w-full text-sm font-medium bg-transparent focus:outline-none text-slate-800 placeholder-slate-400";
+export const navSearchWrapper = "flex-1 max-w-xl mx-8 hidden md:flex items-center  border border-slate-200 rounded-lg px-4 py-1.5 focus-within:bg-white focus-within:ring-1 focus-within:ring-slate-300 ";
+export const navSearchInput = "w-full text-sm font-normal bg-transparent focus:outline-none text-slate-800 placeholder-slate-400";
 export const signInButton = "bg-[#ed384e] hover:bg-[#d62d42] text-white text-sm font-semibold px-4 py-1.5 rounded-md transition shadow-xs cursor-pointer";
 export const menuIconButton = "text-slate-700 hover:text-slate-900 focus:outline-none ml-1 cursor-pointer";
 

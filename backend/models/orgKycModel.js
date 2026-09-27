@@ -10,6 +10,14 @@ const reKycHistorySchema = new mongoose.Schema({
   requestedBy: { type: String, default: 'admin' }
 }, { _id: false });
 
+
+const reasonNotificationSchema = new mongoose.Schema({
+  reason: { type: String, required: true, trim: true },
+  link: { type: String, default: '' }, // Navigation link
+  createdAt: { type: Date, default: Date.now } // Automatic date and time
+}, { _id: false });
+
+
 const orgKycSchema = new mongoose.Schema({
   orgkycId: { type: String, required: true, unique: true },
   // orgId: { type: String, required: true, unique: true },
@@ -55,7 +63,8 @@ const orgKycSchema = new mongoose.Schema({
     type: String,
     enum: ['organizationName', 'panDetails', 'accountDetails', 'organizationAddress', 'uploadPanDocuments', 'contactDetails']
   }],
-  reKycHistory: { type: [reKycHistorySchema], default: [] }
+  reKycHistory: { type: [reKycHistorySchema], default: [] },
+  reasonNotifications: { type: [reasonNotificationSchema], default: [] }
 }, { timestamps: true });
 
 module.exports = mongoose.model('OrgKyc', orgKycSchema);
