@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
+import defaultAvatar from '../assets/avatar.jpg';
 import {
   navbar,
   navRightContainer,
@@ -17,28 +19,69 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userOrg, setUserOrg] = useState(null);
+  const [orgName, setOrgName] = useState('My Account');
+  const [profilePhoto, setProfilePhoto] = useState(defaultAvatar);
   const menuRef = useRef(null);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const logoutRef = useRef(null);
 
-  // Function to load organization data from localStorage
-  const loadOrgData = () => {
-    const storedData = localStorage.getItem('orgUserData');
-    if (storedData) {
-      try {
-        setUserOrg(JSON.parse(storedData));
-      } catch (e) {
+  // Close logout dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (logoutRef.current && !logoutRef.current.contains(e.target)) {
+        setIsLogoutOpen(false);
+      }
+    };
+    if (isLogoutOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isLogoutOpen]);
+
+  // Function to load organization data and profile photo from database & localStorage
+  const loadOrgData = async () => {
+    try {
+      const storedData = localStorage.getItem('orgUserData');
+      let mobile = localStorage.getItem('loginMobileNumber');
+      
+      if (storedData) {
+        try {
+          const parsed = JSON.parse(storedData);
+          setUserOrg(parsed);
+          if (parsed.orgName) setOrgName(parsed.orgName);
+          if (!mobile && parsed.loginMobileNumber) mobile = parsed.loginMobileNumber;
+        } catch (e) {
+          setUserOrg(null);
+        }
+      } else {
         setUserOrg(null);
       }
-    } else {
-      setUserOrg(null);
+
+      // Fetch live data from Profile model database using mobile number
+      if (mobile) {
+        const resData = await API.get(`/profile?loginMobileNumber=${mobile}`);
+        if (resData && resData.success && resData.data) {
+          const u = resData.data;
+          if (u.orgName) setOrgName(u.orgName);
+          if (u.profilePhoto) setProfilePhoto(u.profilePhoto);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading navbar profile data:', err);
     }
   };
 
   useEffect(() => {
     loadOrgData();
 
-    // Listen for storage changes (e.g. when logging in from another tab or page)
+    // Listen for storage changes and live profile updates
     window.addEventListener('storage', loadOrgData);
-    return () => window.removeEventListener('storage', loadOrgData);
+    window.addEventListener('profileUpdated', loadOrgData);
+    
+    return () => {
+      window.removeEventListener('storage', loadOrgData);
+      window.removeEventListener('profileUpdated', loadOrgData);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -75,9 +118,6 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
     }
   };
 
-  // Extract the name from orgUserData (checking common orgkyc field names)
-  const orgName = userOrg?.businessName || userOrg?.ownerName || userOrg?.name || 'My Account';
-
   return (
     <nav className={navbar}>
        <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline" onClick={handleLogoClick}>
@@ -98,25 +138,41 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
         />
       </div>
 
-      {/* Right: Location, Sign In / Org Name, Menu */}
+      {/* Right: Location, Org Profile / Sign In, Menu */}
       <div className={navRightContainer}>
         <button onClick={onOpenLocationModal} className={locationButton}>
           <span>{location || 'Select City'}</span>
           <span className="text-[10px] font-bold ml-1">▼</span>
         </button>
 
-        {/* CONDITIONAL RENDER: Shows real org name & logout button if logged in */}
+        {/* CONDITIONAL RENDER: Shows profile photo & org name if logged in */}
+       {/* CONDITIONAL RENDER: Click image or name to show only the logout option */}
         {userOrg ? (
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-              {orgName}
-            </span>
-            <button 
-              onClick={handleLogout}
-              className="text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition cursor-pointer"
+          <div className="relative" ref={logoutRef}>
+            <div 
+              onClick={() => setIsLogoutOpen(!isLogoutOpen)}
+              className="flex items-center gap-2 px-3 py-1 rounded-full shadow-xs cursor-pointer select-none  transition"
             >
-              Logout
-            </button>
+              <img src={profilePhoto} alt="Org Avatar" className="w-6 h-6 rounded-full object-cover border border-slate-200" />
+              <span className="text-xs font-bold text-slate-700">{orgName}</span>
+            </div>
+
+            {isLogoutOpen && (
+              <div className="absolute right-0 top-full mt-2 w-36 bg-white border border-slate-200 rounded-lg shadow-xl py-1 z-[9999]">
+                <button 
+                  onClick={() => {
+                    setIsLogoutOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer bg-transparent border-none text-left"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <button onClick={onSignInClick} className={signInButton}>
