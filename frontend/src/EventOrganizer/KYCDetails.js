@@ -18,6 +18,8 @@ const KYCDetails = () => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [rekycEnabled, setRekycEnabled] = useState(false);
   const [reKycFields, setRekycFields] = useState([]);
+  const [panCardBase64, setPanCardBase64] = useState(null);
+const [uploadedDocName, setUploadedDocName] = useState('');
 
   // Form state mapped to database attributes
   const [formData, setFormData] = useState({
@@ -103,11 +105,38 @@ const KYCDetails = () => {
     fetchKycData();
   }, []);
 
+
+  const processUploadedFile = (file) => {
+  if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+    toast.error('Only JPG, JPEG, and PNG image formats are allowed.');
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error('File size should not exceed 2 MB.');
+    return;
+  }
+  
+  setUploadedDocName(file.name);
+  
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    const base64Result = reader.result;
+    setDocPreview(base64Result);
+    setPanCardBase64({
+      fileName: file.name,
+      fileType: file.type,
+      base64Data: base64Result
+    });
+    toast.success('PAN document uploaded successfully!');
+  };
+  reader.readAsDataURL(file);
+};
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSaveChanges = async () => {
+const handleSaveChanges = async () => {
     try {
       const payload = {
         id: formData.id,
@@ -118,7 +147,9 @@ const KYCDetails = () => {
         bankName: formData.bankName,
         branch: formData.branch,
         bankIfsc: formData.ifscCode,
-        gstinNumber: formData.gstNumber
+        panNumber: formData.panNumber,
+        gstinNumber: formData.gstNumber,
+        panCardDocument: panCardBase64 
       };
 
       const response = await API.put('/org/update-kyc', payload);
@@ -129,6 +160,7 @@ const KYCDetails = () => {
         setIsEditing(false);
         setRekycEnabled(false);
         setRekycFields([]);
+        setPanCardBase64(null);
       } else {
         toast.error(resData?.message || 'Failed to update KYC details.');
       }
@@ -353,21 +385,27 @@ const KYCDetails = () => {
                     />
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1.5">PAN Number</label>
-                    <input 
-                      type="text" 
-                      name="panNumber"
-                      value={formData.panNumber}
-                      onChange={handleChange}
-                      disabled={rekycEnabled && !reKycFields.includes('panNumber')}
-                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
-                        rekycEnabled && !reKycFields.includes('panNumber')
-                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                          : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
-                      }`}
-                    />
-                  </div>
+                 <div>
+                        <label className="block font-semibold text-slate-700 mb-1.5">PAN Number</label>
+                        <input 
+                          type="text" 
+                          name="panNumber"
+                          maxLength={10}
+                          placeholder="e.g. ABCDE1234F"
+                          value={formData.panNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setFormData({ ...formData, panNumber: val });
+                          }}
+                          disabled={rekycEnabled && !reKycFields.includes('panNumber')}
+                          className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none uppercase tracking-wider ${
+                            rekycEnabled && !reKycFields.includes('panNumber')
+                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-slate-800 border-slate-200 focus:ring-1 focus:ring-blue-500'
+                          }`}
+                        />
+                        {/* <p className="text-[10px] text-slate-400 mt-1">Must be exactly 10 characters (e.g. ABCDE1234F).</p> */}
+                      </div>
 
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1.5">GST Number</label>
@@ -385,26 +423,68 @@ const KYCDetails = () => {
                     />
                   </div>
                 </div>
-
-                {/* Compact PAN Document Thumbnail (Bottom Left) */}
-                <div className="pt-4">
-                  {docPreview ? (
-                    <div 
-                      onClick={() => setIsImageModalOpen(true)}
-                      className="w-24 border border-slate-200 rounded-lg p-1.5 bg-white shadow-xs cursor-pointer hover:border-blue-400 transition text-center"
-                    >
-                      <img src={docPreview} alt="PAN Card" className="h-12 w-full object-cover rounded mb-1" />
-                      <span className="text-[10px] text-slate-700 font-medium">PAN Document</span>
-                    </div>
-                  ) : (
-                    <div className="w-20 border border-slate-200 rounded-lg p-1.5 bg-white shadow-xs text-center">
-                      <div className="h-12 bg-slate-100 rounded flex items-center justify-center text-[10px] text-slate-400 font-bold mb-1">
-                        No Doc
+                  {/* Expanded PAN Document Thumbnail / Interactive Upload */}
+                  <div className="pt-4">
+                    {isEditing && (rekycEnabled || formData.approvalStatus !== 'approved') ? (
+                      /* Expanded Interactive Upload Box during Edit / Re-KYC Mode */
+                      <div 
+                        className="border-2 border-dashed rounded-xl p-4  transition text-center cursor-pointer w-full max-w-64"
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const file = e.dataTransfer.files[0];
+                          if (file) processUploadedFile(file);
+                        }}
+                      >
+                        <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center space-y-2">
+                          {docPreview ? (
+                            <div className="w-full space-y-2">
+                              <img src={docPreview} alt="PAN Card Preview" className="h-32 w-full object-contain rounded-lg bg-white p-1  shadow-xs" />
+                              <span className="text-xs text-blue-600 font-semibold block">Click or drop to replace document</span>
+                            </div>
+                          ) : (
+                            <div className="py-6 space-y-1">
+                              <svg className="w-8 h-8 text-blue-600 mx-auto" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="text-xs font-bold text-slate-700 block">Drag & drop or click to upload PAN doc</span>
+                              <span className="text-[10px] text-slate-400 block">JPG, PNG only | Max size 2 MB</span>
+                            </div>
+                          )}
+                          <input 
+                            type="file" 
+                            accept=".jpg,.jpeg,.png" 
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) processUploadedFile(file);
+                            }} 
+                            className="hidden" 
+                          />
+                        </label>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-medium">Not Uploaded</span>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      /* Standard Click-to-Preview Box when NOT editing */
+                      <div>
+                        {docPreview ? (
+                          <div 
+                            onClick={() => setIsImageModalOpen(true)}
+                            className="w-32 border border-slate-200 rounded-lg p-2 bg-white shadow-xs cursor-pointer hover:border-blue-400 transition text-center"
+                          >
+                            <img src={docPreview} alt="PAN Card" className="h-20 w-full object-cover rounded mb-1.5" />
+                            <span className="text-[11px] text-slate-700 font-medium">PAN Document</span>
+                          </div>
+                        ) : (
+                          <div className="w-24 border border-slate-200 rounded-lg p-2 bg-white shadow-xs text-center">
+                            <div className="h-16 bg-slate-100 rounded flex items-center justify-center text-[10px] text-slate-400 font-bold mb-1.5">
+                              No Doc
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-medium">Not Uploaded</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                 {/* Save / Cancel Action Buttons */}
                 <div className="pt-6 flex items-center justify-end space-x-3 border-t border-slate-100">

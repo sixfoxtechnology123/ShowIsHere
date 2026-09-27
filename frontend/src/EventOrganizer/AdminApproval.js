@@ -70,25 +70,33 @@ const AdminApproval = () => {
   };
 
 const updateAccountStatus = async (account, status) => {
-    const label = status === 'approved' ? 'approve' : 'reject';
-    
-    // Simple confirmation prompt with a warning for rejection
-    const confirmMessage = status === 'rejected'
-      ? `Are you sure you want to reject this KYC?`
-      : `Are you sure you want to ${label} this account?`;
+  const label = status === 'approved' ? 'approve' : 'reject';
+  
+  const confirmMessage = status === 'rejected'
+    ? `Are you sure you want to reject this KYC?`
+    : `Are you sure you want to ${label} this account?`;
 
-    if (!window.confirm(confirmMessage)) return;
+  if (!window.confirm(confirmMessage)) return;
 
-    const reason = '';
+  const reason = '';
 
-    try {
-      const response = await API.put(`/org/admin/accounts/${account._id}/approval`, { status, reason });
-      setAccounts((prev) => prev.filter((item) => item._id !== account._id)); // Removes it from the table immediately
-      toast.success(`Account ${status}.`);
-    } catch (error) {
-      toast.error(error.message || 'Failed to update account.');
+  try {
+    const response = await API.put(`/org/admin/accounts/${account._id}/approval`, { status, reason });
+    const updatedAccount = response.data?.data || response.data || response;
+
+    if (status === 'rejected') {
+      // If rejected, remove it from the table (or keep it if you want rejected ones to show too)
+      setAccounts((prev) => prev.filter((item) => item._id !== account._id));
+    } else {
+      // If approved, update its status in the list instead of removing it!
+      setAccounts((prev) => prev.map((item) => (item._id === account._id ? { ...item, approvalStatus: 'approved', rekyc: false } : item)));
     }
-  };
+
+    toast.success(`Account ${status}.`);
+  } catch (error) {
+    toast.error(error.message || 'Failed to update account.');
+  }
+};
 
   const toggleReKycField = (field) => {
     setReKycFields((fields) => fields.includes(field) ? fields.filter((item) => item !== field) : [...fields, field]);
@@ -220,7 +228,7 @@ const updateAccountStatus = async (account, status) => {
                 </table>
               </div>
             ) : (
-              <div className="bg-white border border-slate-200 overflow-auto">
+              <div className="bg-white border border-slate-300 overflow-auto">
                 <table className="min-w-full text-xs">
                   <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider">
                     <tr>
@@ -231,7 +239,7 @@ const updateAccountStatus = async (account, status) => {
                       <th className="text-center px-4 py-3">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+               <tbody className="divide-y divide-slate-300">
                     {accounts.map((account) => {
                       const normalizedStatus = (account.approvalStatus || account.status || '').toLowerCase();
                       const isApproved = normalizedStatus === 'approved';
@@ -250,60 +258,70 @@ const updateAccountStatus = async (account, status) => {
                             <div>{account.loginMobileNumber || account.contactMobile}</div>
                           </td>
                           <td className="px-4 py-2 text-slate-700 space-y-1">
-                        <div>PAN: {account.panNumber || '-'}</div>
-                        {panImageUrl && (
-                          <div>
-                            <button 
-                              type="button" 
-                              onClick={() => setSelectedPanImage(panImageUrl)} 
-                              className="text-blue-600 underline font-semibold hover:text-blue-800 cursor-pointer"
-                            >
-                              View PAN Card Image
-                            </button>
-                          </div>
-                        )}
-                        
-                        <div>GST: {account.gstinNumber || '-'}</div>
-                        <div>Holder: {account.accountHolderName || '-'}</div>
-                        <div>A/C: {account.accountNumber || '-'} ({account.accountType || '-'})</div>
-                        {account.signinAgreement && (
-                          <div>
-                            <button 
-                              type="button" 
-                              onClick={() => setViewingAgreementId(account._id)} 
-                              className="text-blue-600 underline font-semibold hover:text-blue-800 cursor-pointer"
-                            >
-                              View signed agreement
-                            </button>
-                          </div>
-                        )}
-                      </td>
+                            <div>PAN: {account.panNumber || '-'}</div>
+                            {panImageUrl && (
+                              <div>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setSelectedPanImage(panImageUrl)} 
+                                  className="text-blue-600 underline font-semibold hover:text-blue-800 cursor-pointer"
+                                >
+                                  View PAN Card Image
+                                </button>
+                              </div>
+                            )}
+                            <div>GST: {account.gstinNumber || '-'}</div>
+                            <div>Holder: {account.accountHolderName || '-'}</div>
+                            <div>A/C: {account.accountNumber || '-'} ({account.accountType || '-'})</div>
+                            {account.signinAgreement && (
+                              <div>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setViewingAgreementId(account._id)} 
+                                  className="text-blue-600 underline font-semibold hover:text-blue-800 cursor-pointer"
+                                >
+                                  View signed agreement
+                                </button>
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-4">
                             {renderStatus(account.approvalStatus || account.status)}
+                            {account.rekyc && <div className="text-amber-600 mt-1 font-semibold">Re-KYC Requested</div>}
                             {account.rejectionReason && <div className="text-red-600 mt-2">Reason: {account.rejectionReason}</div>}
                           </td>
                           <td className="px-4 py-4 text-center">
                             <div className="inline-flex gap-2">
-                           
-                          <button 
-                            type="button" 
-                            onClick={() => { setReKycAccount(account); setReKycFields(account.reKycFields || []); setReKycReason(''); }} 
-                            className="px-3 py-1.5 rounded text-[11px] font-bold bg-amber-500 text-white hover:bg-amber-600"
-                          >
-                            Re-KYC
-                          </button>
+                              
+                              {/* Re-KYC Button */}
                               <button 
                                 type="button" 
-                                disabled={isApproved} 
+                                disabled={account.rekyc === true}
+                                onClick={() => { setReKycAccount(account); setReKycFields(account.reKycFields || []); setReKycReason(''); }} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  account.rekyc === true
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none'
+                                    : 'bg-amber-500 text-white hover:bg-amber-600 cursor-pointer'
+                                }`}
+                              >
+                                Re-KYC
+                              </button>
+
+                              {/* Approve Button (Disabled if already approved OR currently in Re-KYC mode) */}
+                              <button 
+                                type="button" 
+                                disabled={isApproved || account.rekyc === true} 
                                 onClick={() => updateAccountStatus(account, 'approved')} 
                                 className={`px-3 py-1.5 rounded text-[11px] font-bold ${
-                                  isApproved 
+                                  (isApproved || account.rekyc === true)
                                     ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
-                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
                                 }`}
                               >
                                 Approve
                               </button>
+
+                              {/* Reject Button */}
                               <button 
                                 type="button" 
                                 disabled={isRejected} 
@@ -311,18 +329,22 @@ const updateAccountStatus = async (account, status) => {
                                 className={`px-3 py-1.5 rounded text-[11px] font-bold ${
                                   isRejected 
                                     ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
-                                    : 'bg-red-600 text-white hover:bg-red-700'
+                                    : 'bg-red-600 text-white hover:bg-red-700 cursor-pointer'
                                 }`}
                               >
                                 Reject
                               </button>
-                             
+
                             </div>
                           </td>
                         </tr>
                       );
                     })}
-                    {accounts.length === 0 && <tr><td colSpan="5" className="px-4 py-8 text-center text-slate-500 font-semibold">No accounts found.</td></tr>}
+                    {accounts.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="px-4 py-8 text-center text-slate-500 font-semibold">No accounts found.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

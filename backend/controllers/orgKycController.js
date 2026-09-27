@@ -626,7 +626,6 @@ const getKycDetails = async (req, res) => {
   }
 };
 
-// controllers/orgKycController.js
 const updateKycDetails = async (req, res) => {
   try {
     const { id, ...updateData } = req.body;
@@ -637,24 +636,35 @@ const updateKycDetails = async (req, res) => {
     const account = await OrgKyc.findById(id);
     if (!account) return res.status(404).json({ success: false, message: 'Profile not found.' });
 
+    // Normalize frontend keys to match backend database schema fields
+    if (updateData.gstNumber && !updateData.gstinNumber) {
+      updateData.gstinNumber = updateData.gstNumber;
+    }
+
     const allowedData = cleanUpdatePayload(updateData, [
       'approvalStatus', 'rejectionReason', 'approvalHistory', 'rekyc', 'reKycFields',
       'reKycHistory', 'signinAgreement', 'signatureImage', 'signingAt', 'signingIp', 'orgkycId'
     ]);
+
     if (account.rekyc) {
       const groupFields = {
         accountHolderName: ['accountHolderName'],
         accountNumber: ['accountNumber'],
         accountType: ['accountType'],
         bankName: ['bankName'],
-        bankIfsc: ['bankIfsc'],
+        bankIfsc: ['bankIfsc', 'ifscCode'],
         panNumber: ['panNumber'],
-        gstinNumber: ['gstinNumber'],
-        uploadPanDocuments: ['panCardDocument']
+        gstinNumber: ['gstinNumber', 'gstNumber'],
+        uploadPanDocuments: ['panCardDocument'],
+        panCardDocument: ['panCardDocument']
       };
-      const permitted = new Set((account.reKycFields || []).flatMap((field) => groupFields[field] || []));
-      Object.keys(allowedData).forEach((field) => { if (!permitted.has(field)) delete allowedData[field]; });
+      
+      const permitted = new Set((account.reKycFields || []).flatMap((field) => groupFields[field] || [field]));
+      Object.keys(allowedData).forEach((field) => { 
+        if (!permitted.has(field)) delete allowedData[field]; 
+      });
     }
+
     allowedData.approvalStatus = 'pending';
     allowedData.rejectionReason = '';
     allowedData.rekyc = false;
@@ -664,7 +674,7 @@ const updateKycDetails = async (req, res) => {
       id,
       {
         $set: allowedData,
-        $push: { approvalHistory: { status: 'pending', reason: 'KYC banking details updated by organizer' } }
+        $push: { approvalHistory: { status: 'pending', reason: 'KYC details updated by organizer' } }
       },
       { new: true }
     );
