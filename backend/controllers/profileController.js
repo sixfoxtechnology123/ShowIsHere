@@ -114,6 +114,8 @@ const getProfile = async (req, res) => {
       profileData.contactEmail = kycData.contactEmail || '';
       profileData.loginMobileNumber = kycData.loginMobileNumber || mobile;
       profileData.state = kycData.state || '';
+      profileData.mobileVerified = kycData.mobileVerified || false; // <-- Add this
+      profileData.verifiedEmail = kycData.verifiedEmail || false;     // <-- Add this
     }
 
     return res.json({ success: true, data: profileData });
