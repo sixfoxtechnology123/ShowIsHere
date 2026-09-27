@@ -127,22 +127,55 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { id, profileId, loginMobileNumber, ...profileData } = req.body;
-    
-    // 3. Prevent overwriting master KYC fields via profile updates
+    const { id, profileId, loginMobileNumber, contactEmail, contactMobile, ...profileData } = req.body;
     delete profileData.orgName;
     delete profileData.state;
-    delete profileData.contactEmail;
+
+    if (contactMobile && contactMobile !== loginMobileNumber && !profileData.mobileVerified) {
+      return res.status(400).json({ success: false, message: 'New mobile number must be verified before saving.' });
+    }
+    if (contactEmail && !profileData.verifiedEmail) {
+      return res.status(400).json({ success: false, message: 'New email address must be verified before saving.' });
+    }
 
     let profile = await findProfile({ id, profileId, loginMobileNumber });
     if (!profile) {
       if (!loginMobileNumber) return res.status(400).json({ success: false, message: 'Mobile number is required.' });
-      profile = new Profile({ profileId: await generateNextProfileId(), loginMobileNumber, ...profileData });
+      profile = new Profile({ 
+        profileId: await generateNextProfileId(), 
+        loginMobileNumber: contactMobile || loginMobileNumber, 
+        contactEmail, 
+        contactMobile: contactMobile || loginMobileNumber,
+        ...profileData 
+      });
     } else {
+      if (contactMobile !== undefined) profile.loginMobileNumber = contactMobile;
+      if (contactEmail !== undefined) profile.contactEmail = contactEmail;
+      if (contactMobile !== undefined) profile.contactMobile = contactMobile;
       Object.assign(profile, profileData);
     }
     await profile.save();
-    return res.json({ success: true, message: 'Profile updated successfully.', data: profile });
+
+    if (contactEmail || contactMobile) {
+      await OrgKyc.findOneAndUpdate(
+        { loginMobileNumber: loginMobileNumber },
+        { 
+          ...(contactEmail && { contactEmail }),
+          ...(contactMobile && { loginMobileNumber: contactMobile })
+        }
+      );
+    }
+
+    const mobileChanged = contactMobile && contactMobile !== loginMobileNumber;
+
+    return res.json({ 
+      success: true, 
+      message: mobileChanged 
+        ? 'Profile updated successfully. Your login mobile number has changed, you will be logged out.' 
+        : 'Profile updated successfully.', 
+      data: profile,
+      mobileChanged 
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Unable to update profile.' });
   }

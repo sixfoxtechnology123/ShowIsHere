@@ -164,12 +164,20 @@ useEffect(() => {
         linkedin: formData.linkedin,
         profilePhoto: formData.profilePhoto
       };
-      const resData = await API.put('/profile', payload);
-      if (resData.success) {
-        toast.success('Profile updated successfully!', { id: 'profile-toast' });
-        setIsEditing(false);
-        loadProfile();
-      }
+    const resData = await API.put('/profile', payload);
+if (resData.success) {
+  if (resData.mobileChanged) {
+    toast.success('Mobile number changed! Logging out...', { id: 'profile-toast' });
+    localStorage.clear();
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 1500);
+    return;
+  }
+  toast.success('Profile updated successfully!', { id: 'profile-toast' });
+  setIsEditing(false);
+  loadProfile();
+}
     } catch (error) {
       toast.error(error.message || 'Server error while saving profile.', { id: 'profile-toast' });
     }
