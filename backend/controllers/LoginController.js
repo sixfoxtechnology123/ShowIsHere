@@ -140,11 +140,24 @@ const resetPassword = async (req, res) => {
     console.error('❌ Reset Password Error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
-};
+}; 
 
+const verifyMobileOtp = async (req, res) => {
+  try {
+    const { mobileNumber, otp } = req.body;
+    await OrgKyc.findOneAndUpdate(
+      { loginMobileNumber: mobileNumber },
+      { mobileVerified: true }
+    );
+    return res.status(200).json({ success: true, message: 'Mobile verified successfully!' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server Error while verifying OTP' });
+  }
+};
 module.exports = {
   loginWithMobile,
   loginWithPassword,
   resetPassword,
+  verifyMobileOtp
 };
 

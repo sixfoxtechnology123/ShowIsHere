@@ -57,7 +57,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     toast.success('Resent OTP', { id: 'signin-toast' });
   };
 
-  const verifyAndLogin = async (enteredOtp) => {
+const verifyAndLogin = async (enteredOtp) => {
     if (enteredOtp !== '1234') {
       toast.error('Invalid OTP', { id: 'signin-toast' });
       return;
@@ -70,6 +70,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     setLoading(true);
     try {
+      // Only call your login check endpoint
       const response = await API.post('/login-page/login-mobile', { 
         loginMobileNumber: mobileNumber 
       });
@@ -84,15 +85,14 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
           }
           if (response.data) {
             localStorage.setItem('orgUserData', JSON.stringify(response.data));
-          
             localStorage.setItem('orgId', response.data.orgId || response.data._id);
             localStorage.setItem('loginMobileNumber', mobileNumber);
           }
           navigate('/dashboard'); 
         } else {
-          toast.success('New user! Please complete your registration.', { id: 'signin-toast' });
+          toast.success('Mobile verified! Please complete your registration.', { id: 'signin-toast' });
           localStorage.setItem('loginMobileNumber', mobileNumber);
-          navigate('/org-kyc', { state: { prefilledMobile: mobileNumber } });
+         navigate('/org-kyc', { state: { prefilledMobile: mobileNumber, mobileVerified: true } });
         }
       } else {
         toast.error(response.message || 'Login failed.', { id: 'signin-toast' });

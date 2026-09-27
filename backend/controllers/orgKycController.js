@@ -5,9 +5,8 @@ const bcrypt = require('bcryptjs');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-
 const nodemailer = require('nodemailer');
-const { getOtpEmailTemplate,getKycUnderProcessEmailTemplate } = require('../utils/EmailTemplates');
+const { getOtpEmailTemplate, getKycUnderProcessEmailTemplate } = require('../utils/EmailTemplates');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -42,26 +41,25 @@ const verifyStoredPassword = async (password, org) => {
   return org.passwordHash === password;
 };
 
-const findOrgByIdentity = async ({ id, orgId, tenantKey, loginMobileNumber, contactEmail }) => {
+const findOrgByIdentity = async ({ id, orgkycId, tenantKey, loginMobileNumber, contactEmail }) => {
   if (id) return OrgKyc.findById(id);
-  if (orgId) return OrgKyc.findOne({ orgId });
+  if (orgkycId) return OrgKyc.findOne({ orgkycId });
   if (tenantKey) return OrgKyc.findOne({ tenantKey });
   if (loginMobileNumber) {
     const mobile = loginMobileNumber.trim();
-    return OrgKyc.findOne({ $or: [{ loginMobileNumber: mobile }, { contactMobile: mobile }] });
+    return OrgKyc.findOne({ loginMobileNumber: mobile });
   }
   if (contactEmail) return OrgKyc.findOne({ contactEmail });
   return null;
 };
 
 const cleanUpdatePayload = (payload, blockedFields = []) => {
-  const blocked = new Set(['_id', 'id', 'orgId', 'tenantKey', 'createdAt', 'updatedAt', 'passwordHash', 'passwordSalt', ...blockedFields]);
+  const blocked = new Set(['_id', 'id', 'tenantKey', 'createdAt', 'updatedAt', 'passwordHash', 'passwordSalt', ...blockedFields]);
   return Object.keys(payload || {}).reduce((acc, key) => {
     if (!blocked.has(key) && payload[key] !== undefined) acc[key] = payload[key];
     return acc;
   }, {});
 };
-
 
 const getClientIp = (req) => {
   const forwarded = req.headers['x-forwarded-for'];
@@ -76,7 +74,7 @@ const verifyPanDocument = async (req, res) => {
   try {
     totalUploadRequests++;
     console.log(`[Document Upload] Request count: ${totalUploadRequests}`);
-    const { userPan, userName, panCardBase64, orgId, tenantKey } = req.body;
+    const { userPan, userName, panCardBase64, orgkycId, tenantKey } = req.body;
 
     if (!panCardBase64) {
       return res.status(400).json({ success: false, message: 'PAN card image data is missing.' });
@@ -95,7 +93,6 @@ const verifyPanDocument = async (req, res) => {
       },
     };
 
-    // Helper function to retry API calls on 503 / high demand errors
     const generateContentWithRetry = async (retries = 3, delay = 2000) => {
       try {
         return await ai.models.generateContent({
@@ -114,19 +111,17 @@ const verifyPanDocument = async (req, res) => {
         if ((err.status === 503 || err.status === 429) && retries > 0) {
           console.warn(`[AI High Demand] Retrying request in ${delay}ms... (${retries} attempts left)`);
           await new Promise((resolve) => setTimeout(resolve, delay));
-          return generateContentWithRetry(retries - 1, delay * 2); // Double the wait time each retry
+          return generateContentWithRetry(retries - 1, delay * 2);
         }
         throw err;
       }
     };
 
     const response = await generateContentWithRetry();
-
     const textResponse = response.text.trim();
     const cleanedJson = textResponse.replace(/^```json\s*|\s*```$/g, '');
     const extractedData = JSON.parse(cleanedJson);
 
-    // 1. Enforce Document Type Check
     if (extractedData.isPanCard === false) {
       return res.status(400).json({
         success: false,
@@ -135,7 +130,6 @@ const verifyPanDocument = async (req, res) => {
       });
     }
 
-    // 2. Enforce Document Originality Check
     if (extractedData.isOriginal === false) {
       return res.status(400).json({
         success: false,
@@ -144,10 +138,8 @@ const verifyPanDocument = async (req, res) => {
       });
     }
 
-    // 3. Accurate Match Verification Check
     const inputPan = userPan.trim().toUpperCase();
     const scannedPan = extractedData.pan ? extractedData.pan.trim().toUpperCase() : '';
-
     const inputName = userName.trim().toLowerCase();
     const scannedName = extractedData.name ? extractedData.name.trim().toLowerCase() : '';
 
@@ -156,7 +148,7 @@ const verifyPanDocument = async (req, res) => {
     const isMatch = isPanMatch && isNameMatch;
 
     let query = {};
-    if (orgId) query.orgId = orgId;
+    if (orgkycId) query.orgkycId = orgkycId;
     else if (tenantKey) query.tenantKey = tenantKey;
     else query.panNumber = inputPan;
 
@@ -187,7 +179,6 @@ const verifyPanDocument = async (req, res) => {
 
   } catch (error) {
     console.error('PAN Verification Error:', error);
-    
     if (error.status === 429 || error.status === 503 || (error.message && (error.message.includes('Resource exhausted') || error.message.includes('high demand')))) {
       return res.status(503).json({
         success: false,
@@ -204,19 +195,10 @@ const verifyPanDocument = async (req, res) => {
   }
 };
 
-const generateToken = (id, orgId) => {
-  return jwt.sign({ id, orgId }, process.env.JWT_SECRET || 'fallback_secret_key', {
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret_key', {
     expiresIn: '7d'
   });
-};
-
-const generateNextOrgId = async () => {
-  const lastOrg = await OrgKyc.findOne({}, {}, { sort: { createdAt: -1 } });
-  if (!lastOrg || !lastOrg.orgId) {
-    return 'ORG1';
-  }
-  const numericPart = parseInt(lastOrg.orgId.replace('ORG', ''), 10) || 0;
-  return `ORG${numericPart + 1}`;
 };
 
 const generateNextOrgKycId = async () => {
@@ -237,7 +219,6 @@ const generateTenantKey = async (orgName) => {
 const registerOrgAccount = async (req, res) => {
   try {
     const {
-      orgId,
       tenantKey,
       orgName,
       orgAddress,
@@ -248,7 +229,7 @@ const registerOrgAccount = async (req, res) => {
       state,
       contactFullName,
       contactEmail,
-      contactMobile,
+      loginMobileNumber,
       accountNumber,
       bankIfsc,
       bankName,
@@ -259,12 +240,12 @@ const registerOrgAccount = async (req, res) => {
 
     let existingOrg = null;
     
-    if (orgId) {
-      existingOrg = await OrgKyc.findOne({ orgId, signinAgreement: false });
-    } else if (tenantKey) {
+    if (tenantKey) {
       existingOrg = await OrgKyc.findOne({ tenantKey, signinAgreement: false });
     } else if (panNumber) {
       existingOrg = await OrgKyc.findOne({ panNumber: panNumber.toUpperCase(), signinAgreement: false });
+    } else if (loginMobileNumber) {
+      existingOrg = await OrgKyc.findOne({ loginMobileNumber, signinAgreement: false });
     }
 
     if (existingOrg) {
@@ -277,7 +258,7 @@ const registerOrgAccount = async (req, res) => {
       if (state) existingOrg.state = state;
       if (contactFullName) existingOrg.contactFullName = contactFullName;
       if (contactEmail) existingOrg.contactEmail = contactEmail;
-      if (contactMobile) existingOrg.contactMobile = contactMobile;
+      if (loginMobileNumber) existingOrg.loginMobileNumber = loginMobileNumber;
       if (accountNumber) existingOrg.accountNumber = accountNumber;
       if (bankIfsc) existingOrg.bankIfsc = bankIfsc.toUpperCase();
       if (bankName) existingOrg.bankName = bankName;
@@ -292,41 +273,40 @@ const registerOrgAccount = async (req, res) => {
 
       await existingOrg.save();
 
-      const token = generateToken(existingOrg._id, existingOrg.orgId);
+      const token = generateToken(existingOrg._id);
 
       return res.status(200).json({
         success: true,
         message: signinAgreement ? 'Agreement signed and final submission complete!' : 'Progress updated in database successfully!',
         token,
         data: {
-          orgId: existingOrg.orgId,
+          orgkycId: existingOrg.orgkycId,
           tenantKey: existingOrg.tenantKey,
           orgName: existingOrg.orgName,
           approvalStatus: existingOrg.approvalStatus,
           contactEmail: existingOrg.contactEmail,
+          loginMobileNumber: existingOrg.loginMobileNumber,
           signinAgreement: existingOrg.signinAgreement
         }
       });
     }
 
-    const newOrgId = await generateNextOrgId();
     const newTenantKey = await generateTenantKey(orgName);
     const isSigningFinal = signinAgreement === true || signinAgreement === 'true';
 
     const newOrg = await OrgKyc.create({
       orgkycId: await generateNextOrgKycId(),
-      orgId: newOrgId,
       tenantKey: newTenantKey,
       orgName: orgName || 'Pending Name',
       orgAddress,
-     panLinkedAadhaar,
+      panLinkedAadhaar,
       panNumber: panNumber ? panNumber.toUpperCase() : 'TEMP_PAN',
       gstinNumber: gstinNumber ? gstinNumber.toUpperCase() : null,
       gstDeclaration: gstDeclaration === 'true' || gstDeclaration === true,
       state,
       contactFullName,
       contactEmail: contactEmail || 'pending@domain.com',
-      contactMobile,
+      loginMobileNumber,
       accountNumber,
       bankIfsc: bankIfsc ? bankIfsc.toUpperCase() : '',
       bankName,
@@ -338,18 +318,19 @@ const registerOrgAccount = async (req, res) => {
       signingIp: isSigningFinal ? getClientIp(req) : null
     });
 
-    const token = generateToken(newOrg._id, newOrg.orgId);
+    const token = generateToken(newOrg._id);
 
     return res.status(201).json({
       success: true,
       message: 'Organization account registered successfully!',
       token,
       data: {
-        orgId: newOrg.orgId,
+        orgkycId: newOrg.orgkycId,
         tenantKey: newOrg.tenantKey,
         orgName: newOrg.orgName,
         approvalStatus: newOrg.approvalStatus,
         contactEmail: newOrg.contactEmail,
+        loginMobileNumber: newOrg.loginMobileNumber,
         signinAgreement: newOrg.signinAgreement
       }
     });
@@ -361,7 +342,7 @@ const registerOrgAccount = async (req, res) => {
       const formattedFieldNames = {
         panNumber: 'PAN number',
         contactEmail: 'Email address',
-        contactMobile: 'Mobile number',
+        loginMobileNumber: 'Mobile number',
         accountNumber: 'Bank account number'
       };
       const fieldName = formattedFieldNames[field] || field;
@@ -381,7 +362,7 @@ const registerOrgAccount = async (req, res) => {
 const getOrgAccount = async (req, res) => {
   try {
     const { identifier } = req.params;
-    const query = identifier.startsWith('ORG') ? { orgId: identifier } : { tenantKey: identifier };
+    const query = identifier.startsWith('OK') ? { orgkycId: identifier } : { tenantKey: identifier };
     
     const org = await OrgKyc.findOne(query);
     if (!org) {
@@ -406,14 +387,11 @@ const getOrgAccount = async (req, res) => {
 
 const saveOrgStep = async (req, res) => {
   try { 
-    const { orgId, tenantKey, panNumber, panLinkedAadhaar, contactEmail, loginMobileNumber,verifiedEmail,contactMobile, accountHolderName, accountType, accountNumber, signinAgreement, ...stepData } = req.body;
+    const { orgkycId, tenantKey, panNumber, panLinkedAadhaar, contactEmail, loginMobileNumber, mobileVerified,verifiedEmail, accountHolderName, accountType, accountNumber, signinAgreement, ...stepData } = req.body;
 
-    // 🛡️ BULLETPROOF AUTO-RECOVERY LOOKUP:
-    // Even if the frontend forgets the orgId, find the existing draft automatically 
-    // by checking orgId, tenantKey, email, mobile, or PAN!
     let org = null;
-    if (orgId) {
-      org = await OrgKyc.findOne({ orgId });
+    if (orgkycId) {
+      org = await OrgKyc.findOne({ orgkycId });
     }
     if (!org && tenantKey) {
       org = await OrgKyc.findOne({ tenantKey });
@@ -421,24 +399,24 @@ const saveOrgStep = async (req, res) => {
     if (!org && contactEmail) {
       org = await OrgKyc.findOne({ contactEmail });
     }
-    if (!org && contactMobile) {
-      org = await OrgKyc.findOne({ contactMobile });
+    if (!org && loginMobileNumber) {
+      org = await OrgKyc.findOne({ loginMobileNumber });
     }
     if (!org && panNumber) {
       org = await OrgKyc.findOne({ panNumber: panNumber.toUpperCase() });
     }
 
-    // 2. Conflict check across OTHER accounts (excluding our own found record's ID)
     const conditions = [];
     if (panNumber) conditions.push({ panNumber: panNumber.toUpperCase() });
     if (contactEmail) conditions.push({ contactEmail });
-    if (contactMobile) conditions.push({ contactMobile });
+    if (loginMobileNumber) conditions.push({ loginMobileNumber });
     if (accountNumber) conditions.push({ accountNumber });
 
     if (conditions.length > 0) {
       const conflictQuery = { $or: conditions };
       if (org) {
-        conflictQuery._id = { $ne: org._id }; // <--- Ignores our own record so we never block ourselves!
+        conflictQuery._id = { $ne: org._id };
+        
       }
 
       const existingConflict = await OrgKyc.findOne(conflictQuery);
@@ -446,7 +424,7 @@ const saveOrgStep = async (req, res) => {
         let conflictMsg = 'Record already exists!';
         if (panNumber && existingConflict.panNumber === panNumber.toUpperCase()) conflictMsg = 'PAN number already exists in another account!';
         else if (contactEmail && existingConflict.contactEmail === contactEmail) conflictMsg = 'Email address already exists in another account!';
-        else if (contactMobile && existingConflict.contactMobile === contactMobile) conflictMsg = 'Mobile number already exists in another account!';
+        else if (loginMobileNumber && existingConflict.loginMobileNumber === loginMobileNumber) conflictMsg = 'Mobile number already exists in another account!';
         else if (accountNumber && existingConflict.accountNumber === accountNumber) conflictMsg = 'Bank account number already exists in another account!';
 
         return res.status(400).json({
@@ -456,10 +434,10 @@ const saveOrgStep = async (req, res) => {
       }
     }
 
-// 3. Update or Create
     if (org) {
-      Object.assign(org, stepData, { contactEmail, loginMobileNumber, contactMobile, accountNumber, accountHolderName, accountType });
+      Object.assign(org, stepData, { contactEmail, mobileVerified, loginMobileNumber, accountNumber, accountHolderName, accountType });
       if (loginMobileNumber !== undefined) org.loginMobileNumber = loginMobileNumber;
+      if (mobileVerified !== undefined) org.mobileVerified = mobileVerified;
       if (panLinkedAadhaar !== undefined) org.panLinkedAadhaar = panLinkedAadhaar;
       if (accountHolderName !== undefined) org.accountHolderName = accountHolderName;
       if (accountType !== undefined) org.accountType = accountType;
@@ -475,20 +453,18 @@ const saveOrgStep = async (req, res) => {
       
       await org.save();
     } else {
-      const newOrgId = await generateNextOrgId();
       const newTenantKey = await generateTenantKey(stepData.orgName || 'org');
       const isSigningFinal = signinAgreement === true || signinAgreement === 'true';
 
       org = await OrgKyc.create({
         orgkycId: await generateNextOrgKycId(),
-        orgId: newOrgId,
         tenantKey: newTenantKey,
         panLinkedAadhaar,
         panNumber: panNumber ? panNumber.toUpperCase() : 'TEMP_PAN',
         contactEmail,
-        contactMobile,
-        loginMobileNumber: loginMobileNumber || contactMobile,
+        loginMobileNumber,
         verifiedEmail: verifiedEmail || false,
+        mobileVerified: mobileVerified || false,
         accountNumber,
         accountHolderName, 
         accountType,
@@ -504,10 +480,8 @@ const saveOrgStep = async (req, res) => {
       data: {
         _id: org._id,
         orgkycId: org.orgkycId,
-        orgId: org.orgId,
         tenantKey: org.tenantKey,
         loginMobileNumber: org.loginMobileNumber,
-        contactMobile: org.contactMobile,
         contactEmail: org.contactEmail,
         panNumber: org.panNumber,
         signinAgreement: org.signinAgreement
@@ -516,13 +490,12 @@ const saveOrgStep = async (req, res) => {
 
   } catch (error) {
     console.error('Save Step Error:', error);
-    
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern || {})[0] || 'Field';
       const formattedFieldNames = {
         panNumber: 'PAN number',
         contactEmail: 'Email address',
-        contactMobile: 'Mobile number',
+        loginMobileNumber: 'Mobile number',
         accountNumber: 'Bank account number'
       };
       return res.status(400).json({
@@ -551,13 +524,11 @@ const sendEmailOtp = async (req, res) => {
 
     const template = getOtpEmailTemplate(otp);
 
-    // 🚀 SPEED FIX: Respond to frontend immediately, send email in background
     res.status(200).json({ 
       success: true, 
       message: 'OTP sent successfully to your email!' 
     });
 
-    // Send email asynchronously in the background so the UI doesn't hang
     transporter.sendMail({
       from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
       to: email,
@@ -573,7 +544,6 @@ const sendEmailOtp = async (req, res) => {
   }
 };
 
-// 3. Function to handle verifying the user's entered OTP
 const verifyEmailOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -583,7 +553,6 @@ const verifyEmailOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
     }
 
-    // Clear record on successful match
     delete emailOtpStore[email];
     await OrgKyc.findOneAndUpdate(
       { contactEmail: email },
@@ -603,12 +572,11 @@ const submitAgreement = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and signature are required.' });
     }
 
-    //  ADD THIS: Update database record by contactEmail
     const updatedOrg = await OrgKyc.findOneAndUpdate(
       { contactEmail: email },
       { 
         signatureImage: signature,
-        signinAgreement: true,     // <--- CHANGES FLAG FROM FALSE TO TRUE
+        signinAgreement: true, 
         kycStatus: 'Under Process',
         signingAt: new Date(),
         signingIp: getClientIp(req),
@@ -623,13 +591,11 @@ const submitAgreement = async (req, res) => {
 
     const template = getKycUnderProcessEmailTemplate(userName || updatedOrg.contactFullName || 'User');
 
-    // 🚀 SPEED FIX: Respond to frontend immediately, send email in background
     res.status(200).json({ 
       success: true, 
       message: 'Agreement submitted successfully!' 
     });
 
-    // Send email asynchronously in the background so the UI doesn't hang
     transporter.sendMail({
       from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
       to: email,
@@ -666,7 +632,6 @@ const updateKycDetails = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Organization ID is required.' });
     }
 
-    // Block sensitive identifiers (PAN and GSTIN) from being overwritten via this specific route
     const account = await OrgKyc.findById(id);
     if (!account) return res.status(404).json({ success: false, message: 'Profile not found.' });
 
@@ -681,7 +646,7 @@ const updateKycDetails = async (req, res) => {
         accountDetails: ['accountHolderName', 'accountNumber', 'accountType', 'bankName', 'bankIfsc'],
         organizationAddress: ['orgAddress', 'state'],
         uploadPanDocuments: ['panCardDocument'],
-        contactDetails: ['contactFullName', 'contactEmail', 'contactMobile']
+        contactDetails: ['contactFullName', 'contactEmail', 'loginMobileNumber']
       };
       const permitted = new Set((account.reKycFields || []).flatMap((group) => groupFields[group] || []));
       Object.keys(allowedData).forEach((field) => { if (!permitted.has(field)) delete allowedData[field]; });
@@ -692,8 +657,7 @@ const updateKycDetails = async (req, res) => {
     const updatedAccount = await OrgKyc.findByIdAndUpdate(
       id,
       {
-        $set: allowedData,
-        $push: { approvalHistory: { status: 'pending', reason: 'KYC banking details updated by organizer' } }
+        $set: allowedData,$push: { approvalHistory: { status: 'pending', reason: 'KYC banking details updated by organizer' } }
       },
       { new: true }
     );
@@ -712,6 +676,7 @@ const updateKycDetails = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error while updating KYC.' });
   }
 };
+
 const getPasswordStatus = async (req, res) => {
   try {
     const org = await findOrgByIdentity(req.query);
@@ -846,8 +811,7 @@ const requestReKyc = async (req, res) => {
     const updated = await OrgKyc.findByIdAndUpdate(
       id,
       {
-        $set: { rekyc: true, reKycFields: selectedFields, approvalStatus: 'pending', rejectionReason: '' },
-        $push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } }
+        $set: { rekyc: true, reKycFields: selectedFields, approvalStatus: 'pending', rejectionReason: '' },$push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } }
       },
       { new: true }
     );
@@ -857,6 +821,9 @@ const requestReKyc = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Unable to request Re-KYC.' });
   }
 };
+
+
+
 module.exports = {
   registerOrgAccount,
   getOrgAccount,
@@ -874,6 +841,6 @@ module.exports = {
   listOrgAccounts,
   adminUpdateOrgAccount,
   updateApprovalStatus,
-  requestReKyc
-};
+  requestReKyc,
 
+};

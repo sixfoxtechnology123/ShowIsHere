@@ -200,45 +200,45 @@ const handleSaveChanges = async () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-6 gap-x-12 text-xs pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-6 gap-x-12 text-smpt-2">
                   <div>
                     <p className="text-slate-400 font-normal">Account Holder Name</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.accountHolderName || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.accountHolderName || '—'}</p>
                   </div>
 
                   <div>
                     <p className="text-slate-400 font-normal">Account Number</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.accountNumber || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.accountNumber || '—'}</p>
                   </div>
 
                   <div>
                     <p className="text-slate-400 font-normal">Account Type</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.accountType || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.accountType || '—'}</p>
                   </div>
 
                   <div>
                     <p className="text-slate-400 font-normal">Bank Name</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.bankName || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.bankName || '—'}</p>
                   </div>
 
                   <div>
                     <p className="text-slate-400 font-normal">Branch</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.branch || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.branch || '—'}</p>
                   </div>
 
                   <div>
                     <p className="text-slate-400 font-normal">IFSC Code</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.ifscCode || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.ifscCode || '—'}</p>
                   </div>
 
                   <div>
                     <p className="text-slate-400 font-normal">PAN Number</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.panNumber || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.panNumber || '—'}</p>
                   </div>
 
                   <div>
                     <p className="text-slate-400 font-normal">GST Number</p>
-                    <p className="text-slate-800 font-medium mt-1">{formData.gstNumber || '—'}</p>
+                    <p className="text-slate-700 mt-1">{formData.gstNumber || '—'}</p>
                   </div>
                 </div>
 
@@ -272,7 +272,7 @@ const handleSaveChanges = async () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1.5">Account Holder Name *</label>
                     <input 

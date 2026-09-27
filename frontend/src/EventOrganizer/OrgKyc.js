@@ -138,6 +138,16 @@ const initialMobile = location.state?.prefilledMobile ||
     bankName: ''
   });
 
+  useEffect(() => {
+  if (location.state?.prefilledMobile) {
+    setFormData((prev) => ({
+      ...prev,
+      contactMobile: location.state.prefilledMobile,
+      mobileVerified: location.state.mobileVerified || false
+    }));
+  }
+}, [location.state]);
+
   const startDrawing = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -1023,16 +1033,24 @@ const handleProceed = async () => {
                           )}
                         </div>
                       </div>
-                 <div>
-                    <label className={accountLabelStyle}>Mobile Number</label>
-                    <input
-                      type="text"
-                      name="contactMobile"
-                      value={formData.contactMobile}
-                      disabled={true}
-                      className={`${inputFieldStyle} bg-slate-100 text-slate-500 cursor-not-allowed`}
-                    />
-                  </div>
+              <div>
+                <label className={accountLabelStyle}>Mobile Number</label>
+                <input
+                  type="text"
+                  name="contactMobile"
+                  value={formData.contactMobile}
+                  disabled={true}
+                  className={`${inputFieldStyle} bg-slate-100 text-slate-500 cursor-not-allowed`}
+                />
+                {/* Verified status at the bottom */}
+                <div className="flex justify-end mt-1">
+                  {formData.mobileVerified && (
+                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
+                      ✓ Verified
+                    </span>
+                  )}
+                </div>
+              </div>
                 </div>
               </div>
 

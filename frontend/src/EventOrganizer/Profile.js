@@ -45,38 +45,72 @@ const Profile = () => {
   const [showPopup, setShowPopup] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(initialForm);
+  const [initialData, setInitialData] = useState(initialForm);
+
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isMobileVerified, setIsMobileVerified] = useState(false);
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [isVerifyingMobile, setIsVerifyingMobile] = useState(false);
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otpType, setOtpType] = useState(''); // 'email' or 'mobile'
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [resendTimer, setResendTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
 
 const loadProfile = async () => {
-    const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
-    const mobile = savedUser.loginMobileNumber || savedUser.contactMobile;
-    if (!mobile) return;
+  const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+  const mobile = savedUser.loginMobileNumber || savedUser.contactMobile;
+  if (!mobile) return;
 
-    const query = new URLSearchParams({ loginMobileNumber: mobile });
-    const resData = await API.get(`/profile?${query.toString()}`);
-    if (resData.success && resData.data) {
-      const u = resData.data;
-      setFormData({
-        id: u._id || u.id || '',
-        orgName: u.orgName || '',
-        websiteUrl: u.websiteUrl || '',
-        address1: u.address1 || u.orgAddress || '',
-        address2: u.address2 || '',
-        country: u.country || 'India',
-        state: u.state || '',
-        city: u.city || '',
-        contactMobile: u.contactMobile || u.loginMobileNumber || '',
-        contactEmail: u.contactEmail || '',
-        verifiedEmail: Boolean(u.verifiedEmail),
-        about: u.about || '',
-        instagram: u.instagram || '',
-        facebook: u.facebook || '',
-        twitter: u.twitter || '',
-        linkedin: u.linkedin || '',
-        profilePhoto: u.profilePhoto || '',
-        approvalStatus: u.approvalStatus || 'pending'
-      });
+  const query = new URLSearchParams({ loginMobileNumber: mobile });
+  const resData = await API.get(`/profile?${query.toString()}`);
+  if (resData.success && resData.data) {
+    const u = resData.data;
+    
+    // 1. Define loadedForm first
+    const loadedForm = {
+      id: u._id || u.id || '',
+      orgName: u.orgName || '',
+      websiteUrl: u.websiteUrl || '',
+      address1: u.address1 || u.orgAddress || '',
+      address2: u.address2 || '',
+      country: u.country || 'India',
+      state: u.state || '',
+      city: u.city || '',
+      contactMobile: u.contactMobile || u.loginMobileNumber || '',
+      contactEmail: u.contactEmail || '',
+      verifiedEmail: Boolean(u.verifiedEmail),
+      about: u.about || '',
+      instagram: u.instagram || '',
+      facebook: u.facebook || '',
+      twitter: u.twitter || '',
+      linkedin: u.linkedin || '',
+      profilePhoto: u.profilePhoto || '',
+      approvalStatus: u.approvalStatus || 'pending'
+    };
+    
+    // 2. Pass loadedForm into both states
+    setFormData(loadedForm);
+    setInitialData(loadedForm);
+  }
+};
+
+ 
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialData);
+
+  // ⏱️ Add this useEffect to make the Resend timer count down every second
+  useEffect(() => {
+    let interval = null;
+    if (isOtpModalOpen && !canResend && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (resendTimer === 0) {
+      setCanResend(true);
     }
-  };
+    return () => clearInterval(interval);
+  }, [isOtpModalOpen, canResend, resendTimer]);
+
 
 useEffect(() => {
     if (routerLocation.state?.updatedOrgData) {
@@ -278,36 +312,146 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {[
-                    ['orgName', 'Organization/Individual Name *'],
-                    ['websiteUrl', 'Website URL'],
-                    ['address1', 'Address 1'],
-                    ['address2', 'Address 2'],
-                    ['city', 'City *'],
-                    ['state', 'State *'],
-                    ['country', 'Country *'],
-                    ['contactMobile', 'Contact Mobile']
-                  ].map(([name, label]) => (
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {[
+                  ['orgName', 'Organization/Individual Name *'],
+                  ['websiteUrl', 'Website URL'],
+                  ['address1', 'Address 1'],
+                  ['address2', 'Address 2'],
+                  ['city', 'City *'],
+                  ['state', 'State *'],
+                  ['country', 'Country *']
+                ].map(([name, label]) => {
+                  const isDisabled = name === 'orgName' || name === 'state';
+                  return (
                     <div key={name}>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
-                      <input name={name} value={formData[name]} onChange={handleChange} className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      <input 
+                        name={name} 
+                        value={formData[name]} 
+                        onChange={handleChange} 
+                        disabled={isDisabled}
+                        className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                          isDisabled 
+                            ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none' 
+                            : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'
+                        }`} 
+                      />
                     </div>
-                  ))}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address *</label>
-                    <div className="flex items-center gap-2">
-                      <input type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} className="w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                      <span className={`shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border ${formData.verifiedEmail ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
-                        {formData.verifiedEmail ? 'Verified' : 'Not verified'}
-                      </span>
-                    </div>
+                  );
+                })}
+
+                {/* 1. Contact Mobile with Verification (Added here) */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contact Mobile *</label>
+                  <input
+                    type="text"
+                    name="contactMobile"
+                    placeholder="Enter mobile number"
+                    value={formData.contactMobile}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setIsMobileVerified(false);
+                    }}
+                    disabled={isMobileVerified}
+                    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${isMobileVerified ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'}`}
+                  />
+                  <div className="flex justify-end mt-1">
+                    {isMobileVerified ? (
+                      <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">✓ Verified</span>
+                    ) : (
+                      /^\d{10}$/.test(formData.contactMobile) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOtpType('mobile');
+                            setIsVerifyingMobile(true);
+                            setTimeout(() => {
+                              setIsVerifyingMobile(false);
+                              setIsOtpModalOpen(true);
+                              setEnteredOtp('');
+                            }, 500);
+                          }}
+                          disabled={isVerifyingMobile}
+                          className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer bg-transparent shrink-0"
+                        >
+                          {isVerifyingMobile ? 'Sending...' : 'Verify'}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 
-                <textarea name="about" rows="4" maxLength={200} placeholder="Tell people about your organization..." value={formData.about} onChange={handleChange} className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" />
+           {/* Email Address with Verification */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address *</label>
+                  <input
+                    type="email"
+                    name="contactEmail"
+                    placeholder="Enter email address"
+                    value={formData.contactEmail}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setIsEmailVerified(false);
+                    }}
+                    disabled={isEmailVerified}
+                    className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${isEmailVerified ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'}`}
+                  />
+                  <div className="flex justify-end mt-1">
+                    {isEmailVerified ? (
+                      <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">✓ Verified</span>
+                    ) : (
+                      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail) && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              setOtpType('email');
+                              setIsVerifyingEmail(true);
+                              
+                              // 🚀 Calls your backend endpoint to trigger Nodemailer
+                              const resData = await API.post('/profile/send-email-otp', { email: formData.contactEmail });
+                              
+                              if (resData.success) {
+                                toast.success('OTP sent to your email!');
+                                setIsOtpModalOpen(true);
+                                setEnteredOtp('');
+                                setResendTimer(60);
+                                setCanResend(false);
+                              }
+                            } catch (error) {
+                              toast.error(error.response?.data?.message || 'Failed to send OTP.');
+                            } finally {
+                              setIsVerifyingEmail(false);
+                            }
+                          }}
+                          disabled={isVerifyingEmail}
+                          className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer bg-transparent shrink-0"
+                        >
+                          {isVerifyingEmail ? 'Sending...' : 'Verify'}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+
+               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  About
+                </label>
+                <textarea 
+                  name="about" 
+                  rows="4" 
+                  maxLength={200} 
+                  placeholder="Tell people about your organization..." 
+                  value={formData.about} 
+                  onChange={handleChange} 
+                  className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" 
+                />
+                </div>
                 
-                <div className="pt-2 border-t border-slate-200">
+                <div >
                   <h3 className="text-sm font-bold text-slate-800 mb-4">Social Links</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {[
@@ -331,17 +475,151 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* Bottom action buttons: Right-aligned */}
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button type="button" onClick={() => setIsEditing(false)} className="px-5 py-2 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer">Cancel</button>
-                  <button type="button" onClick={handleSaveProfile} className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer">Save Change</button>
+              <div className="flex items-center justify-between pt-2">
+                {/* Left side: Help / Contact note with direct Gmail link */}
+                <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-2 text-xs text-slate-600 flex items-center gap-1.5">
+                  <span>If you need to make any changes or have queries, please contact us on</span>
+                  <a 
+                    href="https://mail.google.com/mail/?view=cm&fs=1&to=showishereofficial@gmail.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="font-semibold text-blue-600 hover:underline"
+                  >
+                    showishereofficial@gmail.com
+                  </a>
                 </div>
+
+                {/* Right side: Action buttons */}
+                <div className="flex items-center gap-3">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsEditing(false)} 
+                    className="px-5 py-2 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    onClick={handleSaveProfile} 
+                    disabled={!hasChanges}
+                    className={`px-6 py-2 text-sm font-semibold rounded-lg transition shadow-sm ${
+                      hasChanges 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer' 
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70'
+                    }`}
+                  >
+                    Save Change
+                  </button>
+                </div>
+              </div>
               </div>
             )}
 
           </div>
         </main>
       </div>
+      {/* OTP Verification Modal */}
+      {isOtpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-xs bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  {otpType === 'email' ? 'Verify Email Address' : 'Verify Mobile Number'}
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {otpType === 'email' ? 'Enter the security code sent to your inbox' : 'Enter dummy code (Hint: 1234)'}
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsOtpModalOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition cursor-pointer text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3 text-center">
+                <p className="text-xs text-slate-600">
+                  OTP sent to: <span className="font-bold text-blue-600 block truncate mt-0.5">
+                    {otpType === 'email' ? formData.contactEmail : formData.contactMobile}
+                  </span>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-600 block text-center uppercase tracking-wider">
+                  {otpType === 'email' ? 'Enter 6-Digit OTP' : 'Enter 4-Digit OTP (1234)'}
+                </label>
+                <input
+                  type="text"
+                  maxLength={otpType === 'email' ? "6" : "4"}
+                  placeholder={otpType === 'email' ? "••••••" : "••••"}
+                  value={enteredOtp}
+                  onChange={async (e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setEnteredOtp(val);
+
+                    // 1. If it's Email, verify against backend API when 6 digits are reached
+                    if (otpType === 'email' && val.length === 6) {
+                      try {
+                        const resData = await API.post('/profile/verify-email-otp', {
+                          email: formData.contactEmail,
+                          otp: val
+                        });
+
+                        if (resData.success) {
+                          setIsEmailVerified(true);
+                          setIsOtpModalOpen(false);
+                          toast.success('Email verified successfully!');
+                        }
+                      } catch (error) {
+                        toast.error(error.response?.data?.message || 'Invalid or expired OTP.');
+                        setEnteredOtp(''); // Clear input on wrong OTP
+                      }
+                    } 
+                    // 2. If it's Mobile, validate against dummy code "1234" when 4 digits are reached
+                    else if (otpType === 'mobile') {
+                      if (val.length === 4) {
+                        if (val === '1234') {
+                          setIsMobileVerified(true);
+                          setIsOtpModalOpen(false);
+                          toast.success('Mobile verified successfully!');
+                        } else {
+                          toast.error('Invalid OTP. Please enter 1234.');
+                          setEnteredOtp(''); // Clear input on wrong OTP
+                        }
+                      }
+                    }
+                  }}
+                  autoFocus
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-center tracking-[0.75em] font-extrabold text-lg focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="text-right">
+                {canResend ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResendTimer(60);
+                      setCanResend(false);
+                    }}
+                    className="text-xs font-bold text-blue-600 hover:underline cursor-pointer bg-transparent border-none p-0"
+                  >
+                    Resend OTP
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400 font-medium">Resend in {resendTimer}s</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPopup && isPending && (
         <div className="fixed bottom-20 right-8 z-50 w-64 bg-[#FACC15] border border-yellow-400 rounded-lg shadow-xl p-4 flex items-start space-x-3">

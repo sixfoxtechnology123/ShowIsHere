@@ -16,7 +16,8 @@ const {
   listOrgAccounts,
   adminUpdateOrgAccount,
   updateApprovalStatus,
-  requestReKyc
+  requestReKyc,
+
 } = require('../controllers/orgKycController.js');
 
 const router = express.Router();
@@ -38,6 +39,7 @@ router.put('/admin/accounts/:id', adminUpdateOrgAccount);
 router.put('/admin/accounts/:id/approval', updateApprovalStatus);
 router.post('/admin/accounts/:id/rekyc', requestReKyc);
 router.get('/:identifier', getOrgAccount);
+
 
 module.exports = router;
 

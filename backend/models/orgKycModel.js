@@ -12,7 +12,7 @@ const reKycHistorySchema = new mongoose.Schema({
 
 const orgKycSchema = new mongoose.Schema({
   orgkycId: { type: String, required: true, unique: true },
-  orgId: { type: String, required: true, unique: true },
+  // orgId: { type: String, required: true, unique: true },
   orgName: { type: String, required: true },
   orgAddress: { type: String },
   panLinkedAadhaar: { type: String },
@@ -20,11 +20,12 @@ const orgKycSchema = new mongoose.Schema({
   gstinNumber: { type: String, uppercase: true, default: null },
   gstDeclaration: { type: Boolean, default: false },
   state: { type: String },
-  contactFullName: { type: String }, 
+   contactFullName: { type: String }, 
   contactEmail: { type: String, required: true },
   loginMobileNumber: { type: String, trim: true },
+  mobileVerified: { type: Boolean, default: false },
   verifiedEmail: { type: Boolean, default: false },
-  contactMobile: { type: String },
+  //contactMobile: { type: String },
   accountHolderName: { type: String }, 
   accountType: { type: String, enum: ['Savings', 'Current', ''], default: '' },
   accountNumber: { type: String },
