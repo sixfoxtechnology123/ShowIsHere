@@ -42,17 +42,18 @@ useEffect(() => {
           savedUser = {};
         }
 
-        const orgId = savedUser.orgId || localStorage.getItem('orgId');
+      // REPLACE WITH THIS:
+        const orgkycId = savedUser.orgkycId || savedUser.orgId || localStorage.getItem('orgkycId');
         const userId = savedUser._id || savedUser.id;
         const tenantKey = savedUser.tenantKey;
         const mobile = savedUser.loginMobileNumber || 
-                       savedUser.contactMobile || 
-                       localStorage.getItem('loginMobileNumber');
+                  savedUser.contactMobile || 
+                  localStorage.getItem('loginMobileNumber');
         const email = savedUser.contactEmail || savedUser.email;
 
         const params = new URLSearchParams();
-        if (orgId) params.append('orgId', orgId);
-        else if (userId) params.append('id', userId);
+        if (orgkycId) params.append('orgkycId', orgkycId);
+        else if (userId && userId.length === 24) params.append('id', userId);
         else if (tenantKey) params.append('tenantKey', tenantKey);
         else if (mobile) params.append('loginMobileNumber', mobile);
         else if (email) params.append('contactEmail', email);
@@ -191,54 +192,54 @@ const handleSaveChanges = async () => {
                     <p className="text-xs text-slate-500 mt-1">Trust starts with being verified.</p>
                   </div>
 
-                  <button
+                  {/* <button
                     type="button"
                     onClick={() => setIsEditing(true)}
                     className="px-6 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer"
                   >
                     Edit
-                  </button>
+                  </button> */}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-6 gap-x-12 text-smpt-2">
                   <div>
-                    <p className="text-slate-400 font-normal">Account Holder Name</p>
-                    <p className="text-slate-700 mt-1">{formData.accountHolderName || '—'}</p>
+                    <p className="text-slate-500 font-normal">Account Holder Name</p>
+                    <p className="text-slate-700 mt-1">{formData.accountHolderName || 'N/A'}</p>
                   </div>
 
                   <div>
-                    <p className="text-slate-400 font-normal">Account Number</p>
-                    <p className="text-slate-700 mt-1">{formData.accountNumber || '—'}</p>
+                    <p className="text-slate-500 font-normal">Account Number</p>
+                    <p className="text-slate-700 mt-1">{formData.accountNumber || 'N/A'}</p>
                   </div>
 
                   <div>
-                    <p className="text-slate-400 font-normal">Account Type</p>
-                    <p className="text-slate-700 mt-1">{formData.accountType || '—'}</p>
+                    <p className="text-slate-500 font-normal">Account Type</p>
+                    <p className="text-slate-700 mt-1">{formData.accountType || 'N/A'}</p>
                   </div>
 
                   <div>
-                    <p className="text-slate-400 font-normal">Bank Name</p>
-                    <p className="text-slate-700 mt-1">{formData.bankName || '—'}</p>
+                    <p className="text-slate-500 font-normal">Bank Name</p>
+                    <p className="text-slate-700 mt-1">{formData.bankName || 'N/A'}</p>
+                  </div>
+
+                  {/* <div>
+                    <p className="text-slate-500 font-normal">Branch</p>
+                    <p className="text-slate-700 mt-1">{formData.branch || 'N/A'}</p>
+                  </div> */}
+
+                  <div>
+                    <p className="text-slate-500 font-normal">IFSC Code</p>
+                    <p className="text-slate-700 mt-1">{formData.ifscCode || 'N/A'}</p>
                   </div>
 
                   <div>
-                    <p className="text-slate-400 font-normal">Branch</p>
-                    <p className="text-slate-700 mt-1">{formData.branch || '—'}</p>
+                    <p className="text-slate-500 font-normal">PAN Number</p>
+                    <p className="text-slate-700 mt-1">{formData.panNumber || 'N/A'}</p>
                   </div>
 
                   <div>
-                    <p className="text-slate-400 font-normal">IFSC Code</p>
-                    <p className="text-slate-700 mt-1">{formData.ifscCode || '—'}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-slate-400 font-normal">PAN Number</p>
-                    <p className="text-slate-700 mt-1">{formData.panNumber || '—'}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-slate-400 font-normal">GST Number</p>
-                    <p className="text-slate-700 mt-1">{formData.gstNumber || '—'}</p>
+                    <p className="text-slate-500 font-normal">GST Number</p>
+                    <p className="text-slate-700 mt-1">{formData.gstNumber || 'N/A'}</p>
                   </div>
                 </div>
 
@@ -319,7 +320,7 @@ const handleSaveChanges = async () => {
                     />
                   </div>
 
-                  <div>
+                  {/* <div>
                     <label className="block font-semibold text-slate-700 mb-1.5">Branch *</label>
                     <input 
                       type="text" 
@@ -328,7 +329,7 @@ const handleSaveChanges = async () => {
                       onChange={handleChange}
                       className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
-                  </div>
+                  </div> */}
 
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1.5">IFSC Code *</label>
