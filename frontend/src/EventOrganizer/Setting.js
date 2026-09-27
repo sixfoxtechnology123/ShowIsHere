@@ -4,6 +4,7 @@ import API from '../utils/api';
 import EventOrgHeader from './EventOrgHeader';
 import EventOrgFooter from './EventOrgFooter';
 import EventOrgLefSidebar from './EventOrgLefSidebar';
+import { useNavigate } from 'react-router-dom';
 import {
   dashLayoutWrapper,
   dashBodyFlexContainer,
@@ -12,6 +13,7 @@ import {
 } from '../styles/MasterCSSClass';
 
 const Setting = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [hasPassword, setHasPassword] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -83,7 +85,7 @@ const Setting = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle setting / updating password with Toast notifications for mismatches
+ // Handle setting / updating password with Toast notifications for mismatches
   const handleSubmitPassword = async (e) => {
     e.preventDefault();
 
@@ -106,9 +108,16 @@ const Setting = () => {
         });
         const resData = response?.data || response;
         if (resData.success) {
-          toast.success("Password created successfully!");
-          setHasPassword(true);
-          setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+          toast.success("Password created successfully! Please log in again.");
+          
+          // --- AUTO LOGOUT & REDIRECT ---
+          localStorage.removeItem('orgToken');
+          localStorage.removeItem('orgUserData');
+          localStorage.removeItem('orgId');
+          localStorage.removeItem('loginMobileNumber');
+          navigate('/');
+          // -----------------------------
+          
         } else {
           toast.error(resData.message || "Failed to create password.");
         }
@@ -126,8 +135,16 @@ const Setting = () => {
         });
         const resData = response?.data || response;
         if (resData.success) {
-          toast.success("Password updated successfully!");
-          setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+          toast.success("Password updated successfully! Please log in again.");
+          
+          // --- AUTO LOGOUT & REDIRECT ---
+          localStorage.removeItem('orgToken');
+          localStorage.removeItem('orgUserData');
+          localStorage.removeItem('orgId');
+          localStorage.removeItem('loginMobileNumber');
+          navigate('/');
+          // -----------------------------
+
         } else {
           toast.error(resData.message || "Old password is incorrect.");
         }
@@ -138,7 +155,6 @@ const Setting = () => {
       toast.error(errorMsg);
     }
   };
-
   // Trigger Forgot Password OTP
   const handleSendForgotPasswordOtp = async () => {
     try {

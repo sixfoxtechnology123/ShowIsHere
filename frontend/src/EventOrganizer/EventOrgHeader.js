@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
-import userAvatar from '../assets/avatar.jpg';
+import defaultAvatar from '../assets/avatar.jpg';
 import {
   dashTopNavbar,
   dashBrandLogo,
@@ -14,9 +15,53 @@ import {
 } from '../styles/MasterCSSClass';
 
 const EventOrgHeader = () => {
+  const [orgName, setOrgName] = useState('My Account');
+  const [profilePhoto, setProfilePhoto] = useState(defaultAvatar);
+
+  const fetchHeaderProfile = async () => {
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+      const mobile = savedUser.loginMobileNumber || savedUser.contactMobile || localStorage.getItem('loginMobileNumber');
+
+      if (savedUser.orgName) {
+        setOrgName(savedUser.orgName);
+      }
+
+      if (mobile) {
+        const resData = await API.get(`/profile?loginMobileNumber=${mobile}`);
+        
+        if (resData && resData.success && resData.data) {
+          const u = resData.data;
+          
+          if (u.orgName) {
+            setOrgName(u.orgName);
+          }
+          if (u.profilePhoto) {
+            setProfilePhoto(u.profilePhoto);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching header profile photo:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Initial fetch on mount
+    fetchHeaderProfile();
+
+    // Listen for live profile updates from other pages (like Profile.js)
+    window.addEventListener('profileUpdated', fetchHeaderProfile);
+
+    // Cleanup listener on unmount
+    return () => {
+      window.removeEventListener('profileUpdated', fetchHeaderProfile);
+    };
+  }, []);
+
   return (
     <header className={dashTopNavbar}>
-     <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline">
+      <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline">
         <img src={Logo} alt="Logo" className={dashBrandLogo} />
         <span className={dashBrandTitle}>showishere</span>
       </Link>
@@ -30,8 +75,8 @@ const EventOrgHeader = () => {
         </div>
         
         <div className={dashUserProfileBox}>
-          <img src={userAvatar} alt="Andy Doe" className={dashUserAvatarImg} />
-          <span className={dashUserNameText}>Andy Doe</span>
+          <img src={profilePhoto} alt="Profile Avatar" className={dashUserAvatarImg} />
+          <span className={dashUserNameText}>{orgName}</span>
         </div>
       </div>
     </header>

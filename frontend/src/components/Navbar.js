@@ -3,9 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../assets/Logo.jpeg';
 import {
   navbar,
-  logoContainer,
-  logoImage,
-  brandTitle,
   navRightContainer,
   locationButton,
   navSearchWrapper,
@@ -19,7 +16,40 @@ import {
 const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }) => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userOrg, setUserOrg] = useState(null);
   const menuRef = useRef(null);
+
+  // Function to load organization data from localStorage
+  const loadOrgData = () => {
+    const storedData = localStorage.getItem('orgUserData');
+    if (storedData) {
+      try {
+        setUserOrg(JSON.parse(storedData));
+      } catch (e) {
+        setUserOrg(null);
+      }
+    } else {
+      setUserOrg(null);
+    }
+  };
+
+  useEffect(() => {
+    loadOrgData();
+
+    // Listen for storage changes (e.g. when logging in from another tab or page)
+    window.addEventListener('storage', loadOrgData);
+    return () => window.removeEventListener('storage', loadOrgData);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('orgToken');
+    localStorage.removeItem('orgUserData');
+    localStorage.removeItem('orgId');
+    localStorage.removeItem('loginMobileNumber');
+    setUserOrg(null);
+    navigate('/');
+    window.location.reload();
+  };
 
   // Automatically close menu when clicking outside of it
   useEffect(() => {
@@ -45,9 +75,12 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
     }
   };
 
+  // Extract the name from orgUserData (checking common orgkyc field names)
+  const orgName = userOrg?.businessName || userOrg?.ownerName || userOrg?.name || 'My Account';
+
   return (
     <nav className={navbar}>
-       <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline">
+       <Link to="/" className="flex items-center space-x-2 cursor-pointer no-underline" onClick={handleLogoClick}>
         <img src={Logo} alt="Logo" className={dashBrandLogo} />
         <span className={dashBrandTitle}>showishere</span>
       </Link>
@@ -65,18 +98,33 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
         />
       </div>
 
-      {/* Right: Location, Sign In, Menu */}
+      {/* Right: Location, Sign In / Org Name, Menu */}
       <div className={navRightContainer}>
         <button onClick={onOpenLocationModal} className={locationButton}>
           <span>{location || 'Select City'}</span>
           <span className="text-[10px] font-bold ml-1">▼</span>
         </button>
 
-      <button onClick={onSignInClick} className={signInButton}>
-        Sign in
-      </button>
+        {/* CONDITIONAL RENDER: Shows real org name & logout button if logged in */}
+        {userOrg ? (
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+              {orgName}
+            </span>
+            <button 
+              onClick={handleLogout}
+              className="text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition cursor-pointer"
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <button onClick={onSignInClick} className={signInButton}>
+            Sign in
+          </button>
+        )}
 
-        {/* 3-Line Menu Button with Master Options Dropdown & Outside Click Ref */}
+        {/* 3-Line Menu Button */}
         <div className="relative" ref={menuRef}>
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)} 
@@ -89,68 +137,23 @@ const Navbar = ({ location, onOpenLocationModal, onNavigateHome, onSignInClick }
 
           {isMenuOpen && (
             <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-2xl py-1.5 z-[99999]">
-              <Link 
-                to="/artist-master" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Artist Master
-              </Link>
-              <Link 
-                to="/seatmap" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Seat Map
-              </Link>
-              <Link 
-                to="/category-master" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Category Master
-              </Link>
-               <Link 
-                to="/event-category-master" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Category Listing
-              </Link>
-               {/* <Link 
-                to="/event-category-master" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Category Master
-              </Link> */}
-               <Link 
-                to="/question-database-master" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Question DB
-              </Link>
-              <Link 
-                to="/event-question-master" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Event Question
-              </Link>
-               <Link 
-                to="/admin-approval" 
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition"
-              >
-                Admin Aproval
-              </Link>
+              <Link to="/artist-master" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition">Artist Master</Link>
+              <Link to="/seatmap" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition">Seat Map</Link>
+              <Link to="/category-master" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition">Category Master</Link>
+              <Link to="/event-category-master" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition">Category Listing</Link>
+              <Link to="/question-database-master" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition">Question DB</Link>
+              <Link to="/event-question-master" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition">Event Question</Link>
+              <Link to="/admin-approval" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-600 no-underline transition">Admin Approval</Link>
             </div>
           )}
         </div>
       </div>
     </nav> 
   );
+};
+
+Navbar.defaultProps = {
+  onSignInClick: () => {}
 };
 
 export default Navbar;

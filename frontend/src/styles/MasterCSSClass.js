@@ -367,8 +367,8 @@ export const dashTopSubDateText = "text-sm font-medium text-slate-400";
 export const dashTopNavRight = "flex items-center space-x-4 lg:space-x-6";
 export const dashNotificationIconBox = "relative text-slate-400 hover:text-slate-600 cursor-pointer p-2 rounded-full hover:bg-slate-50 transition flex items-center";
 export const dashNotificationBadge = "absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full";
-export const dashUserProfileBox = "flex items-center space-x-3 pl-4 border-l border-slate-200 cursor-pointer";
-export const dashUserAvatarImg = "w-10 h-10 rounded-full object-cover border-2 border-slate-200";
+export const dashUserProfileBox = "flex items-center space-x-3 pl-4 border-l border-slate-200 ";
+export const dashUserAvatarImg = "w-10 h-10 rounded-full object-cover border border-slate-200";
 export const dashUserNameText = "text-sm font-bold text-slate-800 hidden sm:inline";
 
 // Brand Logo & Title Styles for Top Navbar
