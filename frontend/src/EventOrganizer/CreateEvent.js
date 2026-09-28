@@ -2984,33 +2984,39 @@ const formatDateToDDMMYYYY = (dateStr) => {
             {openSlotIndex === slotIdx && (
               <div className="p-6 space-y-2">
                 
-                {slotTickets.length === 0 && (
-                  <div className="flex items-center justify-between w-full">
-                    {/* Plain banner with NO click handler */}
-                    <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-md text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
-                      No tickets added yet!
+                {(() => {
+                  const hasFreeTicket = slotTickets.some(t => t.ticketType === 'free');
+                  // A date can only have 1 ticket if it's free, or if any ticket exists and blocks adding more
+                  const cannotAddMore = slotTickets.length > 0; 
+
+                  return (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-md text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
+                        {slotTickets.length === 0 ? 'No tickets added yet!' : `${slotTickets.length} ticket(s) added`}
+                      </div>
+                      
+                      {/* Hide the + icon completely if any ticket (especially free) already exists for this date */}
+                      {!cannotAddMore && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingIndex(null);
+                            setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
+                            setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+                            setHasEarlyBird(false);
+                            setEbPrice(''); setEbQuantity(''); setEbStartDate(''); setEbStartTime(''); setEbEndDate(''); setEbEndTime('');
+                            setSameTicketForEvent(false);
+                            setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: null }));
+                            setShowTicketForm(!showTicketForm);
+                          }}
+                          className="ml-3 text-slate-800 hover:text-blue-600 font-bold text-lg px-2 cursor-pointer transition"
+                        >
+                          {showTicketForm ? '−' : '+'}
+                        </button>
+                      )}
                     </div>
-                    {/* ONLY this + icon opens the ticket form */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingIndex(null);
-                        
-                        setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
-                        setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
-                        setHasEarlyBird(false);
-                        setEbPrice(''); setEbQuantity(''); setEbStartDate(''); setEbStartTime(''); setEbEndDate(''); setEbEndTime('');
-                        setSameTicketForEvent(false);
-                       setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: null }));
-                        setShowTicketForm(!showTicketForm);
-                        
-                      }}
-                      className="ml-3 text-slate-800 hover:text-blue-600 font-bold text-lg px-2 cursor-pointer transition"
-                    >
-                      {showTicketForm ? '−' : '+'}
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {slotTickets.length > 0 && (
                   <div className="space-y-3">
@@ -3072,10 +3078,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
                                     setSameTicketForEvent(t.slotDate === 'all');
                                     setShowTicketForm(true);
                                   }}
-                                  className="text-slate-500 hover:text-blue-600 cursor-pointer" 
+                                  className="text-blue-600 cursor-pointer" 
                                   title="Edit"
                                 >
-                                  ✏️
+                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                            </svg>
                                 </button>
                                   <button 
                                     type="button" 
@@ -3099,15 +3107,16 @@ const formatDateToDDMMYYYY = (dateStr) => {
                                   >
                                     ✕
                                   </button>
-                                  {isLast && (
-                                    <button 
-                                      type="button" 
-                                      onClick={() => setShowTicketForm(!showTicketForm)} 
-                                      className="ml-1 text-slate-800 hover:text-blue-600 font-bold text-base px-1 cursor-pointer"
-                                    >
-                                      {showTicketForm ? '−' : '+'}
-                                    </button>
-                                  )}
+                                 {/* Only show the + button if there is NO free ticket on this date */}
+                                    {isLast && !slotTickets.some(t => t.ticketType === 'free') && (
+                                      <button 
+                                        type="button" 
+                                        onClick={() => setShowTicketForm(!showTicketForm)} 
+                                        className="ml-1 text-slate-800 hover:text-blue-600 font-bold text-base px-1 cursor-pointer"
+                                      >
+                                        {showTicketForm ? '−' : '+'}
+                                      </button>
+                                    )}
                                 </td>
                               </tr>
                             );
@@ -3118,75 +3127,98 @@ const formatDateToDDMMYYYY = (dateStr) => {
                   </div>
                 )}
 
-                {/* Ticket Form */}
+             {/* Ticket Form */}
                 {showTicketForm && (
                   <div className="space-y-5 pt-2 border-t border-slate-200">
                     {/* Free / Paid Selector Cards */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div
-                        onClick={() => {
-                          setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'free' }));
-                          setPrice('0');
-                        }}
-                        className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                          ticketCategoryType === 'free' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <input 
-                          type="radio" 
-                          name={`ticketType_${slotIdx}`} 
-                          checked={ticketCategoryType === 'free'} 
-                          onChange={() => {}} 
-                          className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
-                        />
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-900">Free</h4>
-                          <p className="text-[10px] text-slate-500 leading-tight mt-0.5">No payment required. Attendees can book tickets for free.</p>
-                        </div>
-                      </div>
+                    {(() => {
+                      const anyPaidExists = savedTickets.some(t => t.ticketType === 'paid');
+                      const anyFreeExists = savedTickets.some(t => t.ticketType === 'free');
 
-                      <div
-                        onClick={() => {
-                          setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'paid' }));
-                          if (price === '0') setPrice('');
-                        }}
-                        className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
-                          ticketCategoryType === 'paid' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <input 
-                          type="radio" 
-                          name={`ticketType_${slotIdx}`} 
-                          checked={ticketCategoryType === 'paid'} 
-                          onChange={() => {}} 
-                          className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
-                        />
-                        <div>
-                          <h4 className="text-xs font-bold text-slate-900">Paid</h4>
-                          <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Set a price and manage ticket sales for your event.</p>
+                      return (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div
+                            onClick={() => {
+                              if (anyPaidExists) {
+                                toast.error('Cannot select Free ticket because a Paid ticket already exists.');
+                                return;
+                              }
+                              setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'free' }));
+                              setPrice('0');
+                              setSameTicketForEvent(false);
+                            }}
+                            className={`p-3 rounded-xl border-2 transition flex items-start gap-3 ${
+                              anyPaidExists ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200' :
+                              ticketCategoryType === 'free' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300 cursor-pointer'
+                            }`}
+                          >
+                            <input 
+                              type="radio" 
+                              name={`ticketType_${slotIdx}`} 
+                              checked={ticketCategoryType === 'free'} 
+                              disabled={anyPaidExists}
+                              onChange={() => {}} 
+                              className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
+                            />
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-900">Free</h4>
+                              <p className="text-[10px] text-slate-500 leading-tight mt-0.5">No payment required. Attendees can book tickets for free.</p>
+                            </div>
+                          </div>
+
+                          <div
+                            onClick={() => {
+                              if (anyFreeExists) {
+                                toast.error('Cannot select Paid ticket because a Free ticket already exists.');
+                                return;
+                              }
+                              setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'paid' }));
+                              if (price === '0') setPrice('');
+                              setSameTicketForEvent(false);
+                            }}
+                            className={`p-3 rounded-xl border-2 transition flex items-start gap-3 ${
+                              anyFreeExists ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200' :
+                              ticketCategoryType === 'paid' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300 cursor-pointer'
+                            }`}
+                          >
+                            <input 
+                              type="radio" 
+                              name={`ticketType_${slotIdx}`} 
+                              checked={ticketCategoryType === 'paid'} 
+                              disabled={anyFreeExists}
+                              onChange={() => {}} 
+                              className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
+                            />
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-900">Paid</h4>
+                              <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Set a price and manage ticket sales for your event.</p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
+
+                    {/* Paid Ticket Fields (Kept Exactly Same) */}
                     {ticketCategoryType === 'paid' && (
           <div className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
-                      <div className="sm:col-span-5 space-y-1.5">
-                        <label className="text-[11px] font-medium text-slate-800 block">Ticket Name</label>
-                        <input type="text" placeholder="" value={ticketName} onChange={(e) => setTicketName(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
-                      </div>
-                      <div className="sm:col-span-2 space-y-1.5">
-                        <label className="text-[11px] font-medium text-slate-800 block">Price</label>
-                        <input 
-                          type="text" 
-                          placeholder="" 
-                          value={price} 
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === '' || /^\d*\.?\d*$/.test(val)) setPrice(val);
-                          }} 
-                          className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
-                        />
-                      </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
+                  <div className="sm:col-span-5 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Ticket Name</label>
+                    <input type="text" placeholder="" value={ticketName} onChange={(e) => setTicketName(e.target.value)} className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} />
+                  </div>
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-medium text-slate-800 block">Price</label>
+                    <input 
+                      type="text" 
+                      placeholder="" 
+                      value={price} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^\d*\.?\d*$/.test(val)) setPrice(val);
+                      }} 
+                      className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                    />
+                  </div>
                   {/* Quantity Input - Fully Manual */}
                   <div className="sm:col-span-2 space-y-1.5">
                     <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
@@ -3350,7 +3382,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
                       </label>
                     </div>
 
-                 {hasEarlyBird && (
+                   {hasEarlyBird && (
                       <div className="rounded-md space-y-4">
                         <div className="grid grid-cols-6 gap-6">
                           <div className="space-y-1">
@@ -3458,6 +3490,144 @@ const formatDateToDDMMYYYY = (dateStr) => {
                         </div>
                       </div>
                     )}
+          </div>
+        )}
+
+                    {/* Free Ticket Fields (Quantity, Available, Sales Period, Same Ticket toggle) */}
+                    {ticketCategoryType === 'free' && (
+                      <div className="space-y-5">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
+                          {/* Quantity Input */}
+                          <div className="sm:col-span-6 space-y-1.5">
+                            <label className="text-[11px] font-medium text-slate-800 block">Quantity</label>
+                            <input 
+                              type="text" 
+                              placeholder="" 
+                              value={quantity} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*$/.test(val)) {
+                                  setQuantity(val);
+                                }
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                            />
+                          </div>
+
+                          {/* Available Input */}
+                          <div className="sm:col-span-6 space-y-1.5">
+                            <label className="text-[11px] font-medium text-slate-800 block">Available</label>
+                            <input 
+                              type="text" 
+                              placeholder="" 
+                              value={available} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*$/.test(val)) {
+                                  if (quantity && val !== '' && Number(val) > Number(quantity)) {
+                                    toast.error('Available tickets cannot be greater than total quantity.', { id: 'avail-qty-err' });
+                                    return;
+                                  }
+                                  setAvailable(val);
+                                }
+                              }} 
+                              className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                            />
+                          </div>
+                        </div>
+
+                        {/* Sales Period Section */}
+                        <div className="space-y-2 pt-1">
+                          <span className="text-xs font-semibold text-slate-800 block">Sales Period</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                            <div className="sm:col-span-5 grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[11px] text-slate-500 block">Start date</label>
+                                <input 
+                                  type="date" 
+                                  value={startDate} 
+                                  min={todayStr}
+                                  max={maxSalesDate}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val && val < todayStr) {
+                                      toast.error('Sales start date cannot be before current date.', { id: 'sales-min-err' });
+                                      return;
+                                    }
+                                    if (displayDate && val >= displayDate) {
+                                      toast.error('Sales start date must be strictly before the event date.', { id: 'sales-start-err' });
+                                      return;
+                                    }
+                                    setStartDate(val);
+                                    if (endDate && endDate < val) setEndDate('');
+                                    setEndTime('');
+                                  }} 
+                                  className={`${inputFieldStyle} border border-slate-300 text-xs py-2`} 
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] text-slate-500 block">Start time</label>
+                                <input 
+                                  type="time" 
+                                  value={startTime} 
+                                  disabled={!startDate}
+                                  onChange={(e) => {
+                                    setStartTime(e.target.value);
+                                    setEndTime('');
+                                  }} 
+                                  className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                                />
+                              </div>
+                            </div>
+                            <span className="text-center text-slate-400 font-bold sm:col-span-1 pt-4">–</span>
+                            <div className="sm:col-span-6 grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[11px] text-slate-500 block">End date</label>
+                                <input 
+                                  type="date" 
+                                  value={endDate} 
+                                  min={startDate || todayStr} 
+                                  max={displayDate || undefined}
+                                  disabled={!startDate} 
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (startDate && val < startDate) {
+                                      toast.error('End date cannot be before start date.', { id: 'sales-end-min-err' });
+                                      return;
+                                    }
+                                    if (displayDate && val > displayDate) {
+                                      toast.error('End date cannot be after the event date.', { id: 'sales-end-max-err' });
+                                      return;
+                                    }
+                                    setEndDate(val);
+                                    setEndTime('');
+                                  }} 
+                                  className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] text-slate-500 block">End time</label>
+                                <input 
+                                  type="time" 
+                                  value={endTime} 
+                                  min={startDate === endDate ? startTime : undefined}
+                                  disabled={!startTime} 
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (startDate === endDate && startTime && val <= startTime) {
+                                      toast.error('End time must be later than start time.', { id: 'time-validation-error' });
+                                      return;
+                                    }
+                                    setEndTime(val);
+                                  }} 
+                                  className={`${inputFieldStyle} border border-slate-300 text-xs py-2 disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between pt-3">
                       {formData.eventScheduleType !== 'single' ? (
@@ -3493,12 +3663,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
                           ticketType: ticketCategoryType, // 'free' or 'paid'
                           name: ticketName || (ticketCategoryType === 'free' ? 'Free Ticket' : ''), 
                           price: ticketCategoryType === 'free' ? '0' : price, 
-                          qty: ticketCategoryType === 'free' ? '100' : quantity, 
-                          available: ticketCategoryType === 'free' ? '100' : (available || quantity),
-                          startDate: '', 
-                          startTime: '',
-                          endDate: '', 
-                          endTime: '',
+                          qty: ticketCategoryType === 'free' ? (quantity || '100') : quantity, 
+                          available: ticketCategoryType === 'free' ? (available || quantity || '100') : (available || quantity),
+                          startDate: ticketCategoryType === 'free' ? startDate : '', 
+                          startTime: ticketCategoryType === 'free' ? startTime : '',
+                          endDate: ticketCategoryType === 'free' ? endDate : '', 
+                          endTime: ticketCategoryType === 'free' ? endTime : '',
                           ebPrice: '-', 
                           ebQty: '-',
                           ebStart: '-', 
@@ -3544,8 +3714,6 @@ const formatDateToDDMMYYYY = (dateStr) => {
                       {editingIndex !== null ? 'Update' : 'Save'}
                     </button>
                     </div>
-                    </div>
-                    )}
                   </div>
                 )}
 
