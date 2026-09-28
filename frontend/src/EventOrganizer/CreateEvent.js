@@ -110,6 +110,7 @@ const [openSlotIndex, setOpenSlotIndex] = useState(null);
   const [mapZoom, setMapZoom] = useState(15);
   const [selectedSeatMapId, setSelectedSeatMapId] = useState(null);
   const [guideQuestions, setGuideQuestions] = useState([]);
+ const [ticketCategoryTypes, setTicketCategoryTypes] = useState({});
   const [formData, setFormData] = useState({
     // Step 1
     eventTitle: '',
@@ -193,6 +194,44 @@ const getSlotDuration = (start, end) => {
   return { hours: Math.floor(diff / 60), minutes: diff % 60 };
 };
 
+// useEffect(() => {
+//   if (activeStep === 2) {
+//     // Check if hashtags are empty or only contain default empty values
+//     const areHashtagsEmpty = formData.hashtags.every(tag => !tag || tag.trim() === '' || tag === '#');
+    
+//     // ONLY generate if hashtags are empty and title is present
+//     if (areHashtagsEmpty && formData.eventTitle) {
+//       const payload = {
+//         eventTitle: formData.eventTitle,
+//         eventCategoryName: selectedMasterCardObj?.categoryName || formData.eventCategory,
+//         subCategoryName: formData.eventSubCategory,
+//         typeName: formData.eventType,
+//         eventFormat: formData.eventFormat,
+//         eventLanguages: formData.eventLanguages,
+//         fullDescription: formData.fullDescription
+//       };
+
+//       console.log("Sending payload to generate AI hashtags:", payload);
+
+//       API.post('/events/generate-hashtags', payload)
+//         .then((res) => {
+//           console.log("Hashtags response received:", res.data);
+//           const generatedTags = res.data?.hashtags || [];
+//           if (Array.isArray(generatedTags) && generatedTags.length > 0) {
+//             const paddedTags = [...generatedTags, '', '', '', '', ''].slice(0, 5);
+//             setFormData(prev => ({ ...prev, hashtags: paddedTags }));
+//             toast.success('AI SEO hashtags generated!');
+//           }
+//         })
+//         .catch((err) => {
+//           console.error("Failed to auto-generate hashtags:", err);
+//           toast.error("Failed to generate AI hashtags.");
+//         });
+//     }
+//   }
+// }, [activeStep]);
+
+
 useEffect(() => {
   if (activeStep === 2) {
     // Check if hashtags are empty or only contain default empty values
@@ -200,36 +239,48 @@ useEffect(() => {
     
     // ONLY generate if hashtags are empty and title is present
     if (areHashtagsEmpty && formData.eventTitle) {
-      const payload = {
-        eventTitle: formData.eventTitle,
-        eventCategoryName: selectedMasterCardObj?.categoryName || formData.eventCategory,
-        subCategoryName: formData.eventSubCategory,
-        typeName: formData.eventType,
-        eventFormat: formData.eventFormat,
-        eventLanguages: formData.eventLanguages,
-        fullDescription: formData.fullDescription
-      };
+      const tags = [];
 
-      console.log("Sending payload to generate AI hashtags:", payload);
+      // 1. From Event Title (e.g., "Music Adda" -> #MusicAdda)
+      if (formData.eventTitle) {
+        const cleanTitle = formData.eventTitle.replace(/[^a-zA-Z0-9]/g, '');
+        if (cleanTitle) tags.push(`#${cleanTitle}`);
+      }
 
-      API.post('/events/generate-hashtags', payload)
-        .then((res) => {
-          console.log("Hashtags response received:", res.data);
-          const generatedTags = res.data?.hashtags || [];
-          if (Array.isArray(generatedTags) && generatedTags.length > 0) {
-            const paddedTags = [...generatedTags, '', '', '', '', ''].slice(0, 5);
-            setFormData(prev => ({ ...prev, hashtags: paddedTags }));
-            toast.success('AI SEO hashtags generated!');
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to auto-generate hashtags:", err);
-          toast.error("Failed to generate AI hashtags.");
-        });
+      // 2. From SubCategory or Type
+      if (formData.eventSubCategory) {
+        tags.push(`#${formData.eventSubCategory.replace(/\s+/g, '')}`);
+      } else if (formData.eventType) {
+        tags.push(`#${formData.eventType.replace(/\s+/g, '')}`);
+      }
+
+      // 3. From Event Format (e.g., "Live Event" -> #LiveEvent)
+      if (formData.eventFormat) {
+        tags.push(`#${formData.eventFormat.replace(/\s+/g, '')}`);
+      }
+
+      // 4. From Languages (e.g., "English" -> #EnglishEvent)
+      if (Array.isArray(formData.eventLanguages) && formData.eventLanguages.length > 0) {
+        tags.push(`#${formData.eventLanguages[0].replace(/\s+/g, '')}Event`);
+      }
+
+      // 5. Default fallback tag
+      tags.push('#ShowIsHere');
+
+      // Ensure unique hashtags, slice to exactly 5, and pad if necessary
+      const uniqueTags = [...new Set(tags)];
+      while (uniqueTags.length < 5) {
+        uniqueTags.push(`#Event${uniqueTags.length + 1}`);
+      }
+
+      const generatedTags = uniqueTags.slice(0, 5);
+      const paddedTags = [...generatedTags, '', '', '', '', ''].slice(0, 5);
+
+      // Update state instantly on the frontend
+      setFormData(prev => ({ ...prev, hashtags: paddedTags }));
     }
   }
 }, [activeStep]);
-
 
 useEffect(() => {
   let isCurrentRequest = true;
@@ -792,11 +843,13 @@ const formatDateToDDMMYYYY = (dateStr) => {
           : ''
       )
     },
-    ticketTiers: (savedTickets || []).map((t) => ({
-      ticketName: t.name,
-      price: Number(t.price) || 0,
-      quantity: Number(t.qty) || 0,
-      available: Number(t.available) || 0,
+  ticketTiers: (savedTickets || []).map((t) => ({
+      ticketType: t.ticketType || 'paid',
+      ticketName: t.name || '',
+      // If it's free, allow 0 or empty; if paid, parse number
+      price: t.ticketType === 'free' ? 0 : (Number(t.price) || 0),
+      quantity: t.ticketType === 'free' ? (Number(t.qty) || 0) : (Number(t.qty) || 0),
+      available: t.ticketType === 'free' ? (Number(t.available) || 0) : (Number(t.available) || 0),
       slotDate: t.slotDate || '',
       eventStartTime: t.startTime || '',
       eventEndTime: t.endTime || '',
@@ -919,12 +972,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
           venuePinCode: '',
           googleMapLink: '',
           minAgeLimit: '',
-          durationHours: formData.schedule.startTime && formData.schedule.endTime 
-              ? String(getSlotDuration(formData.schedule.startTime, formData.schedule.endTime).hours) 
+         durationHours: formData.startTime && formData.endTime 
+              ? String(getSlotDuration(formData.startTime, formData.endTime).hours) 
               : '',
-            durationMinutes: formData.schedule.startTime && formData.schedule.endTime 
-              ? String(getSlotDuration(formData.schedule.startTime, formData.schedule.endTime).minutes) 
-              : '',
+              durationMinutes: formData.startTime && formData.endTime 
+                  ? String(getSlotDuration(formData.startTime, formData.endTime).minutes) 
+                  : '',
           guideResponses: [],
           contactName: '',
           contactEmail: '',
@@ -2781,6 +2834,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
           )
     ).map((slot, slotIdx) => {
         const displayDate = slot.date || formData.startDate || '';
+        const ticketCategoryType = ticketCategoryTypes[slotIdx] || null;
         const displayStart = slot.startTime || '';
         const displayEnd = slot.endTime || '';
 
@@ -2851,12 +2905,15 @@ const formatDateToDDMMYYYY = (dateStr) => {
                       type="button"
                       onClick={() => {
                         setEditingIndex(null);
+                        
                         setTicketName(''); setPrice(''); setQuantity(''); setAvailable('');
                         setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
                         setHasEarlyBird(false);
                         setEbPrice(''); setEbQuantity(''); setEbStartDate(''); setEbStartTime(''); setEbEndDate(''); setEbEndTime('');
                         setSameTicketForEvent(false);
+                       setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: null }));
                         setShowTicketForm(!showTicketForm);
+                        
                       }}
                       className="ml-3 text-slate-800 hover:text-blue-600 font-bold text-lg px-2 cursor-pointer transition"
                     >
@@ -2974,7 +3031,54 @@ const formatDateToDDMMYYYY = (dateStr) => {
                 {/* Ticket Form */}
                 {showTicketForm && (
                   <div className="space-y-5 pt-2 border-t border-slate-200">
-                    
+                    {/* Free / Paid Selector Cards */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div
+                        onClick={() => {
+                          setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'free' }));
+                          setPrice('0');
+                        }}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                          ticketCategoryType === 'free' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <input 
+                          type="radio" 
+                          name={`ticketType_${slotIdx}`} 
+                          checked={ticketCategoryType === 'free'} 
+                          onChange={() => {}} 
+                          className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
+                        />
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">Free</h4>
+                          <p className="text-[10px] text-slate-500 leading-tight mt-0.5">No payment required. Attendees can book tickets for free.</p>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => {
+                          setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'paid' }));
+                          if (price === '0') setPrice('');
+                        }}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 ${
+                          ticketCategoryType === 'paid' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <input 
+                          type="radio" 
+                          name={`ticketType_${slotIdx}`} 
+                          checked={ticketCategoryType === 'paid'} 
+                          onChange={() => {}} 
+                          className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
+                        />
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">Paid</h4>
+                          <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Set a price and manage ticket sales for your event.</p>
+                        </div>
+                      </div>
+                    </div>
+                    {ticketCategoryType === 'paid' && (
+          <div className="space-y-5">
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-6">
                       <div className="sm:col-span-5 space-y-1.5">
                         <label className="text-[11px] font-medium text-slate-800 block">Ticket Name</label>
@@ -3280,78 +3384,78 @@ const formatDateToDDMMYYYY = (dateStr) => {
                           </label>
                         </div>
                       ) : <div />}
-                      <button 
-                        type="button" 
-                        onClick={() => {
-                          if (!ticketName || !price || !quantity) return toast.error('Please fill required ticket details.', { id: 'ticket-val' });
-                          if (available && Number(available) > Number(quantity)) {
-                            return toast.error('Available tickets cannot be greater than total quantity.', { id: 'ticket-val-avail' });
-                          }
-                          if (hasEarlyBird && ebQuantity && Number(ebQuantity) > Number(quantity)) {
-                            return toast.error('Early bird quantity cannot exceed ticket quantity.', { id: 'ticket-val-eb' });
-                          }
-                          if (startDate && startDate < todayStr) {
-                            return toast.error('Ticket sales start date cannot be before current date.', { id: 'ticket-val-min-date' });
-                          }
-                          if (startDate && displayDate && startDate >= displayDate) {
-                            return toast.error('Ticket sales start date must be strictly before the event date.', { id: 'ticket-val-date' });
-                          }
-                          if (endDate && startDate && endDate < startDate) return toast.error('End date cannot be before start date.', { id: 'time-val' });
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        if (!ticketCategoryType) return toast.error('Please select Free or Paid ticket type.', { id: 'type-val' });
 
-                          const newTicketData = { 
-                            name: ticketName, 
-                            price, 
-                            qty: quantity, 
-                            available: available || quantity,
-                            startDate: startDate || '', 
-                            startTime: startTime || '',
-                            endDate: endDate || '', 
-                            endTime: endTime || '',
-                            ebPrice: hasEarlyBird ? ebPrice : '-', 
-                            ebQty: hasEarlyBird ? ebQuantity : '-',
-                            ebStart: hasEarlyBird ? ebStartDate : '-', 
-                            ebStartTime: hasEarlyBird ? ebStartTime : '-',
-                            ebEnd: hasEarlyBird ? ebEndDate : '-', 
-                            ebEndTime: hasEarlyBird ? ebEndTime : '-',
-                            slotDate: (formData.eventScheduleType !== 'single' && sameTicketForEvent) ? 'all' : displayDate,
-                            startTime: displayStart
-                          };
+                        // Validation for Paid: require name, price, and quantity
+                        if (ticketCategoryType === 'paid' && (!ticketName || !price || !quantity)) {
+                          return toast.error('Please fill required ticket details.', { id: 'ticket-val' });
+                        }
 
-                          if (editingIndex !== null) {
-                            const updated = [...savedTickets];
-                            updated[editingIndex] = newTicketData;
-                            setSavedTickets(updated);
-                            toast.success('Ticket updated successfully!', { id: 'ticket-toast' });
-                          } else {
-                            setSavedTickets([...savedTickets, newTicketData]);
-                            toast.success('Ticket added!', { id: 'ticket-toast' });
-                          }
+                        if (ticketCategoryType === 'paid' && available && Number(available) > Number(quantity)) {
+                          return toast.error('Available tickets cannot be greater than total quantity.', { id: 'ticket-val-avail' });
+                        }
 
-                          setTicketName(''); 
-                          setPrice(''); 
-                          setQuantity(''); 
-                          setAvailable('');
-                          setStartDate(''); 
-                          setStartTime(''); 
-                          setEndDate(''); 
-                          setEndTime('');
-                          setHasEarlyBird(false);
-                          setEbPrice('');
-                          setEbQuantity('');
-                          setEbStartDate('');
-                          setEbStartTime('');
-                          setEbEndDate('');
-                          setEbEndTime('');
-                          setSameTicketForEvent(false);
-                          setEditingIndex(null);
-                          setShowTicketForm(false);
-                        }} 
-                        className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-2xs transition cursor-pointer"
-                      >
-                        {editingIndex !== null ? 'Update' : 'Save'}
-                      </button>
+                        // Build the ticket data object
+                        const newTicketData = { 
+                          ticketType: ticketCategoryType, // 'free' or 'paid'
+                          name: ticketName || (ticketCategoryType === 'free' ? 'Free Ticket' : ''), 
+                          price: ticketCategoryType === 'free' ? '0' : price, 
+                          qty: ticketCategoryType === 'free' ? '100' : quantity, 
+                          available: ticketCategoryType === 'free' ? '100' : (available || quantity),
+                          startDate: '', 
+                          startTime: '',
+                          endDate: '', 
+                          endTime: '',
+                          ebPrice: '-', 
+                          ebQty: '-',
+                          ebStart: '-', 
+                          ebStartTime: '-',
+                          ebEnd: '-', 
+                          ebEndTime: '-',
+                          slotDate: (formData.eventScheduleType !== 'single' && sameTicketForEvent) ? 'all' : displayDate,
+                          startTime: displayStart
+                        };
+
+                        if (editingIndex !== null) {
+                          const updated = [...savedTickets];
+                          updated[editingIndex] = newTicketData;
+                          setSavedTickets(updated);
+                          toast.success('Ticket updated successfully!', { id: 'ticket-toast' });
+                        } else {
+                          setSavedTickets([...savedTickets, newTicketData]);
+                          toast.success('Ticket added!', { id: 'ticket-toast' });
+                        }
+
+                        // Reset form states
+                        setTicketName(''); 
+                        setPrice(''); 
+                        setQuantity(''); 
+                        setAvailable('');
+                        setStartDate(''); 
+                        setStartTime(''); 
+                        setEndDate(''); 
+                        setEndTime('');
+                        setHasEarlyBird(false);
+                        setEbPrice('');
+                        setEbQuantity('');
+                        setEbStartDate('');
+                        setEbStartTime('');
+                        setEbEndDate('');
+                        setEbEndTime('');
+                        setSameTicketForEvent(false);
+                        setEditingIndex(null);
+                        setShowTicketForm(false);
+                      }} 
+                      className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-2xs transition cursor-pointer"
+                    >
+                      {editingIndex !== null ? 'Update' : 'Save'}
+                    </button>
                     </div>
-
+                    </div>
+                    )}
                   </div>
                 )}
 
@@ -3364,6 +3468,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
     </div>
   </div>
   </div>
+  
 )}
 
 {activeStep === 5 && (

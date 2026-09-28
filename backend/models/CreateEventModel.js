@@ -9,10 +9,11 @@ const timeSlotSchema = new mongoose.Schema({
 }, { _id: false });
 
 const ticketTierSchema = new mongoose.Schema({
-  ticketName: { type: String, required: true },
-  price: { type: Number, required: true },
-  quantity: { type: Number, required: true },
-  available: { type: Number, required: true },
+  ticketType: { type: String, enum: ['free', 'paid'], default: 'paid' },
+  ticketName: { type: String, default: '' },    
+  price: { type: Number, default: 0 },         
+  quantity: { type: Number, default: 0 },    
+  available: { type: Number, default: 0 },
   slotDate: { type: String, default: '' },
   eventStartTime: { type: String, default: '' },
   eventEndTime: { type: String, default: '' },
