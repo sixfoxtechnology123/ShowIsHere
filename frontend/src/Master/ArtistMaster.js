@@ -275,20 +275,40 @@ const ArtistMaster = () => {
                       />
                     </div>
 
-                    <div>
+                  <div>
                       <label className={artistLabelStyle}>Type / Category</label>
                       <select
                         value={artistType}
                         onChange={(e) => setArtistType(e.target.value)}
                         className={artistInputStyle}
                       >
-                        <option value="Artist">Artist</option>
-                        <option value="Singer">Singer</option>
+                        <option value="">Select Category</option>
                         <option value="Actor">Actor</option>
+                        <option value="Artist">Artist</option>
+                        <option value="Athlete">Athlete</option>
+                        <option value="Author">Author</option>
                         <option value="Band">Band</option>
-                        <option value="DJ">DJ</option>
+                        <option value="Choreographer">Choreographer</option>
+                        <option value="Coach">Coach</option>
                         <option value="Comedian">Comedian</option>
+                        <option value="Director">Director</option>
+                        <option value="DJ">DJ</option>
+                        <option value="Elocutionist">Elocutionist</option>
+                        <option value="Exhibitor">Exhibitor</option>
+                        <option value="Expert">Expert</option>
+                        <option value="Filmmaker">Filmmaker</option>
+                        <option value="Guest">Guest</option>
+                        <option value="Guide">Guide</option>
+                        <option value="Instructor">Instructor</option>
+                        <option value="Mentor">Mentor</option>
+                        <option value="Musician">Musician</option>
                         <option value="Performer">Performer</option>
+                        <option value="Poet">Poet</option>
+                        <option value="RJ">RJ</option>
+                        <option value="Singer">Singer</option>
+                        <option value="Speaker">Speaker</option>
+                        <option value="Trainer">Trainer</option>
+                        <option value="Writer">Writer</option>
                       </select>
                     </div>
                   </div>

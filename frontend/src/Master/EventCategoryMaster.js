@@ -466,7 +466,7 @@ const handleSubmitAll = async (e) => {
 {/* LIST MODAL POPUP SHOWING ALL SAVED CATEGORIES IN A COMPACT TABLE */}
         {showListModal && (
           <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto shadow-xl">
+            <div className="bg-white rounded-2xl max-w-5xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-xl">
               <div className="flex justify-between items-center border-b pb-3">
                 <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                   Saved Categories Directory ({existingCategoriesData.length})
@@ -487,13 +487,13 @@ const handleSubmitAll = async (e) => {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-y border-slate-200 text-slate-700">
-                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/4">Sl</th>
-                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/4">Category</th>
-                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider w-1/3">Subcategories & Event Types</th>
-                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider">Status</th>
+                        <th className="py-2.5 px-3 font-semibold tracking-wider w-1/4">Sl</th>
+                        <th className="py-2.5 px-3 font-semibold tracking-wider w-1/4">Category</th>
+                        <th className="py-2.5 px-3 font-semibold tracking-wider w-1/3">Subcategories & Event Types</th>
+                        <th className="py-2.5 px-3 font-semibold tracking-wider">Status</th>
 
        
-                        <th className="py-2.5 px-3 font-bold uppercase tracking-wider text-right w-1/6">Action</th>
+                        <th className="py-2.5 px-3 font-semibold tracking-wider text-right w-1/6">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -503,30 +503,30 @@ const handleSubmitAll = async (e) => {
                              <td className="py-3 px-3 font-semibold text-slate-600 align-top">
                             {idx+1}
                           </td>
-                          <td className="py-3 px-3 font-bold text-slate-900 align-top">
+                          <td className="py-3 px-3 font-semibold text-slate-900 align-top">
                             {item.categoryName}
                           </td>
                          
 
                           {/* Compact Subcategories & Event Types Summary */}
-                          <td className="py-3 px-3 text-slate-700 align-top">
-                            {(!item.subCategories || item.subCategories.length === 0) ? (
-                              <span className="text-slate-400 italic">No subcategories</span>
-                            ) : (
-                              <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                                {item.subCategories.map((sub, sIdx) => (
-                                  <div key={sIdx} className="bg-slate-100/70 p-1.5 rounded border border-slate-200/60 text-[11px]">
-                                    <span className="font-semibold text-sm text-slate-900 block">{sub.subCategoryName}</span>
-                                    <span className="text-slate-600 block text-[14px] mt-0.5">
-                                      {sub.eventTypes && sub.eventTypes.length > 0 
-                                        ? sub.eventTypes.map(t => t.typeName).join(', ') 
-                                        : <span className="text-slate-400 italic">No event types</span>}
-                                    </span>
-                                  </div>
-                                ))}
+                        <td className="py-3 px-3 text-slate-700 align-top">
+                        {(!item.subCategories || item.subCategories.length === 0) ? (
+                          <span className="text-slate-400 italic">No subcategories</span>
+                        ) : (
+                          <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                            {item.subCategories.map((sub, sIdx) => (
+                              <div key={sIdx} className="bg-slate-100/70 p-1.5  text-[11px]">
+                                <span className="font-semibold text-sm text-slate-900 block">{sub.subCategoryName}</span>
+                                <span className="text-slate-600 block text-[14px] mt-0.5">
+                                  {sub.eventTypes && sub.eventTypes.length > 0 
+                                    ? sub.eventTypes.map(t => t.typeName).join(', ') 
+                                    : <span className="text-slate-400 italic">No event types</span>}
+                                </span>
                               </div>
-                            )}
-                          </td>
+                            ))}
+                          </div>
+                        )}
+                      </td>
 
                          <td className="py-2 px-2">
                           <span className={item.status === 'ACTIVE' ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold' : 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold'}>

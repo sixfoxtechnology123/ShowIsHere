@@ -3,6 +3,8 @@ import toast from 'react-hot-toast';
 import { Link, useNavigate, useLocation} from 'react-router-dom';
 import SeatMapViewer from './../components/SeatMap';
 import { indianCities } from '../utils/indianCities';
+import defaultAvatar from '../assets/avatar.jpg';
+
 
 import API from '../utils/api';
 import Logo from '../assets/Logo.jpeg';
@@ -111,6 +113,8 @@ const [openSlotIndex, setOpenSlotIndex] = useState(null);
   const [selectedSeatMapId, setSelectedSeatMapId] = useState(null);
   const [guideQuestions, setGuideQuestions] = useState([]);
  const [ticketCategoryTypes, setTicketCategoryTypes] = useState({});
+ const [profilePhoto, setProfilePhoto] = useState(defaultAvatar);
+  const [orgName, setOrgName] = useState('');
   const [formData, setFormData] = useState({
     // Step 1
     eventTitle: '',
@@ -164,6 +168,28 @@ const [openSlotIndex, setOpenSlotIndex] = useState(null);
     contactMobile: ''
   });
 
+  const [orgStatus, setOrgStatus] = useState('approved'); // default fallback
+
+  useEffect(() => {
+    const fetchOrgKycStatus = async () => {
+      try {
+        const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+        const mobile = savedUser.loginMobileNumber || savedUser.contactMobile || localStorage.getItem('loginMobileNumber');
+
+        if (mobile) {
+          const resData = await API.get(`/org/profile?loginMobileNumber=${mobile}`);
+          if (resData && resData.success && resData.data) {
+            // Set the approval status from the org profile response
+            setOrgStatus(resData.data.approvalStatus || 'pending');
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching org KYC status:', err);
+      }
+    };
+
+    fetchOrgKycStatus();
+  }, []);
 
   const steps = [
     { id: 1, label: 'Event Details' },
@@ -231,6 +257,29 @@ const getSlotDuration = (start, end) => {
 //   }
 // }, [activeStep]);
 
+
+useEffect(() => {
+    const fetchProfilePhoto = async () => {
+      try {
+        const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+        const mobile = savedUser.loginMobileNumber || savedUser.contactMobile || localStorage.getItem('loginMobileNumber');
+
+        if (mobile) {
+          const resData = await API.get(`/profile?loginMobileNumber=${mobile}`);
+          
+          if (resData && resData.success && resData.data) {
+            const u = resData.data;
+            if (u.orgName) setOrgName(u.orgName);
+            if (u.profilePhoto) setProfilePhoto(u.profilePhoto);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching header profile photo:', err);
+      }
+    };
+
+    fetchProfilePhoto();
+  }, []);
 
 useEffect(() => {
   if (activeStep === 2) {
@@ -491,14 +540,21 @@ useEffect(() => {
   }
 }, [location.key]); // <--- Ensures effect runs on every click/navigation
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    setIsDataSaved(false);
-  };
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+
+  let processedValue = value;
+  if (name === 'contactMobile') {
+    // Allow only numbers and restrict to a maximum of 10 digits
+    processedValue = value.replace(/\D/g, '').slice(0, 10);
+  }
+
+  setFormData({
+    ...formData,
+    [name]: processedValue
+  });
+  setIsDataSaved(false);
+};
 
 
 
@@ -888,6 +944,16 @@ const formatDateToDDMMYYYY = (dateStr) => {
       return toast.error('Please select an Event Category.');
     }
 
+    if (formData.contactEmail && !/\S+@\S+\.\S+/.test(formData.contactEmail)) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  // Validate Mobile only if the user entered something
+  if (formData.contactMobile && formData.contactMobile.length !== 10) {
+    alert("Mobile number must be exactly 10 digits.");
+    return;
+  }
     setIsSaving(true);
     try {
       const payload = buildPayload();
@@ -914,6 +980,17 @@ const formatDateToDDMMYYYY = (dateStr) => {
     if (activeStep === 3 && !formData.venueName.trim()) {
       return toast.error('Please enter the Venue Name.');
     }
+
+    if (formData.contactEmail && !/\S+@\S+\.\S+/.test(formData.contactEmail)) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  // Validate Mobile only if the user entered something
+  if (formData.contactMobile && formData.contactMobile.length !== 10) {
+    alert("Mobile number must be exactly 10 digits.");
+    return;
+  }
 
     try {
       const payload = buildPayload();
@@ -1045,12 +1122,19 @@ const formatDateToDDMMYYYY = (dateStr) => {
             })}
           </div>
 
-          <div className={accountUserIconBox}>
-            <span>👤</span>
+          <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 flex items-center justify-center bg-slate-100">
+            <img 
+              src={profilePhoto} 
+              alt={orgName} 
+              className="w-full h-full object-cover" 
+              onError={(e) => { e.target.src = defaultAvatar; }} 
+            />
           </div>
         </div>
-      </header>
-
+      </div>
+    </header>
+ 
       <main className={accountMainContainer}>
         <div className={accountTitleSection}>
           <h1 className={accountMainTitle}>{activeStep === 1 && 'Event Details'}</h1>
@@ -3652,20 +3736,44 @@ const formatDateToDDMMYYYY = (dateStr) => {
                 </div>
                 <div>
                   <label className={accountLabelStyle}>Email</label>
-                  <input type="email" name="contactEmail" placeholder="Email" value={formData.contactEmail} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
+                  <input 
+                    type="email" 
+                    name="contactEmail" 
+                    placeholder="Enter email address" 
+                    value={formData.contactEmail} 
+                    onChange={handleInputChange} 
+                    className={`${inputFieldStyle} border-2`} 
+                    required
+                  />
+                  {/* {formData.contactEmail && !/\S+@\S+\.\S+/.test(formData.contactEmail) && (
+                    <span className="text-[11px] text-red-500 mt-1 block">Please enter a valid email address</span>
+                  )} */}
                 </div>
+
                 <div>
                   <label className={accountLabelStyle}>Mobile</label>
-                  <input type="text" name="contactMobile" placeholder="Mobile" value={formData.contactMobile} onChange={handleInputChange} className={`${inputFieldStyle} border-2`} />
+                  <input 
+                    type="text" 
+                    name="contactMobile" 
+                    placeholder="10-digit mobile number" 
+                    value={formData.contactMobile} 
+                    onChange={handleInputChange} 
+                    maxLength={10}
+                    className={`${inputFieldStyle} border-2`} 
+                  />
+                  {/* {formData.contactMobile && formData.contactMobile.length < 10 && (
+                    <span className="text-[11px] text-red-500 mt-1 block">Mobile number must be exactly 10 digits</span>
+                  )} */}
                 </div>
               </div>
-
-              <div className="w-full absolute left-1/2 -translate-x-1/2 bottom-44 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-center gap-2 text-xs text-amber-700 font-medium p-3 max-w-[calc(100%-4rem)] sm:max-w-xl md:max-w-2xl">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 shrink-0">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-              </svg>
-              <span>Your KYC verification is in progress.</span>
-            </div>
+                {String(orgStatus || '').toLowerCase() === 'pending' && (
+                  <div className="w-full absolute left-1/2 -translate-x-1/2 bottom-44 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-center gap-2 text-xs text-amber-700 font-medium p-3 max-w-[calc(100%-4rem)] sm:max-w-xl md:max-w-2xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 shrink-0">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                    <span>Your KYC verification is in progress.</span>
+                  </div>
+                )}
             </div>
           )}
 
