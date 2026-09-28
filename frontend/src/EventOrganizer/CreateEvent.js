@@ -32,6 +32,8 @@ import {
   inputFieldStyleduration
 } from '../styles/MasterCSSClass';
 
+
+
 const formatTo12Hour = (timeStr) => {
   if (!timeStr) return '';
   const [hourStr, minuteStr] = timeStr.split(':');
@@ -161,6 +163,7 @@ const [openSlotIndex, setOpenSlotIndex] = useState(null);
     contactMobile: ''
   });
 
+
   const steps = [
     { id: 1, label: 'Event Details' },
     { id: 2, label: 'Artist & Content' },
@@ -180,6 +183,15 @@ const [isDraggingImg, setIsDraggingImg] = useState(false);
 const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
 const seatMapBoxRef = useRef(null);
 
+
+const getSlotDuration = (start, end) => {
+  if (!start || !end) return { hours: formData.durationHours || 0, minutes: formData.durationMinutes || 0 };
+  const [sH, sM] = start.split(':').map(Number);
+  const [eH, eM] = end.split(':').map(Number);
+  let diff = (eH * 60 + eM) - (sH * 60 + sM);
+  if (diff < 0) diff += 1440; // wrap-around
+  return { hours: Math.floor(diff / 60), minutes: diff % 60 };
+};
 
 useEffect(() => {
   if (activeStep === 2) {
@@ -732,9 +744,41 @@ const formatDateToDDMMYYYY = (dateStr) => {
       endDate: formData.endDate ? formatDateToDDMMYYYY(formData.endDate) : null,
       startTime: formData.eventScheduleType !== 'recurring' ? (formData.startTime || '') : '',
       endTime: formData.eventScheduleType !== 'recurring' ? (formData.endTime || '') : '',
-      dailyTimeSlots: formData.eventScheduleType === 'recurring' && formData.recurringType === 'daily' ? (formData.dailyTimeSlots || []) : [],
+      
+      // Single event duration hours & minutes
+      durationHours: formData.eventScheduleType !== 'recurring' && formData.startTime && formData.endTime 
+        ? String(getSlotDuration(formData.startTime, formData.endTime).hours) 
+        : '',
+      durationMinutes: formData.eventScheduleType !== 'recurring' && formData.startTime && formData.endTime 
+        ? String(getSlotDuration(formData.startTime, formData.endTime).minutes) 
+        : '',
+
+      // Daily time slots with calculated duration per slot
+      dailyTimeSlots: formData.eventScheduleType === 'recurring' && formData.recurringType === 'daily' 
+        ? (formData.dailyTimeSlots || []).map(slot => {
+            const dur = getSlotDuration(slot.startTime, slot.endTime);
+            return {
+              ...slot,
+              durationHours: slot.startTime && slot.endTime ? String(dur.hours) : '',
+              durationMinutes: slot.startTime && slot.endTime ? String(dur.minutes) : ''
+            };
+          }) 
+        : [],
+
       selectedWeeklyDates: formData.eventScheduleType === 'recurring' && formData.recurringType === 'weekly' ? (formData.selectedWeeklyDates || []) : [],
-      weeklyTimeSlots: formData.eventScheduleType === 'recurring' && formData.recurringType === 'weekly' ? (formData.weeklyTimeSlots || []) : [],
+      
+      // Weekly time slots with calculated duration per slot
+      weeklyTimeSlots: formData.eventScheduleType === 'recurring' && formData.recurringType === 'weekly' 
+        ? (formData.weeklyTimeSlots || []).map(slot => {
+            const dur = getSlotDuration(slot.startTime, slot.endTime);
+            return {
+              ...slot,
+              durationHours: slot.startTime && slot.endTime ? String(dur.hours) : '',
+              durationMinutes: slot.startTime && slot.endTime ? String(dur.minutes) : ''
+            };
+          }) 
+        : [],
+
       sameTimeSlotForAll: formData.eventScheduleType === 'recurring' ? (formData.sameTimeSlotForAll || false) : false
     },
     venue: {
@@ -748,7 +792,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
           : ''
       )
     },
- ticketTiers: (savedTickets || []).map((t) => ({
+    ticketTiers: (savedTickets || []).map((t) => ({
       ticketName: t.name,
       price: Number(t.price) || 0,
       quantity: Number(t.qty) || 0,
@@ -756,7 +800,6 @@ const formatDateToDDMMYYYY = (dateStr) => {
       slotDate: t.slotDate || '',
       eventStartTime: t.startTime || '',
       eventEndTime: t.endTime || '',
-
       startDate: t.startDate || '',
       startTime: t.startTime || '',
       endDate: t.endDate || '',
@@ -768,11 +811,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
       ebEnd: t.ebEnd || '-',
       ebEndTime: t.ebEndTime || '-'
     })),
-   guideResponses: (formData.guideResponses || []).filter(g => {
-  const hasText = g.answerText && g.answerText.trim() !== '';
-  const hasSelection = g.selectedOptions && g.selectedOptions.length > 0 && g.selectedOptions[0] !== '';
-  return hasText || hasSelection;
-}),
+    guideResponses: (formData.guideResponses || []).filter(g => {
+      const hasText = g.answerText && g.answerText.trim() !== '';
+      const hasSelection = g.selectedOptions && g.selectedOptions.length > 0 && g.selectedOptions[0] !== '';
+      return hasText || hasSelection;
+    }),
     minAgeLimit: formData.minAgeLimit || '',
     durationHours: formData.durationHours || '',
     durationMinutes: formData.durationMinutes || '',
@@ -876,8 +919,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
           venuePinCode: '',
           googleMapLink: '',
           minAgeLimit: '',
-          durationHours: '',
-          durationMinutes: '',
+          durationHours: formData.schedule.startTime && formData.schedule.endTime 
+              ? String(getSlotDuration(formData.schedule.startTime, formData.schedule.endTime).hours) 
+              : '',
+            durationMinutes: formData.schedule.startTime && formData.schedule.endTime 
+              ? String(getSlotDuration(formData.schedule.startTime, formData.schedule.endTime).minutes) 
+              : '',
           guideResponses: [],
           contactName: '',
           contactEmail: '',
@@ -1752,6 +1799,14 @@ const formatDateToDDMMYYYY = (dateStr) => {
         />
       </div>
     </div>
+    {(formData.startTime && formData.endTime) && (() => {
+      const dur = getSlotDuration(formData.startTime, formData.endTime);
+      return (
+        <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-4 py-1.5 rounded-md mt-2">
+          Duration : {dur.hours} Hours {dur.minutes} Minutes
+        </div>
+      );
+    })()}
   </div>
 )}
 
@@ -1834,121 +1889,130 @@ const formatDateToDDMMYYYY = (dateStr) => {
         <div className="space-y-3 w-full">
           <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
           
-          {(formData.dailyTimeSlots || [{ startTime: '', endTime: '' }]).map((slot, index, arr) => {
+        {(formData.dailyTimeSlots || [{ startTime: '', endTime: '' }]).map((slot, index, arr) => {
             const isLast = index === arr.length - 1;
             const hasMultiple = arr.length > 1;
 
             return (
-              <div key={index} className="flex items-center gap-3 w-full">
-         <div className="flex items-center gap-3 w-full">
-  {/* Start Time Input */}
-  <div className="flex-1">
-    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
-    <input 
-      type="time" 
-      value={slot.startTime} 
-      onChange={(e) => {
-        const val = e.target.value;
-        const slots = [...arr];
-        slots[index].startTime = val;
-        setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
-      }} 
-      onBlur={() => {
-        if (!slot.startTime) return;
-        
-        // Check if start time falls inside another event's time
-        const isStartInsideAnother = arr.some((other, idx) => {
-          if (idx === index) return false;
-          if (!other.startTime || !other.endTime) return false;
-          return slot.startTime >= other.startTime && slot.startTime < other.endTime;
-        });
-
-        if (isStartInsideAnother) {
-          toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'start-err' });
-          
-          // Reset start time
-          const slots = [...arr];
-          slots[index].startTime = '';
-          setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
-        }
-      }}
-      className={`${inputFieldStyle} border-2 w-full`} 
-    />
-  </div>
-
-  <span className="text-slate-400 font-bold mt-5">-</span>
-
-  {/* End Time Input */}
-  <div className="flex-1">
-    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
-    <input 
-      type="time" 
-      disabled={!slot.startTime}
-      value={slot.endTime}
-      onChange={(e) => {
-        const val = e.target.value;
-        if (slot.startTime && val <= slot.startTime) {
-          toast.error('End time must be later than start time.', { id: 'time-val-err' });
-          return;
-        }
-        const slots = [...arr];
-        slots[index].endTime = val;
-        setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
-      }} 
-      onBlur={() => {
-        if (slot.startTime && slot.endTime && hasOverlappingSlots(arr)) {
-          toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'overlap-err' });
-          
-          // Reset end time
-          const slots = [...arr];
-          slots[index].endTime = '';
-          setFormData({ ...formData, dailyTimeSlots: slots }); // (Use weeklyTimeSlots for weekly)
-        }
-      }}
-      className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-    />
-  </div>
-</div>
-
-                {/* Slot Action Buttons */}
-                <div className="mt-5 flex items-center gap-1 ">
-                  {/* Delete button (Always visible when more than 1 row exists) */}
-                  {hasMultiple && (
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        const slots = arr.filter((_, i) => i !== index);
-                        setFormData({ ...formData, dailyTimeSlots: slots });
+              <div key={index} className="flex flex-col space-y-2 w-full pt-2">
+                <div className="flex items-center gap-3 w-full">
+                  {/* Start Time Input */}
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                    <input 
+                      type="time" 
+                      value={slot.startTime} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const slots = [...arr];
+                        slots[index].startTime = val;
+                        setFormData({ ...formData, dailyTimeSlots: slots }); 
                       }} 
-                     className="w-9 h-9 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
-                      title="Delete slot"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
-  <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-</svg>
+                      onBlur={() => {
+                        if (!slot.startTime) return;
+                        
+                        const isStartInsideAnother = arr.some((other, idx) => {
+                          if (idx === index) return false;
+                          if (!other.startTime || !other.endTime) return false;
+                          return slot.startTime >= other.startTime && slot.startTime < other.endTime;
+                        });
 
-                    </button>
-                  )}
+                        if (isStartInsideAnother) {
+                          toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'start-err' });
+                          
+                          const slots = [...arr];
+                          slots[index].startTime = '';
+                          setFormData({ ...formData, dailyTimeSlots: slots }); 
+                        }
+                      }}
+                      className={`${inputFieldStyle} border-2 w-full`} 
+                    />
+                  </div>
 
-                  {/* Add button (Only shown on the last row) */}
-                  {isLast && (
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        const slots = [...arr, { startTime: '', endTime: '' }];
-                        setFormData({ ...formData, dailyTimeSlots: slots });
+                  <span className="text-slate-400 font-bold mt-5">-</span>
+
+                  {/* End Time Input */}
+                  <div className="flex-1">
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
+                    <input 
+                      type="time" 
+                      disabled={!slot.startTime}
+                      value={slot.endTime}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (slot.startTime && val <= slot.startTime) {
+                          toast.error('End time must be later than start time.', { id: 'time-val-err' });
+                          return;
+                        }
+                        const slots = [...arr];
+                        slots[index].endTime = val;
+                        setFormData({ ...formData, dailyTimeSlots: slots }); 
                       }} 
+                      onBlur={() => {
+                        if (slot.startTime && slot.endTime && hasOverlappingSlots(arr)) {
+                          toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'overlap-err' });
+                          
+                          const slots = [...arr];
+                          slots[index].endTime = '';
+                          setFormData({ ...formData, dailyTimeSlots: slots }); 
+                        }
+                      }}
+                      className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                    />
+                  </div>
+                
+                  {/* Slot Action Buttons */}
+                  <div className="mt-5 flex items-center gap-1 ">
+                    {/* Delete button */}
+                    {hasMultiple && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const slots = arr.filter((_, i) => i !== index);
+                          setFormData({ ...formData, dailyTimeSlots: slots });
+                        }} 
+                       className="w-9 h-9 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
+                       title="Delete slot"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* Add button */}
+                    {isLast && (
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const slots = [...arr, { startTime: '', endTime: '' }];
+                          setFormData({ ...formData, dailyTimeSlots: slots });
+                        }} 
                         className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
-                      title="Add time slot"
-                    >
-                      +
-                    </button>
-                  )}
+                        title="Add time slot"
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Duration Badge on bottom row */}
+                {(slot.startTime && slot.endTime) && (() => {
+                  const dur = getSlotDuration(slot.startTime, slot.endTime);
+                  return (
+                    <div>
+                      <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-4 py-1.5 rounded-md">
+                        Duration : {dur.hours} Hours {dur.minutes} Minutes
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
         </div>
+        
       </div>
     ) : (
       /* WEEKLY RECURRING VIEW */
@@ -2091,7 +2155,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
           />
         </div>
 
-        {/* Weekly Dynamic Time Slots */}
+    {/* Weekly Dynamic Time Slots */}
         <div className="space-y-4 w-full pt-2">
           <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
 
@@ -2104,8 +2168,8 @@ const formatDateToDDMMYYYY = (dateStr) => {
                 const hasMultiple = arr.length > 1;
 
                 return (
-                  <div key={index} className="flex items-center gap-3 w-full">
-                   <div className="flex items-center gap-3 w-full">
+                  <div key={index} className="flex flex-col space-y-2 w-full pt-2">
+                    <div className="flex items-center gap-3 w-full">
 
                     <div className="flex-1">
                       <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
@@ -2173,7 +2237,6 @@ const formatDateToDDMMYYYY = (dateStr) => {
                         className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
                       />
                     </div>
-                  </div>
 
                     <div className="mt-5 flex items-center gap-1">
                       {hasMultiple && (
@@ -2207,6 +2270,19 @@ const formatDateToDDMMYYYY = (dateStr) => {
                       )}
                     </div>
                   </div>
+
+                  {/* Duration Badge on bottom row */}
+                  {(slot.startTime && slot.endTime) && (() => {
+                    const dur = getSlotDuration(slot.startTime, slot.endTime);
+                    return (
+                      <div>
+                        <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-4 py-1.5 rounded-md">
+                          Duration : {dur.hours} Hours {dur.minutes} Minutes
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
                 );
               })}
             </div>
@@ -2251,107 +2327,121 @@ const formatDateToDDMMYYYY = (dateStr) => {
                    {dateSlotsWithIndex.map((slotItem, localIndex) => {
                       const isLastRow = localIndex === dateSlotsWithIndex.length - 1;
                       return (
-                        <div key={slotItem.globalIndex} className="flex items-center gap-3 w-full">
-                          {/* Start Time Input */}
-                          <div className="flex-1">
-                            <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
-                            <input 
-                              type="time" 
-                              value={slotItem.startTime} 
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const updated = [...(formData.weeklyTimeSlots || [])];
-                                updated[slotItem.globalIndex].startTime = val;
-                                setFormData({ ...formData, weeklyTimeSlots: updated });
-                              }} 
-                              onBlur={() => {
-                                if (!slotItem.startTime) return;
-                                
-                                const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === dateVal);
-                                const isStartInsideAnother = dateSlots.some((other) => {
-                                  if (other.globalIndex === slotItem.globalIndex) return false;
-                                  if (!other.startTime || !other.endTime) return false;
-                                  return slotItem.startTime >= other.startTime && slotItem.startTime < other.endTime;
-                                });
-
-                                if (isStartInsideAnother) {
-                                  toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'weekly-start-err' });
-                                  
+                        <div key={slotItem.globalIndex} className="flex flex-col space-y-2 w-full pt-1">
+                          <div className="flex items-center gap-3 w-full">
+                            {/* Start Time Input */}
+                            <div className="flex-1">
+                              <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                              <input 
+                                type="time" 
+                                value={slotItem.startTime} 
+                                onChange={(e) => {
+                                  const val = e.target.value;
                                   const updated = [...(formData.weeklyTimeSlots || [])];
-                                  updated[slotItem.globalIndex].startTime = '';
-                                  setFormData({ ...formData, weeklyTimeSlots: updated });
-                                }
-                              }}
-                              className={`${inputFieldStyle} border-2 w-full`} 
-                            />
-                          </div>
-
-                          <span className="text-slate-400 font-bold mt-5">-</span>
-
-                          {/* End Time Input */}
-                          <div className="flex-1">
-                            <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
-                            <input 
-                              type="time" 
-                              disabled={!slotItem.startTime}
-                              value={slotItem.endTime}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (slotItem.startTime && val <= slotItem.startTime) {
-                                  toast.error('End time must be later than start time.', { id: 'time-validation-error' });
-                                  return;
-                                }
-                                const updated = [...(formData.weeklyTimeSlots || [])];
-                                updated[slotItem.globalIndex].endTime = val;
-                                setFormData({ ...formData, weeklyTimeSlots: updated });
-                              }} 
-                              onBlur={() => {
-                                const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === dateVal);
-                                if (slotItem.startTime && slotItem.endTime && hasOverlappingSlots(dateSlots)) {
-                                  toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'weekly-overlap-err' });
-                                  
-                                  const updated = [...(formData.weeklyTimeSlots || [])];
-                                  updated[slotItem.globalIndex].endTime = '';
-                                  setFormData({ ...formData, weeklyTimeSlots: updated });
-                                }
-                              }}
-                              className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-                            />
-                          </div>
-
-                          <div className="mt-5 flex items-center gap-1.5">
-                            {hasMultipleRows && (
-                              <button 
-                                type="button" 
-                                onClick={() => {
-                                  const updated = (formData.weeklyTimeSlots || []).filter((_, i) => i !== slotItem.globalIndex);
+                                  updated[slotItem.globalIndex].startTime = val;
                                   setFormData({ ...formData, weeklyTimeSlots: updated });
                                 }} 
-                                className="w-9 h-9 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
-                                title="Delete slot"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                </svg>
-                              </button>
-                            )}
-
-                            {isLastRow && (
-                              <button 
-                                type="button" 
-                                onClick={() => {
-                                  setFormData({
-                                    ...formData,
-                                    weeklyTimeSlots: [...(formData.weeklyTimeSlots || []), { date: dateVal, startTime: '', endTime: '' }]
+                                onBlur={() => {
+                                  if (!slotItem.startTime) return;
+                                  
+                                  const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === dateVal);
+                                  const isStartInsideAnother = dateSlots.some((other) => {
+                                    if (other.globalIndex === slotItem.globalIndex) return false;
+                                    if (!other.startTime || !other.endTime) return false;
+                                    return slotItem.startTime >= other.startTime && slotItem.startTime < other.endTime;
                                   });
+
+                                  if (isStartInsideAnother) {
+                                    toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'weekly-start-err' });
+                                    
+                                    const updated = [...(formData.weeklyTimeSlots || [])];
+                                    updated[slotItem.globalIndex].startTime = '';
+                                    setFormData({ ...formData, weeklyTimeSlots: updated });
+                                  }
+                                }}
+                                className={`${inputFieldStyle} border-2 w-full`} 
+                              />
+                            </div>
+
+                            <span className="text-slate-400 font-bold mt-5">-</span>
+
+                            {/* End Time Input */}
+                            <div className="flex-1">
+                              <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
+                              <input 
+                                type="time" 
+                                disabled={!slotItem.startTime}
+                                value={slotItem.endTime}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (slotItem.startTime && val <= slotItem.startTime) {
+                                    toast.error('End time must be later than start time.', { id: 'time-validation-error' });
+                                    return;
+                                  }
+                                  const updated = [...(formData.weeklyTimeSlots || [])];
+                                  updated[slotItem.globalIndex].endTime = val;
+                                  setFormData({ ...formData, weeklyTimeSlots: updated });
                                 }} 
-                                className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
-                                title="Add time slot"
-                              >
-                                +
-                              </button>
-                            )}
+                                onBlur={() => {
+                                  const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === dateVal);
+                                  if (slotItem.startTime && slotItem.endTime && hasOverlappingSlots(dateSlots)) {
+                                    toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'weekly-overlap-err' });
+                                    
+                                    const updated = [...(formData.weeklyTimeSlots || [])];
+                                    updated[slotItem.globalIndex].endTime = '';
+                                    setFormData({ ...formData, weeklyTimeSlots: updated });
+                                  }
+                                }}
+                                className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                              />
+                            </div>
+                            
+                            <div className="mt-5 flex items-center gap-1.5">
+                              {hasMultipleRows && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    const updated = (formData.weeklyTimeSlots || []).filter((_, i) => i !== slotItem.globalIndex);
+                                    setFormData({ ...formData, weeklyTimeSlots: updated });
+                                  }} 
+                                  className="w-9 h-9 rounded-md bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center cursor-pointer transition"
+                                  title="Delete slot"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                  </svg>
+                                </button>
+                              )}
+
+                              {isLastRow && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    setFormData({
+                                      ...formData,
+                                      weeklyTimeSlots: [...(formData.weeklyTimeSlots || []), { date: dateVal, startTime: '', endTime: '' }]
+                                    });
+                                  }} 
+                                  className="w-9 h-9 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center font-bold text-base cursor-pointer transition"
+                                  title="Add time slot"
+                                >
+                                  +
+                                </button>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Duration Badge on bottom row */}
+                          {(slotItem.startTime && slotItem.endTime) && (() => {
+                            const dur = getSlotDuration(slotItem.startTime, slotItem.endTime);
+                            return (
+                              <div>
+                                <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-4 py-1.5 rounded-md">
+                                  Duration : {dur.hours} Hours {dur.minutes} Minutes
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -3305,7 +3395,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
     </div>
 
  {/* Duration Section */}
-<div className="space-y-3">
+{/* <div className="space-y-3">
   <div className="flex items-center gap-4 flex-wrap">
     <label className={`${accountLabelStyle} mb-0`}>Duration</label>
     
@@ -3342,12 +3432,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
   </div>
 
   {/* Optional Duration Preview Badge */}
-  {(formData.durationHours || formData.durationMinutes) && (
+  {/* {(formData.durationHours || formData.durationMinutes) && (
     <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-16 ml-16 py-1.5 rounded-md">
       Duration : {formData.durationHours || 0} Hours {formData.durationMinutes || 0} Minutes
     </div>
   )}
-</div>
+</div> */} 
 
 <div className="space-y-4 pt-4">
   <h3 className="font-semibold text-base text-slate-900">Event Guide</h3>

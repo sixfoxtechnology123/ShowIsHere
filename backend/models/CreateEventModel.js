@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 
-
+const timeSlotSchema = new mongoose.Schema({
+  date: { type: String, default: '' },
+  startTime: { type: String, default: '' },
+  endTime: { type: String, default: '' },
+  durationHours: { type: String, default: '' },
+  durationMinutes: { type: String, default: '' }
+}, { _id: false });
 
 const ticketTierSchema = new mongoose.Schema({
   ticketName: { type: String, required: true },
@@ -86,9 +92,11 @@ orgId: {
     endDate: { type: String, default: '' },
     startTime: { type: String, default: '' },
     endTime: { type: String, default: '' },
-    dailyTimeSlots: { type: Array, default: [] },
+    durationHours: { type: String, default: '' },   
+    durationMinutes: { type: String, default: '' },
+    dailyTimeSlots: [timeSlotSchema],
     selectedWeeklyDates: { type: Array, default: [] },
-    weeklyTimeSlots: { type: Array, default: [] },
+    weeklyTimeSlots: [timeSlotSchema],
     sameTimeSlotForAll: { type: Boolean, default: false }
   },
   venue: {
@@ -110,8 +118,7 @@ orgId: {
   // STEP 5: Event Guide & Rules
   guideResponses: { type: Array, default: [] },
   minAgeLimit: { type: String, default: '' },
-  durationHours: { type: String, default: '' },
-  durationMinutes: { type: String, default: '' },
+
 
   // STEP 6: Contact Person
   contactPerson: {
