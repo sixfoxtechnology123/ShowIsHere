@@ -1131,6 +1131,9 @@ const formatDateToDDMMYYYY = (dateStr) => {
               onError={(e) => { e.target.src = defaultAvatar; }} 
             />
           </div>
+          <span className="text-xs font-semibold text-slate-800 truncate max-w-[120px]">
+          {orgName}
+        </span>
         </div>
       </div>
     </header>
@@ -1814,6 +1817,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
               ...formData, 
               eventScheduleType: 'single',
               startDate: '',
+              endDate: '',
               startTime: '',
               endTime: '',
               selectedWeeklyDates: [],
@@ -1836,6 +1840,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
           ...formData, 
           eventScheduleType: 'recurring',
           startDate: '',
+          endDate: '',
           startTime: '',
           endTime: '',
           selectedWeeklyDates: [],
@@ -1963,6 +1968,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
           ...formData, 
           recurringType: 'daily',
           startDate: '',
+          endDate: '',
           selectedWeeklyDates: [],
           weeklyTimeSlots: [],
           dailyTimeSlots: [{ startTime: '', endTime: '' }]
