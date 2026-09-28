@@ -180,6 +180,45 @@ const [isDraggingImg, setIsDraggingImg] = useState(false);
 const [dragOrigin, setDragOrigin] = useState({ x: 0, y: 0 });
 const seatMapBoxRef = useRef(null);
 
+
+useEffect(() => {
+  if (activeStep === 2) {
+    // Check if hashtags are empty or only contain default empty values
+    const areHashtagsEmpty = formData.hashtags.every(tag => !tag || tag.trim() === '' || tag === '#');
+    
+    // ONLY generate if hashtags are empty and title is present
+    if (areHashtagsEmpty && formData.eventTitle) {
+      const payload = {
+        eventTitle: formData.eventTitle,
+        eventCategoryName: selectedMasterCardObj?.categoryName || formData.eventCategory,
+        subCategoryName: formData.eventSubCategory,
+        typeName: formData.eventType,
+        eventFormat: formData.eventFormat,
+        eventLanguages: formData.eventLanguages,
+        fullDescription: formData.fullDescription
+      };
+
+      console.log("Sending payload to generate AI hashtags:", payload);
+
+      API.post('/events/generate-hashtags', payload)
+        .then((res) => {
+          console.log("Hashtags response received:", res.data);
+          const generatedTags = res.data?.hashtags || [];
+          if (Array.isArray(generatedTags) && generatedTags.length > 0) {
+            const paddedTags = [...generatedTags, '', '', '', '', ''].slice(0, 5);
+            setFormData(prev => ({ ...prev, hashtags: paddedTags }));
+            toast.success('AI SEO hashtags generated!');
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to auto-generate hashtags:", err);
+          toast.error("Failed to generate AI hashtags.");
+        });
+    }
+  }
+}, [activeStep]);
+
+
 useEffect(() => {
   let isCurrentRequest = true;
 
@@ -240,6 +279,7 @@ useEffect(() => {
     box.removeEventListener('wheel', handleNativeWheel);
   };
 }, [seatMapImage]);
+
 
 useEffect(() => {
   if (location.state?.targetStep) {
@@ -487,8 +527,8 @@ const availableEventTypes = selectedSubCatObj ? (selectedSubCatObj.eventTypes ||
 const handleLanguageSelect = (e) => {
   const lang = e.target.value;
   if (lang && !formData.eventLanguages.includes(lang)) {
-    if (formData.eventLanguages.length >= 2) {
-     toast.error('You can select only 2 language.', { id: 'language-limit-toast' });
+    if (formData.eventLanguages.length >= 3) {
+     toast.error('You can select only 3 language.', { id: 'language-limit-toast' });
       return;
     }
     setFormData({
@@ -651,6 +691,13 @@ const hasFormContent = useMemo(() => {
     return true;
   };
 
+  // Helper to convert YYYY-MM-DD to DD-MM-YYYY
+const formatDateToDDMMYYYY = (dateStr) => {
+  if (!dateStr) return '';
+  const [year, month, day] = dateStr.split('-');
+  if (!year || !month || !day) return dateStr;
+  return `${day}-${month}-${year}`;
+};
 // 1. Helper function to gather all inputs safely
   const buildPayload = () => ({
     eventId: createdEventId || undefined,
@@ -681,7 +728,8 @@ const hasFormContent = useMemo(() => {
     schedule: {
       eventScheduleType: formData.eventScheduleType || 'single',
       recurringType: formData.eventScheduleType === 'recurring' ? (formData.recurringType || 'daily') : null,
-      startDate: formData.startDate ? new Date(formData.startDate) : null,
+      startDate: formData.startDate ? formatDateToDDMMYYYY(formData.startDate) : null,
+      endDate: formData.endDate ? formatDateToDDMMYYYY(formData.endDate) : null,
       startTime: formData.eventScheduleType !== 'recurring' ? (formData.startTime || '') : '',
       endTime: formData.eventScheduleType !== 'recurring' ? (formData.endTime || '') : '',
       dailyTimeSlots: formData.eventScheduleType === 'recurring' && formData.recurringType === 'daily' ? (formData.dailyTimeSlots || []) : [],
@@ -920,18 +968,28 @@ const hasFormContent = useMemo(() => {
           
        {activeStep === 1 && (
           <div className="space-y-6">
-            <div>
+           <div>
               <label className={accountLabelStyle}>
-                Event Title <span className="text-red-500 font-bold">*</span>
+                Event Title 
               </label>
               <input
                 type="text"
                 name="eventTitle"
+                maxLength={50}
                 placeholder="Enter event title"
-                value={formData.eventTitle}
+                value={formData.eventTitle || ''}
                 onChange={handleInputChange}
-                className={`${inputFieldStyle} border-2`}
+                className={`${inputFieldStyle} border-2 w-full`}
               />
+              <div className="flex justify-end mt-1 pr-1">
+                <span 
+                  className={`text-[10px] font-semibold select-none ${
+                    (formData.eventTitle?.length || 0) >= 50 ? 'text-red-500' : 'text-slate-500'
+                  }`}
+                >
+                  {formData.eventTitle?.length || 0} / 50
+                </span>
+              </div>
             </div>
 
             <div>
@@ -1102,9 +1160,11 @@ const hasFormContent = useMemo(() => {
               <div className="flex justify-between items-center mb-1">
                 <label className={`${accountLabelStyle} flex items-center gap-1.5 cursor-pointer`}>
                   Full Description 
+                  <span title="Describe your event in detail, including highlights, activities, and important information for attendees." className="inline-flex">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
                   </svg>
+                  </span>
                 </label>
               </div>
               <textarea
@@ -1128,7 +1188,7 @@ const hasFormContent = useMemo(() => {
                 {/* BANNER UPLOAD BOX (1200x600 px) */}
                 <div className="md:col-span-2 space-y-2">
                   <label className={accountLabelStyle}>
-                    Upload Banner Image <span className="text-red-500 font-bold">*</span>
+                    Upload Banner Image 
                   </label>
                   <div 
                     onDragOver={handleDragOver}
@@ -1168,7 +1228,7 @@ const hasFormContent = useMemo(() => {
                 {/* THUMBNAIL UPLOAD BOX (600x750 px) */}
                 <div className="md:col-span-1 space-y-2">
                   <label className={accountLabelStyle}>
-                    Upload Event Thumbnail <span className="text-red-500 font-bold">*</span>
+                    Upload Event Thumbnail 
                   </label>
                   <div 
                     onDragOver={handleDragOver}
@@ -1214,7 +1274,7 @@ const hasFormContent = useMemo(() => {
 {activeStep === 2 && (
   <div className="space-y-6">
     <div className="relative">
-      <label className={accountLabelStyle}>Search & Add Artist/Performer</label>
+      <label className={accountLabelStyle}>Add Artist/Performer</label>
       <div className="flex gap-4">
         <input
           type="text"
@@ -1601,7 +1661,7 @@ const hasFormContent = useMemo(() => {
           className={`p-4 rounded-md border-2 cursor-pointer transition flex items-center justify-between ${formData.eventScheduleType === 'recurring' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200'}`}
         >
           <div>
-            <h4 className="text-xs font-bold text-slate-800">Recurring event</h4>
+            <h4 className="text-xs font-bold text-slate-800">Repeat event</h4>
             <p className="text-[11px] text-slate-500">For events that have repeating shows</p>
           </div>
           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.eventScheduleType === 'recurring' ? 'border-blue-600' : 'border-slate-300'}`}>
@@ -1614,7 +1674,8 @@ const hasFormContent = useMemo(() => {
 {formData.eventScheduleType === 'single' && (
   <div className="pt-2 space-y-3">
     <h4 className="text-xs font-bold text-slate-800">Add date and time</h4>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {/* 1. Change grid-cols-3 to grid-cols-4 */}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div>
         <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start date</label>
         <input 
@@ -1627,6 +1688,7 @@ const hasFormContent = useMemo(() => {
             setFormData(prev => ({
               ...prev,
               startDate: val,
+              endDate: prev.endDate && val > prev.endDate ? val : prev.endDate, // Optional: adjust end date if earlier than start date
               startTime: '',
               endTime: ''
             }));
@@ -1648,16 +1710,39 @@ const hasFormContent = useMemo(() => {
           className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
         />
       </div>
+
+      {/* 2. INSERT END DATE FIELD HERE */}
+      <div>
+        <label className="block text-[11px] font-semibold text-slate-600 mb-1">End date</label>
+        <input 
+          type="date" 
+          name="endDate" 
+          min={formData.startDate || today}
+          disabled={!formData.startDate}
+          value={formData.endDate || ''} 
+          onChange={(e) => {
+            const val = e.target.value;
+            if (formData.startDate && val < formData.startDate) {
+              toast.error('End date must be later than or equal to start date.', { id: 'date-validation-error' });
+              return;
+            }
+            setFormData(prev => ({ ...prev, endDate: val }));
+          }} 
+          className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+        />
+      </div>
+
       <div>
         <label className="block text-[11px] font-semibold text-slate-600 mb-1">End time</label>
         <input 
           type="time" 
           name="endTime" 
-          disabled={!formData.startTime}
+          disabled={!formData.endDate || !formData.startTime}
           value={formData.endTime || ''} 
           onChange={(e) => {
             const val = e.target.value;
-            if (formData.startTime && val <= formData.startTime) {
+            // Add date & time validation logic if end date equals start date
+            if (formData.startDate === formData.endDate && formData.startTime && val <= formData.startTime) {
               toast.error('End time must be later than start time.', { id: 'time-validation-error' });
               return;
             }
@@ -1712,21 +1797,40 @@ const hasFormContent = useMemo(() => {
 
     {/* DAILY RECURRING VIEW */}
     {formData.recurringType === 'daily' ? (
-      <div className="space-y-4 pt-2 w-full">
-        <div className="flex items-center gap-4 w-full">
-          <label className="text-sm font-bold text-slate-800 whitespace-nowrap min-w-[80px]">Select date</label>
-          <div className="w-full max-w-xs">
-            <input 
-              type="date" 
-              name="startDate" 
-              min={today}
-              value={formData.startDate || ''} 
-              onChange={handleInputChange} 
-              className={`${inputFieldStyle} border-2 w-full`} 
-            />
-          </div>
-        </div>
-
+  <div className="space-y-4 pt-2 w-full">
+    {/* Change this section to a 2-column grid for Start date and End date */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+      <div>
+        <label className="block text-[11px] font-semibold text-slate-600 mb-1">Start date</label>
+        <input 
+          type="date" 
+          name="startDate" 
+          min={today}
+          value={formData.startDate || ''} 
+          onChange={handleInputChange} 
+          className={`${inputFieldStyle} border-2 w-full`} 
+        />
+      </div>
+      <div>
+        <label className="block text-[11px] font-semibold text-slate-600 mb-1">End date</label>
+        <input 
+          type="date" 
+          name="endDate" 
+          min={formData.startDate || today}
+          disabled={!formData.startDate}
+          value={formData.endDate || ''} 
+          onChange={(e) => {
+            const val = e.target.value;
+            if (formData.startDate && val < formData.startDate) {
+              toast.error('End date must be later than or equal to start date.', { id: 'date-validation-error' });
+              return;
+            }
+            handleInputChange(e);
+          }} 
+          className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+        />
+      </div>
+    </div>
         <div className="space-y-3 w-full">
           <h4 className="text-xs font-bold text-slate-800">Add Time Slots</h4>
           
@@ -2003,73 +2107,73 @@ const hasFormContent = useMemo(() => {
                   <div key={index} className="flex items-center gap-3 w-full">
                    <div className="flex items-center gap-3 w-full">
 
-  <div className="flex-1">
-    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
-    <input 
-      type="time" 
-      value={slot.startTime} 
-      onChange={(e) => {
-        const val = e.target.value;
-        const updated = [...(formData.weeklyTimeSlots || [])];
-        updated[slot.globalIndex].startTime = val;
-        setFormData({ ...formData, weeklyTimeSlots: updated });
-      }} 
-      onBlur={() => {
-        if (!slot.startTime) return;
-        
-        // Filter slots strictly for this slot's date
-        const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === slot.date);
-        const isStartInsideAnother = dateSlots.some((other) => {
-          if (other.globalIndex === slot.globalIndex) return false;
-          if (!other.startTime || !other.endTime) return false;
-          return slot.startTime >= other.startTime && slot.startTime < other.endTime;
-        });
+                    <div className="flex-1">
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">Start time</label>
+                      <input 
+                        type="time" 
+                        value={slot.startTime} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const updated = [...(formData.weeklyTimeSlots || [])];
+                          updated[index].startTime = val;
+                          setFormData({ ...formData, weeklyTimeSlots: updated });
+                        }} 
+                        onBlur={() => {
+                          if (!slot.startTime) return;
+                          
+                          // Filter slots strictly for this slot's date
+                          const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === slot.date);
+                          const isStartInsideAnother = dateSlots.some((other) => {
+                            if (other.globalIndex === slot.globalIndex) return false;
+                            if (!other.startTime || !other.endTime) return false;
+                            return slot.startTime >= other.startTime && slot.startTime < other.endTime;
+                          });
 
-        if (isStartInsideAnother) {
-          toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'start-err' });
-          
-          const updated = [...(formData.weeklyTimeSlots || [])];
-          updated[slot.globalIndex].startTime = '';
-          setFormData({ ...formData, weeklyTimeSlots: updated });
-        }
-      }}
-      className={`${inputFieldStyle} border-2 w-full`} 
-    />
-  </div>
+                          if (isStartInsideAnother) {
+                            toast.error('An event is already scheduled at this time. Please choose a different start time.', { id: 'start-err' });
+                            
+                            const updated = [...(formData.weeklyTimeSlots || [])];
+                            updated[index].startTime = '';
+                            setFormData({ ...formData, weeklyTimeSlots: updated });
+                          }
+                        }}
+                        className={`${inputFieldStyle} border-2 w-full`} 
+                      />
+                    </div>
 
-  <span className="text-slate-400 font-bold mt-5">-</span>
+                    <span className="text-slate-400 font-bold mt-5">-</span>
 
-  {/* End Time Input */}
-  <div className="flex-1">
-    <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
-    <input 
-      type="time" 
-      disabled={!slot.startTime}
-      value={slot.endTime}
-      onChange={(e) => {
-        const val = e.target.value;
-        if (slot.startTime && val <= slot.startTime) {
-          toast.error('End time must be later than start time.', { id: 'time-val-err' });
-          return;
-        }
-        const updated = [...(formData.weeklyTimeSlots || [])];
-        updated[slot.globalIndex].endTime = val;
-        setFormData({ ...formData, weeklyTimeSlots: updated });
-      }} 
-      onBlur={() => {
-        const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === slot.date);
-        if (slot.startTime && slot.endTime && hasOverlappingSlots(dateSlots)) {
-          toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'overlap-err' });
-          
-          const updated = [...(formData.weeklyTimeSlots || [])];
-          updated[slot.globalIndex].endTime = '';
-          setFormData({ ...formData, weeklyTimeSlots: updated });
-        }
-      }}
-      className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
-    />
-  </div>
-</div>
+                    {/* End Time Input */}
+                    <div className="flex-1">
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-0.5">End time</label>
+                      <input 
+                        type="time" 
+                        disabled={!slot.startTime}
+                        value={slot.endTime}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (slot.startTime && val <= slot.startTime) {
+                            toast.error('End time must be later than start time.', { id: 'time-val-err' });
+                            return;
+                          }
+                          const updated = [...(formData.weeklyTimeSlots || [])];
+                          updated[index].endTime = val;
+                          setFormData({ ...formData, weeklyTimeSlots: updated });
+                        }} 
+                        onBlur={() => {
+                          const dateSlots = (formData.weeklyTimeSlots || []).filter(s => s.date === slot.date);
+                          if (slot.startTime && slot.endTime && hasOverlappingSlots(dateSlots)) {
+                            toast.error('This time overlaps with another show on the same day. Please choose a different time.', { id: 'overlap-err' });
+                            
+                            const updated = [...(formData.weeklyTimeSlots || [])];
+                            updated[index].endTime = '';
+                            setFormData({ ...formData, weeklyTimeSlots: updated });
+                          }
+                        }}
+                        className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
+                      />
+                    </div>
+                  </div>
 
                     <div className="mt-5 flex items-center gap-1">
                       {hasMultiple && (
@@ -3175,7 +3279,7 @@ const hasFormContent = useMemo(() => {
 {activeStep === 5 && (
   <div className="space-y-6">
     {/* Minimum Age Limit (1 to 99) */}
-    <div>
+<div>
       <label className={accountLabelStyle}>Minimum Age Limit</label>
       <div className="flex items-center gap-3">
         <select 
@@ -3185,13 +3289,18 @@ const hasFormContent = useMemo(() => {
           className={`${inputFieldStyle} border-2 w-full`}
         >
           <option value="">Select</option>
+          <option value="All">All</option> {/* 👈 Added All Option */}
           {Array.from({ length: 99 }, (_, i) => i + 1).map((age) => (
             <option key={age} value={age}>
               {age}
             </option>
           ))}
         </select>
-        <span className="text-sm font-medium text-slate-700 whitespace-nowrap">& above</span>
+        
+        {/* Hides "& above" if "All", empty, or non-numeric is selected */}
+        {formData.minAgeLimit && formData.minAgeLimit !== 'All' && !isNaN(formData.minAgeLimit) && (
+          <span className="text-sm font-medium text-slate-700 whitespace-nowrap">& above</span>
+        )}
       </div>
     </div>
 

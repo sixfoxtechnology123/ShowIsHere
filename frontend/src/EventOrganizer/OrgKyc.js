@@ -807,7 +807,7 @@ const handleProceed = async () => {
               return (
                 <div
                   key={step.id}
-                   onClick={() => setActiveStep(step.id)}
+                  //  onClick={() => setActiveStep(step.id)}
                   className={isActive ? accountStepItemActive : accountStepItemInactive}
                 >
                   <span className={isActive ? accountStepBadgeActive : accountStepBadgeInactive}>

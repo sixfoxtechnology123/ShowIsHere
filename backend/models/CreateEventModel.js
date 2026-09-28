@@ -82,7 +82,8 @@ orgId: {
   schedule: {
     eventScheduleType: { type: String, default: 'single' },
     recurringType: { type: String, default: 'daily' },
-    startDate: { type: Date, default: null },
+    startDate: { type: String, default: '' }, 
+    endDate: { type: String, default: '' },
     startTime: { type: String, default: '' },
     endTime: { type: String, default: '' },
     dailyTimeSlots: { type: Array, default: [] },

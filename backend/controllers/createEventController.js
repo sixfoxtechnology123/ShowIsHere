@@ -4,6 +4,8 @@ const EventQuestionMaster = require('../models/EventQuestionmodel');
 const QuestionDatabase = require('../models/questionDatabaseModel');
 const Organizer = require('../models/orgKycModel');
 const ArtistMaster = require('../models/Artist');
+const { GoogleGenAI } = require('@google/genai');
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toList = (value) => {
@@ -466,6 +468,55 @@ const originalEvent = await CreateEvent.findOne(query).lean();
       message: `Event duplicated as draft! (${createEventId})`
     });
   } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// AI-powered SEO & Viral Hashtag Generator
+exports.generateHashtags = async (req, res) => {
+  try {
+    const { 
+      eventTitle, 
+      eventCategoryName, 
+      subCategoryName, 
+      typeName, 
+      eventFormat, 
+      eventLanguages, 
+      fullDescription 
+    } = req.body;
+
+    const prompt = `Act as an expert Social Media and SEO Growth Manager. Deeply scan and analyze the following event details to generate exactly 5 top-performing, viral, SEO-optimized event hashtags starting with '#'.
+
+Event Details:
+- Title: ${eventTitle || ''}
+- Category: ${eventCategoryName || ''} > ${subCategoryName || ''} > ${typeName || ''}
+- Format: ${eventFormat || ''}
+- Languages: ${Array.isArray(eventLanguages) ? eventLanguages.join(', ') : (eventLanguages || '')}
+- Description: ${fullDescription || ''}
+
+CRITICAL RULES:
+1. Return ONLY a valid JSON array of 5 string hashtags (e.g., ["#Tag1", "#Tag2", "#Tag3", "#Tag4", "#Tag5"]).
+2. Do not include markdown code blocks (like \`\`\`json), conversational filler, introductory sentences, or extra words.`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      contents: prompt,
+    });
+
+    const aiText = response.text.trim();
+    const cleanedText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const hashtags = JSON.parse(cleanedText);
+
+    if (!Array.isArray(hashtags) || hashtags.length === 0) {
+      throw new Error('AI failed to return a valid hashtag array.');
+    }
+
+    const finalTags = [...hashtags, '', '', '', '', ''].slice(0, 5);
+
+    return res.status(200).json({ success: true, hashtags: finalTags });
+  } catch (error) {
+    console.error('AI Hashtag Generation Error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };

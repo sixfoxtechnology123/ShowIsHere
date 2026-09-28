@@ -11,6 +11,7 @@ router.put('/admin/events/:id/approval', createEventController.updateEventApprov
 router.get('/', createEventController.getAllEvents);
 router.get('/:id', createEventController.getEventById);
 router.post('/duplicate/:id', createEventController.duplicateEvent);
+router.post('/generate-hashtags', createEventController.generateHashtags);
 
 module.exports = router;
  
