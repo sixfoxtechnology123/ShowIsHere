@@ -886,7 +886,7 @@ const requestReKyc = async (req, res) => {
         $set: { rekyc: true, reKycFields: selectedFields, approvalStatus: 'pending', rejectionReason: '' },
         $push: { reKycHistory: { fields: selectedFields, reason, requestedAt: new Date(), requestedBy: 'admin' } ,
          reasonNotifications: {
-            reason: reason || 'Admin requested Re-KYC update for your account.',
+            reason: reason || 'Re-KYC update for your account.',
             link: '/profile/kyc',
             createdAt: new Date()
           }

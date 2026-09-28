@@ -20,6 +20,7 @@ const initialForm = {
   address1: '',
   address2: '',
   country: '',
+  pincode: '',
   state: '',
   city: '',
   contactMobile: '',
@@ -79,6 +80,7 @@ const loadProfile = async () => {
       websiteUrl: u.websiteUrl || '',
       address1: u.address1 || u.orgAddress || '',
       address2: u.address2 || '',
+      pincode: u.pincode || '',
       country: u.country || 'India',
       state: u.state || '',
       city: u.city || '',
@@ -130,6 +132,29 @@ useEffect(() => {
   };
 
   const handleSaveProfile = async () => {
+    if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
+      toast.error('PIN code must be exactly 6 digits.', { id: 'profile-toast' });
+      return;
+    }
+
+    // Social Links Validation (Only validates if the user entered a link)
+    if (formData.instagram && !formData.instagram.toLowerCase().includes('instagram.com')) {
+      toast.error('Please enter a valid Instagram link containing instagram.com', { id: 'profile-toast' });
+      return;
+    }
+    if (formData.facebook && !formData.facebook.toLowerCase().includes('facebook.com')) {
+      toast.error('Please enter a valid Facebook link containing facebook.com', { id: 'profile-toast' });
+      return;
+    }
+    if (formData.twitter && !formData.twitter.toLowerCase().includes('twitter.com') && !formData.twitter.toLowerCase().includes('x.com')) {
+      toast.error('Please enter a valid X / Twitter link', { id: 'profile-toast' });
+      return;
+    }
+    if (formData.linkedin && !formData.linkedin.toLowerCase().includes('linkedin.com')) {
+      toast.error('Please enter a valid LinkedIn link containing linkedin.com', { id: 'profile-toast' });
+      return;
+    }
+
     try {
       const payload = {
         id: formData.id,
@@ -138,6 +163,7 @@ useEffect(() => {
         websiteUrl: formData.websiteUrl,
         address1: formData.address1,
         address2: formData.address2,
+        pincode: formData.pincode,
         country: formData.country,
         state: formData.state,
         city: formData.city,
@@ -230,38 +256,48 @@ if (resData.success) {
                         <h1 className="text-xl font-bold text-slate-950">{formData.orgName || 'Organization Name'}</h1>
                         <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${isApproved ? 'bg-emerald-500' : 'bg-amber-400'}`} title={isApproved ? 'Live' : 'Pending'} />
                       </div>
-                      <p className="text-sm text-slate-500 mt-1">
+                      <p className="text-[13px] text-slate-500 mt-1">
                         {formData.contactEmail || 'No email'} <span className="mx-2">•</span> {formData.contactMobile || 'No mobile'}
                       </p>
                     </div>
-                    <button type="button" onClick={() => setIsEditing(true)} className="px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer">
+                    <button type="button" onClick={() => setIsEditing(true)} className="px-6 py-2 bg-blue-600 text-white text-[13px] font-medium rounded-lg hover:bg-blue-700 transition shadow-sm cursor-pointer">
                       Edit
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-8 text-sm py-2">
-                    <div className="sm:col-span-3">
-                      <p className="text-slate-400 font-normal">Website</p>
-                      <p className="text-slate-700 mt-1">{linkValue(formData.websiteUrl)}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-normal">Country</p>
-                      <p className="text-slate-700 mt-1">{formData.country || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-normal">State</p>
-                      <p className="text-slate-700 mt-1">{formData.state || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 font-normal">City</p>
-                      <p className="text-slate-700 mt-1">{formData.city || 'N/A'}</p>
-                    </div>
-                    <div className="sm:col-span-3">
-                      <p className="text-slate-400 font-normal">About</p>
-                      <p className="text-slate-700 mt-1">{formData.about || 'N/A'}</p>
-                    </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-8 text-[13px] py-2">
+                  <div className="sm:col-span-3">
+                    <p className="text-slate-400 font-normal">Website</p>
+                    <p className="text-slate-700 mt-1">{linkValue(formData.websiteUrl)}</p>
                   </div>
-                  <div className="border-t border-slate-200 pt-5 grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+
+                  {/* Combined Address Line separated by commas */}
+                  <div className="sm:col-span-3">
+                    <p className="text-slate-400 font-normal">Address</p>
+                    <p className="text-slate-700 mt-1">
+                      {[
+                        formData.address1,
+                        formData.address2,
+                        formData.city,
+                        formData.state,
+                        formData.pincode
+                      ].filter(Boolean).join(', ') || 'N/A'}
+                    </p>
+                  </div>
+
+                  {/* <div>
+                    <p className="text-slate-400 font-normal">Country</p>
+                    <p className="text-slate-700 mt-1">{formData.country || 'N/A'}</p>
+                  </div> */}
+
+                 <div className="sm:col-span-3">
+                      <p className="text-slate-400 font-normal">About</p>
+                      <p className="text-slate-700 mt-1 break-words whitespace-pre-wrap">
+                        {formData.about || 'N/A'}
+                      </p>
+                    </div>
+                </div>
+                  <div className="border-t border-slate-200 pt-5 grid grid-cols-1 sm:grid-cols-2 gap-5 text-[13px]">
                     {[
                       ['Instagram', linkValue(formData.instagram)],
                       ['Facebook', linkValue(formData.facebook)],
@@ -281,12 +317,12 @@ if (resData.success) {
               <div className="space-y-5">
                 <div>
                   <h1 className="text-xl font-bold text-slate-900">Profile</h1>
-                  <p className="text-sm text-slate-500 mt-0.5">Update your organization's public profile</p>
+                  <p className="text-[13px] text-slate-500 mt-0.5">Update your organization's public profile</p>
                 </div>
 
                 {/* Organization Logo Upload Section with Drag & Drop */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700">Organization/Individual Logo</label>
+                  <label className="block text-[13px] font-semibold text-slate-700">Organization/Individual Logo</label>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-32">
                     <label 
                       onDragOver={handleDragOver}
@@ -317,180 +353,74 @@ if (resData.success) {
                   </div>
                 </div>
 
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {[
-                  ['orgName', 'Organization/Individual Name *'],
-                  ['websiteUrl', 'Website URL'],
-                  ['address1', 'Address 1'],
-                  ['address2', 'Address 2'],
-                  ['city', 'City *'],
-                  ['state', 'State *'],
-                  ['country', 'Country *']
-                ].map(([name, label]) => {
-                  const isDisabled = name === 'orgName' || name === 'state';
-                  return (
-                    <div key={name}>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
-                      <input 
-                        name={name} 
-                        value={formData[name]} 
-                        onChange={handleChange} 
-                        disabled={isDisabled}
-                        className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
-                          isDisabled 
-                            ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none' 
-                            : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'
-                        }`} 
-                      />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      {[
+                        ['orgName', 'Organization/Individual Name'],
+                        ['websiteUrl', 'Website URL'],
+                        ['address1', 'Address 1'],
+                        ['address2', 'Address 2'],
+                        ['city', 'City'],
+                        ['state', 'State']
+                      ].map(([name, label]) => {
+                        const isDisabled = name === 'orgName' || name === 'state';
+                        return (
+                          <div key={name}>
+                            <label className="block text-[13px] font-semibold text-slate-700 mb-1.5">{label}</label>
+                            <input 
+                              name={name} 
+                              value={formData[name]} 
+                              onChange={handleChange} 
+                              disabled={isDisabled}
+                              className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-[13px] focus:outline-none ${
+                                isDisabled 
+                                  ? 'bg-slate-100 text-slate-500 cursor-not-allowed select-none' 
+                                  : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'
+                              }`} 
+                            />
+                          </div>
+                        );
+                      })}
+
+                      {/* PIN Code Field with 6-digit Restriction */}
+                      <div>
+                        <label className="block text-[13px] font-semibold text-slate-700 mb-1.5">Pin Code</label>
+                        <input 
+                          type="text"
+                          name="pincode"
+                          maxLength="6"
+                          placeholder="Enter 6-digit pin code"
+                          value={formData.pincode}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            setFormData(prev => ({ ...prev, pincode: val }));
+                          }}
+                          className="w-full border border-slate-200 rounded-lg px-3.5 py-2 text-[13px] bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
-                  );
-                })}
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-semibold text-slate-700">Contact Mobile *</label>
-                  {(formData.mobileVerified && !isEditingMobile) && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingMobile(true)}
-                      className="text-xs text-blue-600 font-semibold hover:text-blue-700 flex items-center gap-1 cursor-pointer bg-transparent border-none"
-                      title="Edit mobile"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                        <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  name="contactMobile"
-                  maxLength="10" // <-- Restricts typing to max 10 characters
-                  placeholder="Enter 10-digit mobile number"
-                  value={formData.contactMobile}
-                  onChange={(e) => {
-                    // Strips out non-digits and limits to 10 characters immediately
-                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                    setFormData(prev => ({ ...prev, contactMobile: val }));
-                    setIsMobileVerified(false);
-                    setFormData(prev => ({ ...prev, mobileVerified: false }));
-                  }}
-                  disabled={(formData.mobileVerified && !isEditingMobile)}
-                  className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
-                    (formData.mobileVerified && !isEditingMobile) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'
-                  }`}
-                />
-                <div className="flex justify-end mt-1">
-                  {(formData.mobileVerified && !isEditingMobile) ? (
-                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">✓ Verified</span>
-                  ) : (
-                    /* Show Verify button ONLY if it is exactly 10 digits AND different from original */
-                    (/^\d{10}$/.test(formData.contactMobile) && formData.contactMobile !== initialData.contactMobile) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpType('mobile');
-                          setIsVerifyingMobile(true);
-                          setTimeout(() => {
-                            setIsVerifyingMobile(false);
-                            setIsOtpModalOpen(true);
-                            setEnteredOtp('');
-                          }, 500);
-                        }}
-                        disabled={isVerifyingMobile}
-                        className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer bg-transparent shrink-0"
-                      >
-                        {isVerifyingMobile ? 'Sending...' : 'Verify'}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-semibold text-slate-700">Email Address *</label>
-                  {(formData.verifiedEmail && !isEditingEmail) && (
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingEmail(true)}
-                      className="text-xs text-blue-600 font-semibold hover:text-blue-700 flex items-center gap-1 cursor-pointer bg-transparent border-none"
-                      title="Edit email"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                        <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="email"
-                  name="contactEmail"
-                  placeholder="Enter email address"
-                  value={formData.contactEmail}
-                  onChange={(e) => {
-                    handleChange(e);
-                    setIsEmailVerified(false);
-                    setFormData(prev => ({ ...prev, verifiedEmail: false }));
-                  }}
-                  disabled={(formData.verifiedEmail && !isEditingEmail)}
-                  className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
-                    (formData.verifiedEmail && !isEditingEmail) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'
-                  }`}
-                />
-              <div className="flex justify-end mt-1">
-                  {(formData.verifiedEmail && !isEditingEmail) ? (
-                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">✓ Verified</span>
-                  ) : (
-                    /* Only show Verify if it's a valid email AND it is different from their initial/saved email */
-                    (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail) && formData.contactEmail !== initialData.contactEmail) && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            setOtpType('email');
-                            setIsVerifyingEmail(true);
-                            const resData = await API.post('/profile/send-email-otp', { email: formData.contactEmail });
-                            if (resData.success) {
-                              toast.success('OTP sent to your email!');
-                              setIsOtpModalOpen(true);
-                              setEnteredOtp('');
-                              setResendTimer(60);
-                              setCanResend(false);
-                            }
-                          } catch (error) {
-                            toast.error(error.response?.data?.message || 'Failed to send OTP.');
-                          } finally {
-                            setIsVerifyingEmail(false);
-                          }
-                        }}
-                        disabled={isVerifyingEmail}
-                        className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer bg-transparent shrink-0"
-                      >
-                        {isVerifyingEmail ? 'Sending...' : 'Verify'}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-              </div>
-
-               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  About
-                </label>
-                <textarea 
-                  name="about" 
-                  rows="4" 
-                  maxLength={200} 
-                  placeholder="Tell people about your organization..." 
-                  value={formData.about} 
-                  onChange={handleChange} 
-                  className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" 
-                />
+                <div>
+                  <label className="block text-[13px] font-medium text-slate-700 mb-1">
+                    About
+                  </label>
+                  <textarea 
+                    name="about" 
+                    rows="4" 
+                    maxLength={200} 
+                    placeholder="Tell people about your organization..." 
+                    value={formData.about} 
+                    onChange={handleChange} 
+                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-[13px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" 
+                  />
+                  <div className="flex justify-end mt-1">
+                    <span className={`text-[13px] font-medium ${formData.about.length >= 200 ? 'text-red-500' : 'text-slate-400'}`}>
+                      {formData.about.length}/200
+                    </span>
+                  </div>
                 </div>
                 
                 <div >
-                  <h3 className="text-sm font-bold text-slate-800 mb-4">Social Links</h3>
+                  <h3 className="text-[13px] font-bold text-slate-800 mb-4">Social Links</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {[
                       { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourpage' },
@@ -506,7 +436,7 @@ if (resData.success) {
                           placeholder={placeholder}
                           value={formData[key]}
                           onChange={handleChange}
-                          className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 focus:outline-none"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-[13px] text-slate-800 focus:outline-none"
                         />
                       </div>
                     ))}
@@ -515,7 +445,7 @@ if (resData.success) {
 
               <div className="flex items-center justify-between pt-2">
                 {/* Left side: Help / Contact note with direct Gmail link */}
-                <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-2 text-xs text-slate-600 flex items-center gap-1.5">
+                <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-2 text-[13px] text-slate-600 flex items-center gap-1.5">
                   <span>If you need to make any changes or have queries, please contact us on</span>
                   <a 
                     href="https://mail.google.com/mail/?view=cm&fs=1&to=showishereofficial@gmail.com" 
@@ -532,7 +462,7 @@ if (resData.success) {
                   <button 
                     type="button" 
                     onClick={() => setIsEditing(false)} 
-                    className="px-5 py-2 border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                    className="px-5 py-2 border border-slate-300 text-slate-700 text-[13px] font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -541,7 +471,7 @@ if (resData.success) {
                     type="button" 
                     onClick={handleSaveProfile} 
                     disabled={!hasChanges}
-                    className={`px-6 py-2 text-sm font-semibold rounded-lg transition shadow-sm ${
+                    className={`px-6 py-2 text-[13px] font-semibold rounded-lg transition shadow-sm ${
                       hasChanges 
                         ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer' 
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70'
@@ -563,7 +493,7 @@ if (resData.success) {
           <div className="w-full max-w-xs bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-sm font-bold text-slate-800">
+                <h3 className="text-[13px] font-bold text-slate-800">
                   {otpType === 'email' ? 'Verify Email Address' : 'Verify Mobile Number'}
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">
@@ -573,7 +503,7 @@ if (resData.success) {
               <button 
                 type="button"
                 onClick={() => setIsOtpModalOpen(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition cursor-pointer text-xs font-bold"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition cursor-pointer text-[13px] font-bold"
               >
                 ✕
               </button>
@@ -581,7 +511,7 @@ if (resData.success) {
 
             <div className="p-5 space-y-4">
               <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3 text-center">
-                <p className="text-xs text-slate-600">
+                <p className="text-[13px] text-slate-600">
                   OTP sent to: <span className="font-bold text-blue-600 block truncate mt-0.5">
                     {otpType === 'email' ? formData.contactEmail : formData.contactMobile}
                   </span>
@@ -652,12 +582,12 @@ if (resData.success) {
                       setResendTimer(60);
                       setCanResend(false);
                     }}
-                    className="text-xs font-bold text-blue-600 hover:underline cursor-pointer bg-transparent border-none p-0"
+                    className="text-[13px] font-bold text-blue-600 hover:underline cursor-pointer bg-transparent border-none p-0"
                   >
                     Resend OTP
                   </button>
                 ) : (
-                  <span className="text-xs text-slate-400 font-medium">Resend in {resendTimer}s</span>
+                  <span className="text-[13px] text-slate-400 font-medium">Resend in {resendTimer}s</span>
                 )}
               </div>
             </div>
@@ -667,8 +597,8 @@ if (resData.success) {
 
       {showPopup && isPending && (
         <div className="fixed bottom-20 right-8 z-50 w-64 bg-[#FACC15] border border-yellow-400 rounded-lg shadow-xl p-4 flex items-start space-x-3">
-          <div className="flex-1 text-sm text-slate-900 font-medium leading-relaxed">Your KYC Verification is in progress.</div>
-          <button onClick={() => setShowPopup(false)} className="text-slate-900 hover:text-black font-bold text-sm shrink-0 leading-none cursor-pointer" type="button">x</button>
+          <div className="flex-1 text-[13px] text-slate-900 font-medium leading-relaxed">Your KYC Verification is in progress.</div>
+          <button onClick={() => setShowPopup(false)} className="text-slate-900 hover:text-black font-bold text-[13px] shrink-0 leading-none cursor-pointer" type="button">x</button>
         </div>
       )}
       <EventOrgFooter />

@@ -20,6 +20,14 @@ const EventOrgHeader = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('readNotificationIds');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const dropdownRef = useRef(null);
 
   // Helper function to format timestamp into relative time
@@ -37,6 +45,9 @@ const EventOrgHeader = () => {
     return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
+  useEffect(() => {
+  localStorage.setItem('readNotificationIds', JSON.stringify(readNotificationIds));
+}, [readNotificationIds]);
   // API 1: Fetch Profile Data (Name & Photo)
   const fetchHeaderProfile = async () => {
     try {
@@ -150,48 +161,72 @@ const EventOrgHeader = () => {
               <div className="px-4 py-2 border-b border-slate-100 flex justify-between items-center">
                 <span className="font-semibold text-sm text-slate-800">Notifications</span>
               </div>
-
-              <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-6 text-center text-sm text-slate-500">
                     No new notifications
                   </div>
                 ) : (
-                  notifications.map((item, index) => (
-                    <div key={index} className="px-4 py-3 hover:bg-slate-50 transition-colors relative flex items-start gap-2.5">
-                      {/* Left side indicator dot */}
-                      <span className="w-2 h-2 mt-1.5 bg-blue-500 rounded-full shrink-0"></span>
+                  notifications.slice().reverse().slice(0, 10).map((item, index) => {
+                    // Use a permanent, unique signature combining timestamp and reason instead of shifting index
+                    const notificationId = item._id || `${item.createdAt}-${item.reason}`;
+                    const isRead = readNotificationIds.includes(notificationId);
 
-                      {/* Content area */}
-                      <div className="w-full">
-                        {item.link ? (
-                          <Link 
-                            to={item.link} 
-                            onClick={() => setShowNotifications(false)}
-                            className="block group no-underline"
-                          >
-                            <div className="flex justify-between items-start gap-2">
-                              <p className="text-xs text-slate-800 group-hover:text-blue-600 font-medium leading-snug transition-colors">
+                    return (
+                      <div 
+                        key={notificationId} 
+                        className={`px-4 py-2 transition-colors relative flex items-start gap-2.5 ${
+                          isRead ? 'bg-white hover:bg-slate-50' : 'bg-blue-100/90 hover:bg-blue-50/80'
+                        }`}
+                      >
+                        {/* Left side indicator dot - shows ONLY for unread messages */}
+                        {!isRead && (
+                          <span className="w-2 h-2 mt-1.5 bg-blue-400 rounded-full shrink-0"></span>
+                        )}
+
+                        {/* Content area */}
+                        <div className="w-full">
+                          {item.link ? (
+                            <Link 
+                              to={item.link} 
+                              onClick={() => {
+                                if (!isRead) {
+                                  setReadNotificationIds(prev => [...prev, notificationId]);
+                                }
+                                setShowNotifications(false);
+                              }}
+                              className="block group no-underline"
+                            >
+                              <div className="flex justify-between items-start gap-2">
+                                <p className="text-xs text-slate-800 font-normal group-hover:text-blue-600 leading-snug transition-colors">
+                                  {item.reason}
+                                </p>
+                                <span className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5 font-medium">
+                                  {formatTimeAgo(item.createdAt)}
+                                </span>
+                              </div>
+                            </Link>
+                          ) : (
+                            <div 
+                              onClick={() => {
+                                if (!isRead) {
+                                  setReadNotificationIds(prev => [...prev, notificationId]);
+                                }
+                              }}
+                              className="flex justify-between items-start gap-2 cursor-pointer"
+                            >
+                              <p className="text-xs text-slate-800 font-medium leading-snug">
                                 {item.reason}
                               </p>
                               <span className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5 font-medium">
                                 {formatTimeAgo(item.createdAt)}
                               </span>
                             </div>
-                          </Link>
-                        ) : (
-                          <div className="flex justify-between items-start gap-2">
-                            <p className="text-xs text-slate-800 font-medium leading-snug">
-                              {item.reason}
-                            </p>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5 font-medium">
-                              {formatTimeAgo(item.createdAt)}
-                            </span>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

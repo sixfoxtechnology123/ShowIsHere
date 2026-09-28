@@ -7,6 +7,7 @@ const profileSchema = new mongoose.Schema({
   address1: { type: String, default: '' },
   address2: { type: String, default: '' },
   country: { type: String, default: 'India' },
+  pincode: { type: String, trim: true, maxlength: 6, default: '' },
   city: { type: String, default: '' },
   about: { type: String, default: '' },
   instagram: { type: String, default: '' },
