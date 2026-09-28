@@ -1131,9 +1131,9 @@ const formatDateToDDMMYYYY = (dateStr) => {
               onError={(e) => { e.target.src = defaultAvatar; }} 
             />
           </div>
-          <span className="text-xs font-semibold text-slate-800 truncate max-w-[120px]">
+          {/* <span className="text-xs font-semibold text-slate-800 truncate max-w-[120px]">
           {orgName}
-        </span>
+        </span> */}
         </div>
       </div>
     </header>
