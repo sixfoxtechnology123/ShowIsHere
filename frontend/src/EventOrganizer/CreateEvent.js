@@ -2965,7 +2965,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
               </div>
 
             {openSlotIndex === slotIdx && (
-              <div className="p-6 space-y-2">
+              <div className="px-6">
                 
                 {(() => {
                   const hasFreeTicket = slotTickets.some(t => t.ticketType === 'free');
@@ -2974,9 +2974,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
 
                   return (
                     <div className="flex items-center justify-between w-full">
-                      <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-md text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
-                        {slotTickets.length === 0 ? 'No tickets added yet!' : `${slotTickets.length} ticket(s) added`}
-                      </div>
+                     {slotTickets.length === 0 && (
+                        <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-md text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
+                          No tickets added yet!
+                        </div>
+                      )}
                       
                       {/* Hide the + icon completely if any ticket (especially free) already exists for this date */}
                       {!cannotAddMore && (
@@ -3004,22 +3006,27 @@ const formatDateToDDMMYYYY = (dateStr) => {
                 {slotTickets.length > 0 && (
                   <div className="space-y-3">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full text-left border-collapse ">
                         <thead>
-                          <tr className="border-b border-slate-100 text-slate-500 text-[12px]">
-                            <th className="py-2.5 px-2">Name</th>
-                            <th className="py-2.5 px-2">Price</th>
-                            <th className="py-2.5 px-2">Qty</th>
-                            <th className="py-2.5 px-2">Available</th>
-                            <th className="py-2.5 px-2">Start Date</th>
-                            <th className="py-2.5 px-2">End Date</th>
-                            <th className="py-2.5 px-2">EB</th>
-                            <th className="py-2.5 px-2">Price</th>
-                            <th className="py-2.5 px-2">Start Date</th>
-                            <th className="py-2.5 px-2">End Date</th>
-                            <th className="py-2.5 px-2 text-right">Action</th>
-                          </tr>
-                        </thead>
+                            <tr className="text-slate-500 text-[11px]  tracking-wider">
+                              <th colSpan={6} className="py-2 px-2 border-r border-slate-200 font-medium"></th>
+                              <th colSpan={4} className="py-1.5 px-2 border-r border-slate-100 text-center font-semibold text-slate-600 border-b  bg-slate-50/50">Early Bird</th>
+                              <th className="py-2 px-2 font-medium"></th>
+                            </tr>
+                            <tr className="border-b border-slate-100 text-slate-500 text-[11px]  tracking-wider">
+                              <th className="py-1.5 px-2 font-medium">Name</th>
+                              <th className="py-1.5 px-2 font-medium">Price</th>
+                              <th className="py-1.5 px-2 font-medium">Qty</th>
+                              <th className="py-1.5 px-2 font-medium">Available</th>
+                              <th className="py-1.5 px-2 font-medium">Start</th>
+                              <th className="py-1.5 px-2 font-medium border-r border-slate-200">End</th>
+                              <th className="py-1.5 px-2 font-medium bg-slate-50/50">Price</th>
+                              <th className="py-1.5 px-2 font-medium bg-slate-50/50">Qty</th>
+                              <th className="py-1.5 px-2 font-medium bg-slate-50/50">Start</th>
+                              <th className="py-1.5 px-2 font-medium border-r border-slate-200 bg-slate-50/50">End</th>
+                              <th className="py-1.5 px-2 font-medium text-right">Action</th>
+                            </tr>
+                          </thead>
                         <tbody className="divide-y divide-slate-100">
                           {slotTickets.map((t, idx) => {
                             const isLast = idx === slotTickets.length - 1;
@@ -3030,11 +3037,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
                                 <td className="py-3 px-2 text-slate-800">{t.qty}</td>
                                 <td className="py-3 px-2 text-slate-800">{t.available}</td>
                                 <td className="py-3 px-2 text-slate-800">{t.startDate}</td>
-                                <td className="py-3 px-2 text-slate-800">{t.endDate}</td>
-                                <td className="py-3 px-2 text-slate-800">{t.ebPrice}</td>
-                                <td className="py-3 px-2 text-slate-800">{t.ebQty}</td>
-                                <td className="py-3 px-2 text-slate-800">{t.ebStart}</td>
-                                <td className="py-3 px-2 text-slate-800">{t.ebEnd}</td>
+                                <td className="py-3 px-2 text-slate-800 border-r border-slate-200">{t.endDate}</td>
+                                <td className="py-3 px-2 text-slate-800 bg-slate-50/50">{t.ebPrice}</td>
+                                <td className="py-3 px-2 text-slate-800 bg-slate-50/50">{t.ebQty}</td>
+                                <td className="py-3 px-2 text-slate-800 bg-slate-50/50">{t.ebStart}</td>
+                                <td className="py-3 px-2 text-slate-800 bg-slate-50/50 border-r border-slate-200">{t.ebEnd}</td>
                                 <td className="py-3 px-2 text-right space-x-2 whitespace-nowrap">
                                   <button 
                                   type="button" 
@@ -3101,7 +3108,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
 
              {/* Ticket Form */}
                 {showTicketForm && (
-                  <div className="space-y-5 pt-2 border-t border-slate-200">
+                  <div className="space-y-5 pt-8 border-t border-slate-200">
                  {/* Free / Paid Selector Cards */}
                 {(() => {
                   // Check exclusively for THIS date/slot, allowing different dates to have independent ticket types
@@ -3113,7 +3120,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
                       <div
                         onClick={() => {
                           if (slotPaidExists) {
-                            toast.error('Cannot select Free ticket because a Paid ticket exists for this date.');
+                            toast.error('Cannot select Free ticket because a Paid ticket exists for this date.', { id: 'avail-qty-err' });
                             return;
                           }
                           setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'free' }));
