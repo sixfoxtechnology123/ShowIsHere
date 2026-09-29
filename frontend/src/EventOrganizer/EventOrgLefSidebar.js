@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import API from '../utils/api';
 import {
   dashSidebarContainer,
   dashSidebarBlueStrip,
@@ -19,6 +20,7 @@ import {
 const EventOrgLefSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [eventStatus, setEventStatus] = useState('');
 
   // Determine if we are currently looking at a profile page route
   const isProfileRoute = location.pathname.startsWith('/profile');
@@ -47,6 +49,30 @@ const isEventDashboardRoute =
   const isPersonalDetailsActive = location.pathname === '/profile' || location.pathname === '/profile/personal-details';
   const isKycActive = location.pathname === '/profile/kyc';
   const isSettingActive = location.pathname === '/profile/settings';
+
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const createEventId = localStorage.getItem('createEventId');
+        if (!createEventId) return;
+        const organizer = JSON.parse(localStorage.getItem('orgUserData') || '{}');
+        const mobile = organizer.loginMobileNumber || organizer.contactMobile || localStorage.getItem('loginMobileNumber');
+        const orgId = organizer.orgId || localStorage.getItem('orgId');
+        const params = new URLSearchParams();
+        if (mobile) params.append('loginMobileNumber', mobile);
+        if (orgId) params.append('orgId', orgId);
+
+        const response = await API.get(`/events/my-events?${params.toString()}`);
+        const eventsList = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        const data = eventsList.find(evt => evt.createEventId === createEventId || evt._id === createEventId);
+        if (data) setEventStatus(data.status || '');
+      } catch (err) {
+        console.error('Sidebar status error:', err);
+      }
+    };
+    fetchStatus();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('orgToken');
@@ -134,20 +160,22 @@ const isEventDashboardRoute =
                 <Link to="" className={isEventDiscountActive ? dashNavItemActive : dashNavItemInactive}>
                   <span>Discount</span>
                 </Link>
-                <Link to="" className={isEventSettingsActive ? dashNavItemActive : dashNavItemInactive}>
-                  <span>Settings</span>
-                </Link>
+                {eventStatus === 'APPROVED' && (
+                  <Link to="" className={isEventSettingsActive ? dashNavItemActive : dashNavItemInactive}>
+                    <span>Check in</span>
+                  </Link>
+                )}
               </nav>
             </div>
 
             {/* Event is Live Toggle Switch */}
-            <div className="p-3 border-t border-slate-100 flex items-center justify-between mt-4">
+            {/* <div className="p-3 border-t border-slate-100 flex items-center justify-between mt-4">
               <span className="text-xs font-semibold text-slate-900">Event is Live</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" defaultChecked className="sr-only peer" />
                 <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
-            </div>
+            </div> */}
           </div>
         ) : !isProfileRoute ? (
           /* --- DEFAULT DASHBOARD MENU --- */

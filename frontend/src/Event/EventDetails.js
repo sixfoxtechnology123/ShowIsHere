@@ -47,6 +47,7 @@ const EventDetails = () => {
   const [isGuideEditable, setIsGuideEditable] = useState(false);
   const [isContactEditable, setIsContactEditable] = useState(false);
   const [masterQuestions, setMasterQuestions] = useState([]);
+  const [eventStatus, setEventStatus] = useState('');
 
   const [eventData, setEventData] = useState({
     title: '',
@@ -71,7 +72,7 @@ const EventDetails = () => {
     contactMobile: ''
   });
 
-
+const isNotApproved = eventStatus !== 'APPROVED';
 // Fetch master questions list on mount
 useEffect(() => {
   API.get('/question-database')
@@ -159,6 +160,7 @@ useEffect(() => {
               })
             : [];
 
+            setEventStatus(data.status || '');
           setEventData({
             title: data.eventName || '',
             subTitle: data.eventFormat || '',
@@ -169,7 +171,7 @@ useEffect(() => {
             thumbnailImage: data.media?.thumbnailImage || '',
             artists: mappedArtists,
             hashtags: data.hashtags || [],
-           minAgeLimit: data.minAgeLimit || '',
+            minAgeLimit: data.minAgeLimit || '',
             durationHours: data.durationHours || '',
             durationMinutes: data.durationMinutes || '',
             guideResponses: Array.isArray(data.guideResponses) ? data.guideResponses : [],
@@ -389,7 +391,7 @@ const handleSave = async () => {
             {/* Sub-Navigation Tabs Bar */}
             <div className="bg-white border-b border-slate-200 px-8 py-3 flex items-center justify-between  rounded-none shadow-none ">
               <div className="flex space-x-8 text-sm font-medium text-slate-500">
-                {['Basics', 'Artists & Tags', 'Date & Location', 'Features', 'Contact'].map((tab) => (
+                {['Basics', 'Artists & Tags', 'Date & Location', 'Features', 'Contact', ...(eventStatus === 'APPROVED' ? ['Setting'] : [])].map((tab) => (
                   <button
                     key={tab}
                     type="button"
@@ -423,16 +425,23 @@ const handleSave = async () => {
                         onChange={handleChange}
                         className={`w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none ${!isTitleEditable ? 'bg-slate-50 text-slate-600 cursor-default' : 'border-blue-500 ring-1 ring-blue-500'}`}
                       />
+                      
                       <button 
                         type="button" 
+                        disabled={isNotApproved}
                         onClick={() => setIsTitleEditable(!isTitleEditable)}
-                        className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0"
-                        title={isTitleEditable ? "Lock field" : "Edit field"}
+                           className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                          isNotApproved 
+                            ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                            : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                        }`}
+                        title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                         </svg>
                       </button>
+                     
                     </div>
                   </div>
 
@@ -461,9 +470,14 @@ const handleSave = async () => {
                       </div>
                       <button 
                         type="button" 
+                        disabled={isNotApproved}
                         onClick={() => setIsDescEditable(!isDescEditable)}
-                        className="mb-6 text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0"
-                        title={isDescEditable ? "Lock field" : "Edit field"}
+                        className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                        isNotApproved 
+                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                      }`}
+                      title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -523,10 +537,15 @@ const handleSave = async () => {
                         </div>
 
                         <button 
-                          type="button" 
+                          type="button"
+                          disabled={isNotApproved} 
                           onClick={() => setIsImagesEditable(!isImagesEditable)}
-                          className="mb-2 text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0 cursor-pointer"
-                          title={isImagesEditable ? "Lock Images" : "Edit Images"}
+                         className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                          isNotApproved 
+                            ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                            : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                        }`}
+                        title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
                             <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -546,10 +565,15 @@ const handleSave = async () => {
                           <div className="flex items-center gap-2">
                             <h3 className="text-base font-bold text-slate-900">Artists</h3>
                             <button 
-                              type="button" 
+                              type="button"
+                              disabled={isNotApproved} 
                               onClick={() => setIsArtistsEditable(!isArtistsEditable)}
-                              className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0 cursor-pointer"
-                              title={isArtistsEditable ? "Lock section" : "Edit section"}
+                              className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                              isNotApproved 
+                                ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                            }`}
+                            title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                 <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -702,9 +726,14 @@ const handleSave = async () => {
                                 </div>
                                 <button 
                                   type="button" 
+                                  disabled={isNotApproved}
                                   onClick={() => setIsHashtagsEditable(!isHashtagsEditable)}
-                                  className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 shrink-0 cursor-pointer self-center"
-                                  title={isHashtagsEditable ? "Lock hashtags" : "Edit hashtags"}
+                                 className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                  isNotApproved 
+                                    ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                    : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                                }`}
+                                title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                     <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -990,9 +1019,14 @@ const handleSave = async () => {
                                     <div className="pt-5 shrink-0">
                                       <button 
                                         type="button" 
+                                        disabled={isNotApproved}
                                         onClick={() => setEditScheduleIndex(isRowEditable ? null : index)}
-                                        className="text-blue-600 hover:text-blue-800 focus:outline-none bg-transparent p-0 cursor-pointer"
-                                        title={isRowEditable ? "Lock row" : "Edit row"}
+                                     className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                      isNotApproved 
+                                        ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                        : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                                    }`}
+                                    title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -1100,6 +1134,7 @@ const handleSave = async () => {
                               <div className="flex items-center gap-2">
                               <button 
                                 type="button" 
+                                disabled={eventStatus !== 'APPROVED'}
                                 onClick={() => {
                                   setEventData({
                                     ...eventData,
@@ -1110,15 +1145,25 @@ const handleSave = async () => {
                                   });
                                   setIsDirty(true);
                                 }}
-                                className="text-blue-600 text-xs font-semibold hover:underline bg-transparent p-0 flex items-center gap-1 cursor-pointer"
+                                className={`text-xs font-semibold bg-transparent p-0 flex items-center gap-1 ${
+                                  eventStatus !== 'APPROVED' 
+                                    ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                    : 'text-blue-600 hover:underline cursor-pointer'
+                                }`}
+                                title={eventStatus !== 'APPROVED' ? "Event must be APPROVED to reset location" : ""}
                               >
                                 <span>↺ Reset Location</span>
                               </button>
                                 <button 
-                                  type="button" 
+                                  type="button"
+                                  disabled={isNotApproved} 
                                   onClick={() => setIsVenueEditable(!isVenueEditable)}
-                                  className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer"
-                                  title={isVenueEditable ? "Lock venue" : "Edit venue"}
+                                className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                  isNotApproved 
+                                    ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                    : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                                }`}
+                                title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                                     <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -1169,10 +1214,15 @@ const handleSave = async () => {
                           <span className="text-sm font-medium text-slate-700 whitespace-nowrap">& above</span>
                           
                           <button 
-                            type="button" 
+                            type="button"
+                            disabled={isNotApproved} 
                             onClick={() => setIsAgeEditable(!isAgeEditable)}
-                            className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0"
-                            title={isAgeEditable ? "Lock age limit" : "Edit age limit"}
+                           className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                isNotApproved 
+                                  ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                  : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                              }`}
+                              title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                               <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -1214,10 +1264,15 @@ const handleSave = async () => {
                       </div>
 
                       <button 
-                        type="button" 
+                        type="button"
+                        disabled={isNotApproved} 
                         onClick={() => setIsDurationEditable(!isDurationEditable)}
-                        className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0 ml-2"
-                        title={isDurationEditable ? "Lock duration" : "Edit duration"}
+                       className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                        isNotApproved 
+                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                      }`}
+                      title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -1241,10 +1296,15 @@ const handleSave = async () => {
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-base text-slate-900">Event Guide</h3>
                       <button 
-                        type="button" 
+                        type="button"
+                        disabled={isNotApproved} 
                         onClick={() => setIsGuideEditable(!isGuideEditable)}
-                        className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0"
-                        title={isGuideEditable ? "Lock guide" : "Edit guide"}
+                     className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                        isNotApproved 
+                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                      }`}
+                      title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -1405,10 +1465,15 @@ const handleSave = async () => {
                       </div>
 
                       <button 
-                        type="button" 
+                         type="button"
+                         disabled={isNotApproved}
                         onClick={() => setIsContactEditable(!isContactEditable)}
-                        className="text-blue-600 hover:text-blue-800 p-0 bg-transparent cursor-pointer shrink-0 mt-6"
-                        title={isContactEditable ? "Lock contact" : "Edit contact"}
+                       className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                        isNotApproved 
+                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                      }`}
+                      title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
                           <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
@@ -1425,11 +1490,15 @@ const handleSave = async () => {
             <div className="w-full max-w-full pr-6 pb-12 flex justify-end">
        <button
           type="button"
-          disabled={!isDirty}
+          
+          disabled={!isDirty || eventStatus !== 'APPROVED'}
           onClick={handleSave}
           className={`px-6 py-2.5 text-white text-sm font-semibold rounded-md shadow-sm transition-all ${
-            !isDirty ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-          }`}
+                  (!isDirty || eventStatus !== 'APPROVED') 
+                    ? 'bg-slate-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                }`}
+                title={eventStatus !== 'APPROVED' ? "This Event is not Live" : ""}
         >
           Save Changes
         </button>
