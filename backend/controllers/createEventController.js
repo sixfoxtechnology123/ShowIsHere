@@ -7,6 +7,20 @@ const ArtistMaster = require('../models/Artist');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+
+const { getEventCancellationSubmittedEmailTemplate } = require('../utils/EmailTemplates');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
 const escapeRegex = (value = '') => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toList = (value) => {
   if (!value) return [];
@@ -43,11 +57,11 @@ exports.saveEventStepData = async (req, res) => {
     const { eventId, currentActiveStep, loginMobileNumber, ...eventData } = req.body;
     const tenantKey = req.tenantKey || req.headers['x-tenant-key'] || 'default-tenant';
 
-    const mobile = loginMobileNumber || req.headers['x-login-mobile'];
+ const mobile = loginMobileNumber || req.headers['x-login-mobile'];
     const orgDoc = mobile ? await Organizer.findOne({
       $or: [{ loginMobileNumber: mobile }, { contactMobile: mobile }]
     }) : null;
-    const orgId = orgDoc?.orgId || 'ORG1';
+    const orgkycId = req.body.orgkycId || orgDoc?.orgkycId || 'OK1';
 
     if (!eventData.eventName || !eventData.eventCategoryId) {
       return res.status(400).json({
@@ -72,7 +86,7 @@ exports.saveEventStepData = async (req, res) => {
           $set: {
             ...eventData,
             tenantKey,
-            orgId,
+           orgkycId,
             loginMobileNumber,
             currentActiveStep: currentActiveStep || 1
           }
@@ -98,7 +112,7 @@ exports.saveEventStepData = async (req, res) => {
       ...eventData,
       createEventId,
       tenantKey,
-      orgId,
+     orgkycId,
       loginMobileNumber,
       currentActiveStep: currentActiveStep || 1,
       status: 'DRAFT'
@@ -314,10 +328,10 @@ exports.getAllEvents = async (req, res) => {
 
 exports.getMyEvents = async (req, res) => {
   try {
-    const { loginMobileNumber, orgId, page = 1, limit = 10 } = req.query;
+    const { loginMobileNumber,orgkycId, page = 1, limit = 10 } = req.query;
     const conditions = [];
 
-    if (orgId) conditions.push({ orgId: String(orgId).trim() });
+    if (orgkycId) conditions.push({orgkycId: String(orgkycId).trim() });
     if (loginMobileNumber) {
       const mobile = String(loginMobileNumber).trim();
       conditions.push({ loginMobileNumber: mobile }, { 'contactPerson.mobile': mobile });
@@ -537,7 +551,7 @@ exports.cancelEvent = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Event not found.' });
     }
 
-    // Generate a secure sequential or timestamp-based Request ID
+    // 1. Generate Request ID and create history entry
     const currentHistoryLength = Array.isArray(event.cancelHistory) ? event.cancelHistory.length : 0;
     const requestId = `CR-${String(currentHistoryLength + 1).padStart(5, '0')}`;
 
@@ -548,14 +562,40 @@ exports.cancelEvent = async (req, res) => {
       attachment: attachment?.data || attachment || '',
       cancelledAt: new Date()
     };
-const updatedEvent = await CreateEvent.findOneAndUpdate(
+
+    // 2. Update DB with pending request and push to cancelHistory array
+    const updatedEvent = await CreateEvent.findOneAndUpdate(
       query,
       {
-        $set: { cancelRequest: 'pending' }, // <--- Updates status to pending
-        $push: { cancelHistory: cancelEntry }
+        $set: { cancelRequest: 'pending' },$push: { cancelHistory: cancelEntry }
       },
-      { new: true, runValidators: false }
+      { returnDocument: 'after', runValidators: false }
     );
+
+    // 3. Match event's orgkycId with the Organizer model to fetch contactEmail
+    const orgDoc = await Organizer.findOne({ 
+      $or: [
+        { orgkycId: event.orgkycId },
+        { loginMobileNumber: event.loginMobileNumber }
+      ] 
+    });
+    
+    const recipientEmail = orgDoc?.contactEmail || event.contactPerson?.email;
+    const recipientName = orgDoc?.orgName || orgDoc?.contactFullName || event.contactPerson?.name || 'User';
+
+    // 4. Send Email Notification
+    if (recipientEmail) {
+      const template = getEventCancellationSubmittedEmailTemplate(recipientName, requestId);
+      
+      transporter.sendMail({
+        from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
+        to: recipientEmail,
+        subject: template.subject,
+        html: template.html,
+      }).catch(err => {
+        console.error('Background Cancellation Email Error:', err);
+      });
+    }
 
     return res.status(200).json({
       success: true,

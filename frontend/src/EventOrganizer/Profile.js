@@ -397,6 +397,134 @@ if (resData.success) {
                           className="w-full border border-slate-200 rounded-lg px-3.5 py-2 text-[13px] bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />
                       </div>
+                       <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-semibold text-slate-700">Contact Mobile *</label>
+                  {(formData.mobileVerified && !isEditingMobile) && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingMobile(true)}
+                      className="text-xs text-blue-600 font-semibold hover:text-blue-700 flex items-center gap-1 cursor-pointer bg-transparent border-none"
+                      title="Edit mobile"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                        <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  name="contactMobile"
+                  maxLength="10" // <-- Restricts typing to max 10 characters
+                  placeholder="Enter 10-digit mobile number"
+                  value={formData.contactMobile}
+                  onChange={(e) => {
+                    // Strips out non-digits and limits to 10 characters immediately
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setFormData(prev => ({ ...prev, contactMobile: val }));
+                    setIsMobileVerified(false);
+                    setFormData(prev => ({ ...prev, mobileVerified: false }));
+                  }}
+                  disabled={(formData.mobileVerified && !isEditingMobile)}
+                  className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                    (formData.mobileVerified && !isEditingMobile) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'
+                  }`}
+                />
+                <div className="flex justify-end mt-1">
+                  {(formData.mobileVerified && !isEditingMobile) ? (
+                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">✓ Verified</span>
+                  ) : (
+                    /* Show Verify button ONLY if it is exactly 10 digits AND different from original */
+                    (/^\d{10}$/.test(formData.contactMobile) && formData.contactMobile !== initialData.contactMobile) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpType('mobile');
+                          setIsVerifyingMobile(true);
+                          setTimeout(() => {
+                            setIsVerifyingMobile(false);
+                            setIsOtpModalOpen(true);
+                            setEnteredOtp('');
+                          }, 500);
+                        }}
+                        disabled={isVerifyingMobile}
+                        className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer bg-transparent shrink-0"
+                      >
+                        {isVerifyingMobile ? 'Sending...' : 'Verify'}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-semibold text-slate-700">Email Address *</label>
+                  {(formData.verifiedEmail && !isEditingEmail) && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingEmail(true)}
+                      className="text-xs text-blue-600 font-semibold hover:text-blue-700 flex items-center gap-1 cursor-pointer bg-transparent border-none"
+                      title="Edit email"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                        <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="email"
+                  name="contactEmail"
+                  placeholder="Enter email address"
+                  value={formData.contactEmail}
+                  onChange={(e) => {
+                    handleChange(e);
+                    setIsEmailVerified(false);
+                    setFormData(prev => ({ ...prev, verifiedEmail: false }));
+                  }}
+                  disabled={(formData.verifiedEmail && !isEditingEmail)}
+                  className={`w-full border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:outline-none ${
+                    (formData.verifiedEmail && !isEditingEmail) ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white text-slate-800 focus:ring-1 focus:ring-blue-500'
+                  }`}
+                />
+              <div className="flex justify-end mt-1">
+                  {(formData.verifiedEmail && !isEditingEmail) ? (
+                    <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">✓ Verified</span>
+                  ) : (
+                    /* Only show Verify if it's a valid email AND it is different from their initial/saved email */
+                    (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail) && formData.contactEmail !== initialData.contactEmail) && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setOtpType('email');
+                            setIsVerifyingEmail(true);
+                            const resData = await API.post('/profile/send-email-otp', { email: formData.contactEmail });
+                            if (resData.success) {
+                              toast.success('OTP sent to your email!');
+                              setIsOtpModalOpen(true);
+                              setEnteredOtp('');
+                              setResendTimer(60);
+                              setCanResend(false);
+                            }
+                          } catch (error) {
+                            toast.error(error.response?.data?.message || 'Failed to send OTP.');
+                          } finally {
+                            setIsVerifyingEmail(false);
+                          }
+                        }}
+                        disabled={isVerifyingEmail}
+                        className="text-blue-600 hover:text-blue-700 text-xs font-bold cursor-pointer bg-transparent shrink-0"
+                      >
+                        {isVerifyingEmail ? 'Sending...' : 'Verify'}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+             
+
                     </div>
 
                 <div>

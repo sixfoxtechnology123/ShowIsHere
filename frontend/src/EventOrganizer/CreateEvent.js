@@ -835,9 +835,9 @@ const formatDateToDDMMYYYY = (dateStr) => {
 // 1. Helper function to gather all inputs safely
   const buildPayload = () => ({
     eventId: createdEventId || undefined,
-    seatMapId: selectedSeatMapId || undefined,
+    seatMapId: selectedSeatMapId || undefined, 
     currentActiveStep: activeStep,
-    orgId: localStorage.getItem('orgId') || undefined,
+    orgkycId: localStorage.getItem('orgkycId') || undefined,
     loginMobileNumber: localStorage.getItem('loginMobileNumber') || undefined,
     eventName: formData.eventTitle,
     duplicate: formData.duplicate || false,

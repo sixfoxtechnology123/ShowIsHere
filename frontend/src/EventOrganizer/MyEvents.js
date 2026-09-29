@@ -198,10 +198,10 @@ const handleDuplicateEvent = async (e, eventId) => {
 
       const organizer = getStoredOrganizer();
       const mobile = organizer.loginMobileNumber || organizer.contactMobile || localStorage.getItem('loginMobileNumber');
-      const orgId = organizer.orgId || localStorage.getItem('orgId');
+      const orgkycId = organizer.orgkycId || localStorage.getItem('orgkycId');
       const params = new URLSearchParams();
       if (mobile) params.append('loginMobileNumber', mobile);
-      if (orgId) params.append('orgId', orgId);
+      if (orgkycId) params.append('orgkycId', orgkycId);
 
       if (!params.toString()) {
         setEvents([]);

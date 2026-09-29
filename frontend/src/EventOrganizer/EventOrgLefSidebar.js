@@ -58,7 +58,8 @@ const isEventDashboardRoute =
         if (!createEventId) return;
         const organizer = JSON.parse(localStorage.getItem('orgUserData') || '{}');
         const mobile = organizer.loginMobileNumber || organizer.contactMobile || localStorage.getItem('loginMobileNumber');
-        const orgId = organizer.orgId || localStorage.getItem('orgId');
+        // Support both orgId and orgkycId keys from storage, but send as 'orgId' to match the backend
+        const orgId = organizer.orgId || organizer.orgkycId || localStorage.getItem('orgId') || localStorage.getItem('orgkycId');
         const params = new URLSearchParams();
         if (mobile) params.append('loginMobileNumber', mobile);
         if (orgId) params.append('orgId', orgId);

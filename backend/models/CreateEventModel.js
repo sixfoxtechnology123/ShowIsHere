@@ -45,7 +45,7 @@ const createEventSchema = new mongoose.Schema({
     index: true
   },
 
-orgId: {
+orgkycId: {
     type: String,
     required: true,
     trim: true,
