@@ -1211,17 +1211,110 @@ const handleSaveMap = async () => {
     let previewImageData = null;
 
     if (boardElement) {
-      // FIX: Temporarily remove zoom/pan so the whole map gets captured
       const originalTransform = boardElement.style.transform;
+      const originalHeight = boardElement.style.height;
       boardElement.style.transform = 'none';
+
+      // 1. Calculate stats precisely matching your footer logic
+      const totalCount = sections.reduce((acc, s) => acc + Object.keys(s.seats).length, 0);
+      const availableCount = sections.reduce((acc, s) => acc + Object.values(s.seats).filter(st => st.status === 'available').length, 0);
+      
+      let reservedCount = 0;
+      const activeColorsMap = new Map();
+      const categorySeatCounts = {};
+
+      sections.forEach(sec => {
+        const secCat = sec.category;
+        if (secCat) {
+          const foundCat = customCategories.find(c => c.name === secCat);
+          if (foundCat) activeColorsMap.set(foundCat.name, foundCat);
+        }
+
+        Object.entries(sec.seats || {}).forEach(([seatKey, st]) => {
+          if (st.status === 'blocked' || st.status === 'sold' || st.status === 'wheelchair') {
+            reservedCount++;
+            return;
+          }
+          const seatCat = st.category !== undefined && st.category !== '' ? st.category : sec.category;
+          if (seatCat) {
+            const foundCat = customCategories.find(c => c.name === seatCat);
+            if (foundCat) {
+              activeColorsMap.set(foundCat.name, foundCat);
+              categorySeatCounts[foundCat.name] = (categorySeatCounts[foundCat.name] || 0) + 1;
+            }
+          }
+        });
+      });
+
+      // 2. Build the exact footer format using safe, clean HTML elements
+      const tempFooter = document.createElement('div');
+      tempFooter.style.position = 'absolute';
+      tempFooter.style.bottom = '0';
+      tempFooter.style.left = '0';
+      tempFooter.style.right = '0';
+      tempFooter.style.background = '#ffffff';
+      tempFooter.style.borderTop = '1px solid #cbd5e1';
+      tempFooter.style.height = '56px';
+      tempFooter.style.padding = '0 24px';
+      tempFooter.style.display = 'flex';
+      tempFooter.style.justifyContent = 'space-between';
+      tempFooter.style.alignItems = 'center';
+      tempFooter.style.fontSize = '12px';
+      tempFooter.style.zIndex = '9999';
+
+      // Left stats (Total & Available)
+      let categoriesHTML = '';
+      activeColorsMap.forEach((cat) => {
+        const seatCount = categorySeatCounts[cat.name] || 0;
+        categoriesHTML += `
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 16px; height: 16px; border-radius: 4px; background-color: ${cat.color}; border: 1px solid #cbd5e1; display: inline-block;"></span>
+            <span style="color: #1e293b; font-weight: 600;">${cat.name} <span style="color: #64748b; font-weight: 400;">(${seatCount} ${seatCount === 1 ? 'seat' : 'seats'})</span></span>
+          </div>
+        `;
+      });
+
+      if (reservedCount > 0) {
+        categoriesHTML += `
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="width: 16px; height: 16px; border-radius: 4px; background-color: #e2e8f0; border: 1px solid #cbd5e1; display: inline-block;"></span>
+            <span style="color: #1e293b; font-weight: 600;">Reserved <span style="color: #64748b; font-weight: 400;">(${reservedCount} ${reservedCount === 1 ? 'seat' : 'seats'})</span></span>
+          </div>
+        `;
+      }
+
+      tempFooter.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 24px;">
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-weight: 800; color: #0f172a; font-size: 15px;">${totalCount}</span>
+            <span style="font-size: 11px; color: #64748b; font-weight: 500;">Total Seats</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center;">
+            <span style="font-weight: 800; color: #0f172a; font-size: 15px;">${availableCount}</span>
+            <span style="font-size: 11px; color: #64748b; font-weight: 500;">Available</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; position: absolute; left: 50%; transform: translateX(-50%);">
+          ${categoriesHTML}
+        </div>
+        <div></div>
+      `;
+
+      boardElement.appendChild(tempFooter);
+
+      const currentNumericHeight = parseInt(activePage.height, 10) || 1200;
+      boardElement.style.height = `${currentNumericHeight + 80}px`;
 
       previewImageData = await toJpeg(boardElement, {
         quality: 0.85,
         backgroundColor: '#ffffff'
       });
 
-      // Restore zoom/pan after capture
       boardElement.style.transform = originalTransform;
+      boardElement.style.height = originalHeight;
+      if (tempFooter.parentNode) {
+        tempFooter.parentNode.removeChild(tempFooter);
+      }
     }
 
     setShowGrid(true);
@@ -1240,7 +1333,7 @@ const handleSaveMap = async () => {
     const savedData = res.data || res;
 
     hasInteractedRef.current = false;
-    toast.success("Seat map saved successfully ");
+    toast.success("Seat map saved successfully");
 
     const formToRestore = savedEventForm || JSON.parse(sessionStorage.getItem('create_event_temp_data') || '{}');
 

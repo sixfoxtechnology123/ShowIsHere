@@ -82,6 +82,12 @@ const CreateEvent = () => {
   const [masterArtists, setMasterArtists] = useState([]);
   const [selectedArtistModal, setSelectedArtistModal] = useState(null);
 
+  const [isSeatMapModalOpen, setIsSeatMapModalOpen] = useState(false);
+const [modalZoom, setModalZoom] = useState(1);
+const [modalPan, setModalPan] = useState({ x: 0, y: 0 });
+const [isDraggingModalImg, setIsDraggingModalImg] = useState(false);
+const [modalDragOrigin, setModalDragOrigin] = useState({ x: 0, y: 0 });
+
   const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
 const [newArtistName, setNewArtistName] = useState('');
 const [newArtistType, setNewArtistType] = useState('Artist');
@@ -451,13 +457,14 @@ useEffect(() => {
             setSavedTickets(
               ev.ticketTiers.map((t, idx) => ({
                 id: t._id || idx + 1,
-                name: t.ticketName || '',
+                ticketType: t.ticketType || (Number(t.price) === 0 ? 'free' : 'paid'),
+                name: t.ticketName || t.name || '',
                 price: String(t.price ?? ''),
-                qty: String(t.quantity ?? ''),
-                available: String(t.available ?? t.quantity ?? ''),
+                qty: String(t.quantity ?? t.qty ?? ''),
+                available: String(t.available ?? t.quantity ?? t.qty ?? ''),
                 slotDate: t.slotDate || '',
-                startTime: t.eventStartTime || t.startTime || '',
-                endTime: t.eventEndTime || t.endTime || '',
+                startTime: t.startTime || t.eventStartTime || '',
+                endTime: t.endTime || t.eventEndTime || '',
                 startDate: t.startDate || '',
                 endDate: t.endDate || '',
                 ebPrice: t.ebPrice || '-',
@@ -2734,9 +2741,16 @@ const formatDateToDDMMYYYY = (dateStr) => {
 
             <div className="flex flex-col lg:flex-row items-start gap-12 pt-2">
         <div className="w-[380px] shrink-0 space-y-3">
-  {/* Main Display Box with Cover, Drag & Zoom */}
+  {/* Main Display Box (Clickable to open modal preview) */}
   <div
     ref={seatMapBoxRef}
+    onClick={() => {
+      if (seatMapImage) {
+        setModalZoom(1);
+        setModalPan({ x: 0, y: 0 });
+        setIsSeatMapModalOpen(true);
+      }
+    }}
     onDragOver={(e) => e.preventDefault()}
     onDrop={(e) => {
       e.preventDefault();
@@ -2752,87 +2766,22 @@ const formatDateToDDMMYYYY = (dateStr) => {
         toast.success('Seat map image uploaded successfully!');
       }
     }}
-    onMouseDown={(e) => {
-      if (!seatMapImage) return;
-      setIsDraggingImg(true);
-      setDragOrigin({ x: e.clientX - imgPan.x, y: e.clientY - imgPan.y });
-    }}
-    onMouseMove={(e) => {
-      if (!isDraggingImg || !seatMapImage) return;
-      setImgPan({
-        x: e.clientX - dragOrigin.x,
-        y: e.clientY - dragOrigin.y
-      });
-    }}
-    onMouseUp={() => setIsDraggingImg(false)}
-    onMouseLeave={() => setIsDraggingImg(false)}
     className={`w-[380px] h-[215px] rounded-xl border-2 border-slate-300 bg-white flex items-center justify-center overflow-hidden relative ${
-      seatMapImage
-        ? isDraggingImg
-          ? 'cursor-grabbing select-none'
-          : 'cursor-grab select-none'
-        : ''
+      seatMapImage ? 'cursor-zoom-in select-none hover:border-blue-500 transition' : ''
     }`}
   >
-    {/* Floating Controls inside Top-Right Corner */}
-    {seatMapImage && (
-      <div 
-        onMouseDown={(e) => e.stopPropagation()} 
-        className="absolute top-1 right-1 z-20 flex items-center gap-1 bg-white/90 backdrop-blur-xs  rounded-md  shadow-xs"
-      >
-        {/* Zoom Out */}
-        <button
-          type="button"
-          onClick={() => setImgZoom((prev) => Math.max(0.6, Number((prev - 0.2).toFixed(2))))}
-          className="w-5 h-5 flex items-center justify-center rounded-md bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs cursor-pointer select-none transition"
-          title="Zoom Out"
-        >
-          −
-        </button>
-
-        {/* Percentage Display */}
-        <span className="w-8 text-center font-bold text-slate-700 text-[10px] select-none">
-          {Math.round(imgZoom * 100)}%
-        </span>
-
-        {/* Zoom In */}
-        <button
-          type="button"
-          onClick={() => setImgZoom((prev) => Math.min(5, Number((prev + 0.2).toFixed(2))))}
-          className="w-5 h-5 flex items-center justify-center rounded-md bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs cursor-pointer select-none transition"
-          title="Zoom In"
-        >
-          +
-        </button>
-
-        {/* Reset Button */}
-        <button
-          type="button"
-          onClick={() => {
-            setImgZoom(1);
-            setImgPan({ x: 0, y: 0 });
-          }}
-          className="w-5 h-5 flex items-center justify-center rounded-md bg-white hover:bg-slate-100 border border-slate-300 text-slate-600 hover:text-blue-600 cursor-pointer select-none transition text-xs"
-          title="Reset View"
-        >
-          ↺
-        </button>
-      </div>
-    )}
-
     {seatMapImage ? (
       <img
         src={seatMapImage}
         alt="Seat Map Preview"
         draggable={false}
-        style={{
-          transform: `translate(${imgPan.x}px, ${imgPan.y}px) scale(${imgZoom})`,
-          transformOrigin: 'center center',
-          transition: isDraggingImg ? 'none' : 'transform 0.1s ease-out'
-        }}
         className="w-full h-full object-contain pointer-events-none p-2"
       />
-    ) : null}
+    ) : (
+      <div className="flex flex-col items-center justify-center text-slate-400 text-xs">
+        <span>No seat map uploaded</span>
+      </div>
+    )}
   </div>
 
   {/* Info Notice Box */}
@@ -2843,12 +2792,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
       </svg>
     </span>
     <p className="text-[10px] text-slate-600 leading-snug">
-      Upload a image of your event seat map as per your ticket category (.jpg or .png 600 X 750px recomended)
+      Upload an image of your event seat map as per your ticket category (.jpg or .png 600 X 750px recommended)
     </p>
   </div>
 </div>
 
-        {/* Right Column: Actions (Removed the [cite] text) */}
+        {/* Right Column: Actions */}
         <div className="w-[210px] flex flex-col items-center gap-2.5 pt-14">
           <button
             type="button"
@@ -2939,13 +2888,27 @@ const formatDateToDDMMYYYY = (dateStr) => {
         };
         const maxSalesDate = getMaxSalesStartDate();
 
-        const slotTickets = savedTickets.filter(t => {
+      const slotTickets = savedTickets.filter(t => {
           const slotIdentifier = `${displayDate}_${displayStart}`;
           if (t.excludedSlots && t.excludedSlots.includes(slotIdentifier)) {
             return false;
           }
           if (t.slotDate === 'all') return true;
-          return t.slotDate === displayDate && t.startTime === displayStart;
+
+          const ticketDate = t.slotDate ? String(t.slotDate).split('T')[0] : '';
+          const currentSlotDate = displayDate ? String(displayDate).split('T')[0] : '';
+          const dateMatch = ticketDate === currentSlotDate;
+
+          const cleanTicketTime = t.startTime ? String(t.startTime).trim().substring(0, 5) : '';
+          const cleanSlotTime = displayStart ? String(displayStart).trim().substring(0, 5) : '';
+          const timeMatch = !cleanTicketTime || !cleanSlotTime || cleanTicketTime === cleanSlotTime;
+
+          // Fallback: If dates are loading or slightly mismatched on edit, show ticket in the first slot so it's never lost
+          if (!dateMatch && slotIdx === 0 && savedTickets.length > 0) {
+            return true;
+          }
+
+          return dateMatch && timeMatch;
         });
 
         return (
@@ -3085,29 +3048,17 @@ const formatDateToDDMMYYYY = (dateStr) => {
                               <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
                             </svg>
                                 </button>
-                                  <button 
+                                 <button 
                                     type="button" 
                                     onClick={() => {
-                                      if (t.slotDate === 'all') {
-                                        const slotIdentifier = `${displayDate}_${displayStart}`;
-                                        const updated = savedTickets.map(item => {
-                                          if (item === t) {
-                                            const exclusions = item.excludedSlots || [];
-                                            return { ...item, excludedSlots: [...exclusions, slotIdentifier] };
-                                          }
-                                          return item;
-                                        });
-                                        setSavedTickets(updated);
-                                      } else {
-                                        setSavedTickets(savedTickets.filter(item => item !== t));
-                                      }
+                                      // Completely remove the ticket from savedTickets so restrictions clear out immediately
+                                      setSavedTickets(savedTickets.filter(item => item !== t));
                                     }} 
                                     className="text-slate-400 hover:text-red-600 cursor-pointer" 
                                     title="Delete"
                                   >
                                     ✕
                                   </button>
-                                 {/* Only show the + button if there is NO free ticket on this date */}
                                     {isLast && !slotTickets.some(t => t.ticketType === 'free') && (
                                       <button 
                                         type="button" 
@@ -3130,73 +3081,74 @@ const formatDateToDDMMYYYY = (dateStr) => {
              {/* Ticket Form */}
                 {showTicketForm && (
                   <div className="space-y-5 pt-2 border-t border-slate-200">
-                    {/* Free / Paid Selector Cards */}
-                    {(() => {
-                      const anyPaidExists = savedTickets.some(t => t.ticketType === 'paid');
-                      const anyFreeExists = savedTickets.some(t => t.ticketType === 'free');
+                 {/* Free / Paid Selector Cards */}
+                {(() => {
+                  // Check exclusively for THIS date/slot, allowing different dates to have independent ticket types
+                  const slotPaidExists = slotTickets.some(t => t.ticketType === 'paid');
+                  const slotFreeExists = slotTickets.some(t => t.ticketType === 'free');
 
-                      return (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div
-                            onClick={() => {
-                              if (anyPaidExists) {
-                                toast.error('Cannot select Free ticket because a Paid ticket already exists.');
-                                return;
-                              }
-                              setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'free' }));
-                              setPrice('0');
-                              setSameTicketForEvent(false);
-                            }}
-                            className={`p-3 rounded-xl border-2 transition flex items-start gap-3 ${
-                              anyPaidExists ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200' :
-                              ticketCategoryType === 'free' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300 cursor-pointer'
-                            }`}
-                          >
-                            <input 
-                              type="radio" 
-                              name={`ticketType_${slotIdx}`} 
-                              checked={ticketCategoryType === 'free'} 
-                              disabled={anyPaidExists}
-                              onChange={() => {}} 
-                              className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
-                            />
-                            <div>
-                              <h4 className="text-xs font-bold text-slate-900">Free</h4>
-                              <p className="text-[10px] text-slate-500 leading-tight mt-0.5">No payment required. Attendees can book tickets for free.</p>
-                            </div>
-                          </div>
-
-                          <div
-                            onClick={() => {
-                              if (anyFreeExists) {
-                                toast.error('Cannot select Paid ticket because a Free ticket already exists.');
-                                return;
-                              }
-                              setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'paid' }));
-                              if (price === '0') setPrice('');
-                              setSameTicketForEvent(false);
-                            }}
-                            className={`p-3 rounded-xl border-2 transition flex items-start gap-3 ${
-                              anyFreeExists ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200' :
-                              ticketCategoryType === 'paid' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300 cursor-pointer'
-                            }`}
-                          >
-                            <input 
-                              type="radio" 
-                              name={`ticketType_${slotIdx}`} 
-                              checked={ticketCategoryType === 'paid'} 
-                              disabled={anyFreeExists}
-                              onChange={() => {}} 
-                              className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
-                            />
-                            <div>
-                              <h4 className="text-xs font-bold text-slate-900">Paid</h4>
-                              <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Set a price and manage ticket sales for your event.</p>
-                            </div>
-                          </div>
+                  return (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div
+                        onClick={() => {
+                          if (slotPaidExists) {
+                            toast.error('Cannot select Free ticket because a Paid ticket exists for this date.');
+                            return;
+                          }
+                          setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'free' }));
+                          setPrice('0');
+                          setSameTicketForEvent(false);
+                        }}
+                        className={`p-3 rounded-xl border-2 transition flex items-start gap-3 ${
+                          slotPaidExists ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200' :
+                          ticketCategoryType === 'free' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300 cursor-pointer'
+                        }`}
+                      >
+                        <input 
+                          type="radio" 
+                          name={`ticketType_${slotIdx}`} 
+                          checked={ticketCategoryType === 'free'} 
+                          disabled={slotPaidExists}
+                          onChange={() => {}} 
+                          className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
+                        />
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">Free</h4>
+                          <p className="text-[10px] text-slate-500 leading-tight mt-0.5">No payment required. Attendees can book tickets for free.</p>
                         </div>
-                      );
-                    })()}
+                      </div>
+
+                      <div
+                        onClick={() => {
+                          if (slotFreeExists) {
+                            toast.error('Cannot select Paid ticket because a Free ticket exists for this date.');
+                            return;
+                          }
+                          setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: 'paid' }));
+                          if (price === '0') setPrice('');
+                          setSameTicketForEvent(false);
+                        }}
+                        className={`p-3 rounded-xl border-2 transition flex items-start gap-3 ${
+                          slotFreeExists ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-200' :
+                          ticketCategoryType === 'paid' ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300 cursor-pointer'
+                        }`}
+                      >
+                        <input 
+                          type="radio" 
+                          name={`ticketType_${slotIdx}`} 
+                          checked={ticketCategoryType === 'paid'} 
+                          disabled={slotFreeExists}
+                          onChange={() => {}} 
+                          className="mt-0.5 w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer" 
+                        />
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900">Paid</h4>
+                          <p className="text-[10px] text-slate-500 leading-tight mt-0.5">Set a price and manage ticket sales for your event.</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                     {/* Paid Ticket Fields (Kept Exactly Same) */}
                     {ticketCategoryType === 'paid' && (
@@ -3644,12 +3596,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
                           </label>
                         </div>
                       ) : <div />}
-                    <button 
+                   <button 
                       type="button" 
                       onClick={() => {
                         if (!ticketCategoryType) return toast.error('Please select Free or Paid ticket type.', { id: 'type-val' });
 
-                        // Validation for Paid: require name, price, and quantity
                         if (ticketCategoryType === 'paid' && (!ticketName || !price || !quantity)) {
                           return toast.error('Please fill required ticket details.', { id: 'ticket-val' });
                         }
@@ -3658,9 +3609,27 @@ const formatDateToDDMMYYYY = (dateStr) => {
                           return toast.error('Available tickets cannot be greater than total quantity.', { id: 'ticket-val-avail' });
                         }
 
+                        const isGlobalAll = (formData.eventScheduleType !== 'single' && sameTicketForEvent);
+                        const targetSlotDate = isGlobalAll ? 'all' : displayDate;
+
+                        // STRICT CHECK: Prevent mixing Free and Paid on the same date/slot
+                        if (isGlobalAll) {
+                          // If applying to 'all', check if ANY existing date slot already holds the opposite ticket type
+                          const hasConflictingGlobalOrSlot = savedTickets.some(t => t.ticketType && t.ticketType !== ticketCategoryType);
+                          if (hasConflictingGlobalOrSlot) {
+                            return toast.error(`Cannot apply 'Same ticket for all' because some dates already contain a conflicting ticket type. Free and Paid cannot mix.`, { id: 'mix-val-err' });
+                          }
+                        } else {
+                          // Check if this specific slot already has tickets of the opposite type
+                          const conflictingTicketInSlot = slotTickets.some(t => t.ticketType && t.ticketType !== ticketCategoryType);
+                          if (conflictingTicketInSlot) {
+                            return toast.error(`Cannot mix Free and Paid tickets on the same date. This date already has a ${slotTickets[0]?.ticketType} ticket.`, { id: 'mix-val-err' });
+                          }
+                        }
+
                         // Build the ticket data object
                         const newTicketData = { 
-                          ticketType: ticketCategoryType, // 'free' or 'paid'
+                          ticketType: ticketCategoryType, 
                           name: ticketName || (ticketCategoryType === 'free' ? 'Free Ticket' : ''), 
                           price: ticketCategoryType === 'free' ? '0' : price, 
                           qty: ticketCategoryType === 'free' ? (quantity || '100') : quantity, 
@@ -3675,7 +3644,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
                           ebStartTime: '-',
                           ebEnd: '-', 
                           ebEndTime: '-',
-                          slotDate: (formData.eventScheduleType !== 'single' && sameTicketForEvent) ? 'all' : displayDate,
+                          slotDate: targetSlotDate,
                           startTime: displayStart
                         };
 
@@ -3952,6 +3921,63 @@ const formatDateToDDMMYYYY = (dateStr) => {
           )}
 
         </div>
+        {/* FULL SCREEN SEAT MAP PREVIEW MODAL WITH SCROLL ZOOM */}
+      {isSeatMapModalOpen && seatMapImage && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="relative w-full h-full flex flex-col items-center justify-center">
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsSeatMapModalOpen(false)}
+              className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center font-bold text-lg z-50 cursor-pointer transition"
+            >
+              ✕
+            </button>
+
+            {/* Zoom Instructions Badge */}
+            <div className="absolute top-5 left-5 bg-black/50 text-white px-3 py-1.5 rounded-md text-xs z-50 pointer-events-none">
+              Scroll mouse wheel to Zoom In/Out • Click & drag to move
+            </div>
+
+            {/* Zoomable Image Container */}
+            <div
+              onWheel={(e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                setModalZoom((prev) => Math.min(6, Math.max(0.5, Number((prev + delta).toFixed(2)))));
+              }}
+              onMouseDown={(e) => {
+                setIsDraggingModalImg(true);
+                setModalDragOrigin({ x: e.clientX - modalPan.x, y: e.clientY - modalPan.y });
+              }}
+              onMouseMove={(e) => {
+                if (!isDraggingModalImg) return;
+                setModalPan({
+                  x: e.clientX - modalDragOrigin.x,
+                  y: e.clientY - modalDragOrigin.y
+                });
+              }}
+              onMouseUp={() => setIsDraggingModalImg(false)}
+              onMouseLeave={() => setIsDraggingModalImg(false)}
+              className={`w-full h-full flex items-center justify-center overflow-hidden ${
+                isDraggingModalImg ? 'cursor-grabbing' : 'cursor-grab'
+              }`}
+            >
+              <img
+                src={seatMapImage}
+                alt="Full Seat Map Preview"
+                draggable={false}
+                style={{
+                  transform: `translate(${modalPan.x}px, ${modalPan.y}px) scale(${modalZoom})`,
+                  transformOrigin: 'center center',
+                  transition: isDraggingModalImg ? 'none' : 'transform 0.05s ease-out'
+                }}
+                className="max-w-[90vw] max-h-[90vh] object-contain pointer-events-none"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       </main>
 <footer className="bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-40 shadow-lg w-full h-14 flex items-center">
   <div className={`${accountFooterInner} flex justify-between items-center w-full px-6`}>
@@ -3991,6 +4017,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
   </div>
 </footer>
     </div>
+    
   );
 };
 
