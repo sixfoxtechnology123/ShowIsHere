@@ -38,16 +38,20 @@ const EventDetails = () => {
   const [newArtistPhoto, setNewArtistPhoto] = useState('');
   const [isSavingArtist, setIsSavingArtist] = useState(false);
   const [isHashtagsEditable, setIsHashtagsEditable] = useState(false);
- const [isDirty, setIsDirty] = useState(false);
- const [isDateEditable, setIsDateEditable] = useState(false);
- const [editScheduleIndex, setEditScheduleIndex] = useState(null);
- const [isVenueEditable, setIsVenueEditable] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isDateEditable, setIsDateEditable] = useState(false);
+  const [editScheduleIndex, setEditScheduleIndex] = useState(null);
+  const [isVenueEditable, setIsVenueEditable] = useState(false);
   const [isAgeEditable, setIsAgeEditable] = useState(false);
   const [isDurationEditable, setIsDurationEditable] = useState(false);
   const [isGuideEditable, setIsGuideEditable] = useState(false);
   const [isContactEditable, setIsContactEditable] = useState(false);
   const [masterQuestions, setMasterQuestions] = useState([]);
   const [eventStatus, setEventStatus] = useState('');
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('Select reason');
+  const [cancelDescription, setCancelDescription] = useState('');
+  const [cancelFile, setCancelFile] = useState(null);
 
   const [eventData, setEventData] = useState({
     title: '',
@@ -109,7 +113,31 @@ useEffect(() => {
   }, []);
 
 
-
+const handleCancelSubmit = async () => {
+  if (!cancelReason || cancelReason === 'Select reason') {
+    toast.error('Please select a reason for cancellation.');
+    return;
+  }
+  try {
+    const createEventId = localStorage.getItem('createEventId');
+    const payload = {
+      eventId: createEventId,
+      reason: cancelReason,
+      description: cancelDescription,
+      attachment: cancelFile
+    };
+    const res = await API.post('/events/cancel', payload);
+    if (res?.success || res?.data?.success) {
+      toast.success('Event cancellation request submitted successfully.');
+      setIsCancelModalOpen(false);
+      setEventStatus('CANCELLED');
+    } else {
+      toast.error('Failed to submit cancellation request.');
+    }
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Error cancelling event.');
+  }
+};
   const filteredMasterArtists = masterArtists.filter((artist) => {
     const query = eventData.artistSearchQuery ? eventData.artistSearchQuery.trim().toLowerCase() : '';
     if (!query) return false;
@@ -1189,169 +1217,189 @@ const handleSave = async () => {
                           </div>
                         );
                       })()}
-                {activeTab === 'Features' && (() => {
-                  return (
-                    <div className="space-y-6">
-                      
-                      {/* 1. Minimum Age Limit Section */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-slate-900">Minimum Age Limit</label>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1">
-                            <select 
-                              name="minAgeLimit" 
-                              disabled={!isAgeEditable}
-                              value={eventData.minAgeLimit || ''} 
-                              onChange={handleChange} 
-                              className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isAgeEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
-                            >
-                              <option value="">Select</option>
-                              {Array.from({ length: 99 }, (_, i) => i + 1).map((age) => (
-                                <option key={age} value={age}>{age}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <span className="text-sm font-medium text-slate-700 whitespace-nowrap">& above</span>
-                          
-                          <button 
-                            type="button"
-                            disabled={isNotApproved} 
-                            onClick={() => setIsAgeEditable(!isAgeEditable)}
-                           className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                                isNotApproved 
-                                  ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                                  : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                              }`}
-                              title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                    {/* 2. Duration Section */}
-                  <div className="space-y-3 pt-4 border-t border-slate-100">
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <label className="text-sm font-bold text-slate-900 mb-0">Duration</label>
-                      
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="number" 
-                          name="durationHours" 
-                          min="0"
-                          readOnly={!isDurationEditable}
-                          value={eventData.durationHours || ''} 
-                          onChange={handleChange} 
-                          className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
-                        />
-                        <span className="text-sm text-slate-700">Hours</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="number" 
-                          name="durationMinutes" 
-                          min="0"
-                          max="59"
-                          readOnly={!isDurationEditable}
-                          value={eventData.durationMinutes || ''} 
-                          onChange={handleChange} 
-                          className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
-                        />
-                        <span className="text-sm text-slate-700">Minutes</span>
-                      </div>
-
-                      <button 
-                        type="button"
-                        disabled={isNotApproved} 
-                        onClick={() => setIsDurationEditable(!isDurationEditable)}
-                       className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                        isNotApproved 
-                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                      }`}
-                      title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Duration Preview Badge */}
-                    {(eventData.durationHours || eventData.durationMinutes) && (
-                      <div className="flex pl-[72px]">
-                        <div className="bg-[#eff6ff] border border-[#dbeafe] text-[#1e40af] text-xs font-semibold px-12 py-2 rounded-lg text-center shadow-2xs">
-                          Duration : {eventData.durationHours || 0} Hours {eventData.durationMinutes || 0} Minutes
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-               {/* 3. Event Guide Section (Attempted Questions matched with Master DB Options) */}
-                <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-base text-slate-900">Event Guide</h3>
-                      <button 
-                        type="button"
-                        disabled={isNotApproved} 
-                        onClick={() => setIsGuideEditable(!isGuideEditable)}
-                     className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                        isNotApproved 
-                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                      }`}
-                      title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 -mt-2">Provide attendees with valuable information and address their questions</p>
-
-                  <div className="space-y-4">
-                    {Array.isArray(eventData.guideResponses) && eventData.guideResponses
-                      .filter(g => g.questionId)
-                      .map((resp, idx) => {
-                        // Cross-reference with master questions database using questionId
-                        const masterQ = masterQuestions.find(
-                          mq => String(mq.questionId || '') === String(resp.questionId || '')
-                        );
-
-                        const questionTitle = masterQ?.question || resp.question;
-                        
-                        // Extract optionA through optionE dynamically from master schema
-                        const allOptions = [
-                          masterQ?.optionA,
-                          masterQ?.optionB,
-                          masterQ?.optionC,
-                          masterQ?.optionD,
-                          masterQ?.optionE
-                        ].filter(Boolean); // Filters out any undefined/empty options
-
-                        const optionsCount = allOptions.length;
-                        const currentAnswer = resp.selectedOptions?.[0] || resp.answerText || '';
-
+                      {activeTab === 'Features' && (() => {
                         return (
-                          <div key={idx} className="space-y-2">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 gap-2">
-                              <span className="text-sm font-medium text-slate-800">{questionTitle}</span>
+                          <div className="space-y-6">
+                            
+                            {/* 1. Minimum Age Limit Section */}
+                            <div className="space-y-2">
+                              <label className="block text-sm font-bold text-slate-900">Minimum Age Limit</label>
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <select 
+                                    name="minAgeLimit" 
+                                    disabled={!isAgeEditable}
+                                    value={eventData.minAgeLimit || ''} 
+                                    onChange={handleChange} 
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isAgeEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
+                                  >
+                                    <option value="">Select</option>
+                                    {Array.from({ length: 99 }, (_, i) => i + 1).map((age) => (
+                                      <option key={age} value={age}>{age}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 whitespace-nowrap">& above</span>
+                                
+                                <button 
+                                  type="button"
+                                  disabled={isNotApproved} 
+                                  onClick={() => setIsAgeEditable(!isAgeEditable)}
+                                className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                      isNotApproved 
+                                        ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                        : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                                    }`}
+                                    title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                    <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+
+                          {/* 2. Duration Section */}
+                        <div className="space-y-3 pt-4 border-t border-slate-100">
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <label className="text-sm font-bold text-slate-900 mb-0">Duration</label>
+                            
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="number" 
+                                name="durationHours" 
+                                min="0"
+                                readOnly={!isDurationEditable}
+                                value={eventData.durationHours || ''} 
+                                onChange={handleChange} 
+                                className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                              />
+                              <span className="text-sm text-slate-700">Hours</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="number" 
+                                name="durationMinutes" 
+                                min="0"
+                                max="59"
+                                readOnly={!isDurationEditable}
+                                value={eventData.durationMinutes || ''} 
+                                onChange={handleChange} 
+                                className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                              />
+                              <span className="text-sm text-slate-700">Minutes</span>
+                            </div>
+
+                            <button 
+                              type="button"
+                              disabled={isNotApproved} 
+                              onClick={() => setIsDurationEditable(!isDurationEditable)}
+                            className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                              isNotApproved 
+                                ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                            }`}
+                            title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                              </svg>
+                            </button>
+                          </div>
+
+                          {/* Duration Preview Badge */}
+                          {(eventData.durationHours || eventData.durationMinutes) && (
+                            <div className="flex pl-[72px]">
+                              <div className="bg-[#eff6ff] border border-[#dbeafe] text-[#1e40af] text-xs font-semibold px-12 py-2 rounded-lg text-center shadow-2xs">
+                                Duration : {eventData.durationHours || 0} Hours {eventData.durationMinutes || 0} Minutes
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                    {/* 3. Event Guide Section (Attempted Questions matched with Master DB Options) */}
+                      <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-base text-slate-900">Event Guide</h3>
+                            <button 
+                              type="button"
+                              disabled={isNotApproved} 
+                              onClick={() => setIsGuideEditable(!isGuideEditable)}
+                          className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                              isNotApproved 
+                                ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                            }`}
+                            title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-500 -mt-2">Provide attendees with valuable information and address their questions</p>
+
+                        <div className="space-y-4">
+                          {Array.isArray(eventData.guideResponses) && eventData.guideResponses
+                            .filter(g => g.questionId)
+                            .map((resp, idx) => {
+                              // Cross-reference with master questions database using questionId
+                              const masterQ = masterQuestions.find(
+                                mq => String(mq.questionId || '') === String(resp.questionId || '')
+                              );
+
+                              const questionTitle = masterQ?.question || resp.question;
                               
-                              {optionsCount > 0 && optionsCount <= 2 ? (
-                                <div className="w-full sm:w-1/3 flex items-center gap-6 px-2">
-                                  {allOptions.map((opt, oIdx) => (
-                                    <label key={oIdx} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-                                      <input
-                                        type="radio"
+                              // Extract optionA through optionE dynamically from master schema
+                              const allOptions = [
+                                masterQ?.optionA,
+                                masterQ?.optionB,
+                                masterQ?.optionC,
+                                masterQ?.optionD,
+                                masterQ?.optionE
+                              ].filter(Boolean); // Filters out any undefined/empty options
+
+                              const optionsCount = allOptions.length;
+                              const currentAnswer = resp.selectedOptions?.[0] || resp.answerText || '';
+
+                              return (
+                                <div key={idx} className="space-y-2">
+                                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 gap-2">
+                                    <span className="text-sm font-medium text-slate-800">{questionTitle}</span>
+                                    
+                                    {optionsCount > 0 && optionsCount <= 2 ? (
+                                      <div className="w-full sm:w-1/3 flex items-center gap-6 px-2">
+                                        {allOptions.map((opt, oIdx) => (
+                                          <label key={oIdx} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                                            <input
+                                              type="radio"
+                                              disabled={!isGuideEditable}
+                                              name={`question_${resp.questionId}`}
+                                              value={opt}
+                                              checked={currentAnswer === opt}
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                const updated = [...(eventData.guideResponses || [])];
+                                                const targetIdx = updated.findIndex(item => String(item.questionId) === String(resp.questionId));
+                                                if (targetIdx > -1) {
+                                                  updated[targetIdx].selectedOptions = [val];
+                                                }
+                                                setEventData({ ...eventData, guideResponses: updated });
+                                                setIsDirty(true);
+                                              }}
+                                              className="w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer"
+                                            />
+                                            {opt}
+                                          </label>
+                                        ))}
+                                      </div>
+                                    ) : optionsCount > 2 ? (
+                                      <select 
                                         disabled={!isGuideEditable}
-                                        name={`question_${resp.questionId}`}
-                                        value={opt}
-                                        checked={currentAnswer === opt}
+                                        value={currentAnswer} 
                                         onChange={(e) => {
                                           const val = e.target.value;
                                           const updated = [...(eventData.guideResponses || [])];
@@ -1362,147 +1410,301 @@ const handleSave = async () => {
                                           setEventData({ ...eventData, guideResponses: updated });
                                           setIsDirty(true);
                                         }}
-                                        className="w-4 h-4 text-blue-600 accent-blue-600 cursor-pointer"
+                                        className={`w-full sm:w-1/3 text-xs p-2 rounded-md border-2 border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`}
+                                      >
+                                        <option value="">Select</option>
+                                        {allOptions.map((opt, oIdx) => (
+                                          <option key={oIdx} value={opt}>{opt}</option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <input 
+                                        type="text" 
+                                        readOnly={!isGuideEditable}
+                                        placeholder="Type answer..." 
+                                        value={currentAnswer} 
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          const updated = [...(eventData.guideResponses || [])];
+                                          const targetIdx = updated.findIndex(item => String(item.questionId) === String(resp.questionId));
+                                          if (targetIdx > -1) {
+                                            updated[targetIdx].answerText = val;
+                                          }
+                                          setEventData({ ...eventData, guideResponses: updated });
+                                          setIsDirty(true);
+                                        }} 
+                                        className={`w-full sm:w-1/3 text-xs p-2 rounded-md border border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`} 
                                       />
-                                      {opt}
-                                    </label>
-                                  ))}
+                                    )}
+                                  </div>
+                                  <div className="border-b border-slate-100"></div>
                                 </div>
-                              ) : optionsCount > 2 ? (
-                                <select 
-                                  disabled={!isGuideEditable}
-                                  value={currentAnswer} 
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    const updated = [...(eventData.guideResponses || [])];
-                                    const targetIdx = updated.findIndex(item => String(item.questionId) === String(resp.questionId));
-                                    if (targetIdx > -1) {
-                                      updated[targetIdx].selectedOptions = [val];
-                                    }
-                                    setEventData({ ...eventData, guideResponses: updated });
-                                    setIsDirty(true);
-                                  }}
-                                  className={`w-full sm:w-1/3 text-xs p-2 rounded-md border-2 border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`}
-                                >
-                                  <option value="">Select</option>
-                                  {allOptions.map((opt, oIdx) => (
-                                    <option key={oIdx} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <input 
-                                  type="text" 
-                                  readOnly={!isGuideEditable}
-                                  placeholder="Type answer..." 
-                                  value={currentAnswer} 
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    const updated = [...(eventData.guideResponses || [])];
-                                    const targetIdx = updated.findIndex(item => String(item.questionId) === String(resp.questionId));
-                                    if (targetIdx > -1) {
-                                      updated[targetIdx].answerText = val;
-                                    }
-                                    setEventData({ ...eventData, guideResponses: updated });
-                                    setIsDirty(true);
-                                  }} 
-                                  className={`w-full sm:w-1/3 text-xs p-2 rounded-md border border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`} 
-                                />
-                              )}
-                            </div>
-                            <div className="border-b border-slate-100"></div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-
-                    </div>
-                  );
-                })()}
-             {activeTab === 'Contact' && (() => {
-              return (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-slate-900">Contact Person</h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600  mb-1">Name</label>
-                      <input 
-                        type="text" 
-                        name="contactName" 
-                        readOnly={!isContactEditable}
-                        value={eventData.contactName || ''} 
-                        onChange={handleChange} 
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-600  mb-1">Email</label>
-                      <input 
-                        type="email" 
-                        name="contactEmail" 
-                        readOnly={!isContactEditable}
-                        value={eventData.contactEmail || ''} 
-                        onChange={handleChange} 
-                        className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <label className="block text-sm font-semibold text-slate-600  mb-1">Mobile</label>
-                        <input 
-                          type="text" 
-                          name="contactMobile" 
-                          readOnly={!isContactEditable}
-                          value={eventData.contactMobile || ''} 
-                          onChange={handleChange} 
-                          className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
-                        />
+                              );
+                            })}
+                        </div>
                       </div>
 
-                      <button 
-                         type="button"
-                         disabled={isNotApproved}
-                        onClick={() => setIsContactEditable(!isContactEditable)}
-                       className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                        isNotApproved 
-                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                      }`}
-                      title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+                          </div>
+                        );
+                      })()}
+                      {activeTab === 'Contact' && (() => {
+                        return (
+                          <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-base font-bold text-slate-900">Contact Person</h3>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-600  mb-1">Name</label>
+                                <input 
+                                  type="text" 
+                                  name="contactName" 
+                                  readOnly={!isContactEditable}
+                                  value={eventData.contactName || ''} 
+                                  onChange={handleChange} 
+                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-semibold text-slate-600  mb-1">Email</label>
+                                <input 
+                                  type="email" 
+                                  name="contactEmail" 
+                                  readOnly={!isContactEditable}
+                                  value={eventData.contactEmail || ''} 
+                                  onChange={handleChange} 
+                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                  <label className="block text-sm font-semibold text-slate-600  mb-1">Mobile</label>
+                                  <input 
+                                    type="text" 
+                                    name="contactMobile" 
+                                    readOnly={!isContactEditable}
+                                    value={eventData.contactMobile || ''} 
+                                    onChange={handleChange} 
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                  />
+                                </div>
+
+                                <button 
+                                  type="button"
+                                  disabled={isNotApproved}
+                                  onClick={() => setIsContactEditable(!isContactEditable)}
+                                className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                  isNotApproved 
+                                    ? 'opacity-40 cursor-not-allowed text-slate-400' 
+                                    : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                                }`}
+                                title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                                    <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+
+                      {activeTab === 'Setting' && (
+  <div className="space-y-6">
+   
+
+    {/* Event Cancel Banner (Image 1 style) */}
+    <div className="bg-[#f2e6e6] border border-[#e5b4b4] rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex items-start gap-3.5">
+        <div className="w-8 h-8 rounded-full bg-[#e15252] text-white flex items-center justify-center shrink-0 font-bold text-sm">
+          ✕
+        </div>
+        <div className="space-y-0.5">
+          <h4 className="text-sm font-bold text-[#1e293b]">Event Cancel</h4>
+          <p className="text-xs text-[#4b5563]">If you need to cancel this event, please tell us the reason.</p>
+          <p className="text-xs text-[#4b5563]">This will help us process your request and keep your attendees informed.</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setIsCancelModalOpen(true)}
+        className="bg-[#1d4ed8] hover:bg-[#1e40af] text-white text-xs font-semibold px-4 py-2.5 rounded-md shadow-sm transition-all cursor-pointer whitespace-nowrap"
+      >
+        Cancel Event
+      </button>
+    </div>
+
+ {/* Cancel Event Modal */}
+    {isCancelModalOpen && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-2xl space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 className="text-base font-bold text-slate-900">Cancel Event</h3>
+            <button
+              type="button"
+              onClick={() => setIsCancelModalOpen(false)}
+              className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                Reason for cancellation <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="Select reason" disabled>Select reason</option>
+                <option value="Event Postponed">Event Postponed</option>
+                <option value="Event Rescheduled">Event Rescheduled</option>
+                <option value="Venue Unavailable">Venue Unavailable</option>
+                <option value="Artist / Performer Unavailable">Artist / Performer Unavailable</option>
+                <option value="Low Ticket Sales">Low Ticket Sales</option>
+                <option value="Technical / Production Issue">Technical / Production Issue</option>
+                <option value="Financial / Sponsorship Issue">Financial / Sponsorship Issue</option>
+                <option value="Permit / Government Issue">Permit / Government Issue</option>
+                <option value="Weather / Natural Conditions">Weather / Natural Conditions</option>
+                <option value="Logistics / Operational Issue">Logistics / Operational Issue</option>
+                <option value="Legal / Compliance Issue">Legal / Compliance Issue</option>
+                <option value="Force Majeure">Force Majeure</option>
+                <option value="Organizer Decision">Organizer Decision</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
-            {/* Bottom Save Changes Button */}
-            <div className="w-full max-w-full pr-6 pb-12 flex justify-end">
-       <button
-          type="button"
-          
-          disabled={!isDirty || eventStatus !== 'APPROVED'}
-          onClick={handleSave}
-          className={`px-6 py-2.5 text-white text-sm font-semibold rounded-md shadow-sm transition-all ${
-                  (!isDirty || eventStatus !== 'APPROVED') 
-                    ? 'bg-slate-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                }`}
-                title={eventStatus !== 'APPROVED' ? "This Event is not Live" : ""}
-        >
-          Save Changes
-        </button>
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                Description <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows="4"
+                maxLength={1000}
+                placeholder="Please provide more details about the cancellation..."
+                value={cancelDescription}
+                onChange={(e) => setCancelDescription(e.target.value)}
+                className="w-full bg-white border border-slate-300 rounded-md p-3 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              />
+              <div className="flex justify-between items-center mt-0.5">
+                {cancelDescription.length >= 1000 ? (
+                  <span className="text-[11px] font-semibold text-red-500">Maximum 1000 characters reached.</span>
+                ) : (
+                  <span></span>
+                )}
+                <div className={`text-[11px] ml-auto ${cancelDescription.length >= 1000 ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
+                  {cancelDescription.length}/1000
+                </div>
+              </div>
             </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                Attachment <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error('File size exceeds 5MB limit.');
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setCancelFile({ name: file.name, data: reader.result });
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className={`border-2 border-dashed rounded-lg p-6 text-center relative transition cursor-pointer ${
+                  cancelFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 5 * 1024 * 1024) {
+                        toast.error('File size exceeds 5MB limit.');
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setCancelFile({ name: file.name, data: reader.result });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <div className="flex flex-col items-center justify-center space-y-1 pointer-events-none">
+                  <svg className={`w-6 h-6 ${cancelFile ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <p className={`text-xs font-semibold ${cancelFile ? 'text-emerald-700' : 'text-slate-700'}`}>
+                    {cancelFile ? `Attached: ${cancelFile.name}` : 'Drag and drop files here, or click to upload'}
+                  </p>
+                  <p className="text-[11px] text-slate-400">Supported formats: JPG, PNG, PDF (Max 5MB)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsCancelModalOpen(false)}
+              className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-5 py-2.5 rounded-md border border-slate-300 transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelSubmit}
+              className="bg-[#1d4ed8] hover:bg-[#1e40af] text-white text-xs font-semibold px-5 py-2.5 rounded-md shadow-sm transition cursor-pointer"
+            >
+              Submit Request
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+            </div>
+
+        {/* Bottom Save Changes Button - Hidden on Setting tab */}
+            {activeTab !== 'Setting' && (
+              <div className="w-full max-w-full pr-6 pb-12 flex justify-end">
+                <button
+                  type="button"
+                  disabled={!isDirty || eventStatus !== 'APPROVED'}
+                  onClick={handleSave}
+                  className={`px-6 py-2.5 text-white text-sm font-semibold rounded-md shadow-sm transition-all ${
+                    (!isDirty || eventStatus !== 'APPROVED') 
+                      ? 'bg-slate-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                  }`}
+                  title={eventStatus !== 'APPROVED' ? "This Event is not Live" : ""}
+                >
+                  Save Changes
+                </button>
+              </div>
+            )}
 
           </div>
         </main>
