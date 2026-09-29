@@ -29,7 +29,7 @@ import EventQuestion from './Master/EventQuestion';
 import Profile from './EventOrganizer/Profile';
 import KYCDetails from './EventOrganizer/KYCDetails';
 import AgreementPdf from './EventOrganizer/AgreementPdf';
-import Setting from './EventOrganizer/Setting';
+import ProfileSetting from './EventOrganizer/ProfileSetting';
 
 
 import EventDashboard from './Event/EventDashboard';
@@ -245,7 +245,7 @@ const AppContent = () => {
 
         <Route path="/profile" element={<Profile />} />
         <Route path="/profile/kyc" element={<KYCDetails />} />
-        <Route path="/profile/settings" element={<Setting />} />.
+        <Route path="/profile/settings" element={<ProfileSetting />} />.
         <Route path="/agreement/:id" element={<AgreementPdf />} />
      
         <Route path="/event-dashboard" element={<EventDashboard />} />
