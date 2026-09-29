@@ -73,7 +73,9 @@ const EventDetails = () => {
     pinCode: '',
     contactName: '',
     contactEmail: '',
-    contactMobile: ''
+    contactMobile: '',
+    cancelRequest: '',
+    cancelHistory: [],
   });
 
 const isNotApproved = eventStatus !== 'APPROVED';
@@ -118,21 +120,38 @@ const handleCancelSubmit = async () => {
     toast.error('Please select a reason for cancellation.');
     return;
   }
+  if (!cancelDescription.trim()) {
+    toast.error('Please provide a description.');
+    return;
+  }
   try {
     const createEventId = localStorage.getItem('createEventId');
     const payload = {
       eventId: createEventId,
       reason: cancelReason,
       description: cancelDescription,
-      attachment: cancelFile
+      attachment: cancelFile?.data || cancelFile || ''
     };
     const res = await API.post('/events/cancel', payload);
-    if (res?.success || res?.data?.success) {
-      toast.success('Event cancellation request submitted successfully.');
+    const result = res?.success !== undefined ? res : res?.data;
+
+    if (result?.success) {
+      toast.success(result.message || 'Event cancellation request submitted successfully.');
       setIsCancelModalOpen(false);
-      setEventStatus('CANCELLED');
+      
+      // ✅ Reset form fields here:
+      setCancelReason('Select reason');
+      setCancelDescription('');
+      setCancelFile(null);
+      const newHistoryItem = result.data?.cancelHistory?.[result.data.cancelHistory.length - 1] || { requestId: 'CR-Pending' };
+      setEventData(prev => ({
+        ...prev,
+        cancelRequest: 'pending',
+        cancelHistory: [...(prev.cancelHistory || []), newHistoryItem]
+      }));
+    
     } else {
-      toast.error('Failed to submit cancellation request.');
+      toast.error(result?.message || 'Failed to submit cancellation request.');
     }
   } catch (err) {
     toast.error(err.response?.data?.message || 'Error cancelling event.');
@@ -204,6 +223,8 @@ const handleCancelSubmit = async () => {
             durationMinutes: data.durationMinutes || '',
             guideResponses: Array.isArray(data.guideResponses) ? data.guideResponses : [],
             eventType: data.eventFormat || '',
+            cancelRequest: data.cancelRequest || '',
+            cancelHistory: Array.isArray(data.cancelHistory) ? data.cancelHistory : [],
             eventScheduleType: data.schedule?.eventScheduleType || 'single',
              schedules: (() => {
             const sch = data.schedule || data.eventData?.schedule || {};
@@ -1515,177 +1536,224 @@ const handleSave = async () => {
 
 
                       {activeTab === 'Setting' && (
-  <div className="space-y-6">
-   
-
-    {/* Event Cancel Banner (Image 1 style) */}
-    <div className="bg-[#f2e6e6] border border-[#e5b4b4] rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="space-y-6">
+                    
+              {/* Event Cancel Banner with Dynamic States (Pending, Accepted, Rejected) */}
+{/* Event Cancel Banner with Dynamic States (Pending, Accepted, Rejected) */}
+    <div className={`border rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+      eventData.cancelRequest === 'accept'
+        ? 'bg-[#ecfdf5] border-[#10b981]'
+        : eventData.cancelRequest === 'reject'
+        ? 'bg-[#fee2e2] border-[#f87171]'
+        : eventData.cancelRequest === 'pending' 
+        ? 'bg-[#fef3c7] border-[#f59e0b]' 
+        : 'bg-[#f2e6e6] border-[#e5b4b4]'
+    }`}>
       <div className="flex items-start gap-3.5">
-        <div className="w-8 h-8 rounded-full bg-[#e15252] text-white flex items-center justify-center shrink-0 font-bold text-sm">
-          ✕
+        <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center shrink-0 font-bold text-sm ${
+          eventData.cancelRequest === 'accept' ? 'bg-[#10b981]' : eventData.cancelRequest === 'reject' ? 'bg-[#ef4444]' : eventData.cancelRequest === 'pending' ? 'bg-[#f59e0b]' : 'bg-[#e15252]'
+        }`}>
+          {eventData.cancelRequest === 'accept' ? '✓' : eventData.cancelRequest === 'reject' ? '✕' : eventData.cancelRequest === 'pending' ? '!' : '✕'}
         </div>
         <div className="space-y-0.5">
           <h4 className="text-sm font-bold text-[#1e293b]">Event Cancel</h4>
-          <p className="text-xs text-[#4b5563]">If you need to cancel this event, please tell us the reason.</p>
-          <p className="text-xs text-[#4b5563]">This will help us process your request and keep your attendees informed.</p>
+          
+          {eventData.cancelRequest === 'accept' ? (
+            <p className="text-xs text-[#065f46] font-semibold pt-0.5">
+              Your cancellation request has been approved.
+            </p>
+          ) : eventData.cancelRequest === 'reject' ? (
+            <>
+              <p className="text-xs text-[#991b1b] font-semibold">
+                Your previous cancellation request was rejected.
+              </p>
+              <p className="text-xs text-[#b91c1c]">
+                Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'N/A'}</span>. You can review the details and submit a new cancellation request below.
+              </p>
+            </>
+          ) : eventData.cancelRequest === 'pending' ? (
+            <>
+              <p className="text-xs text-[#92400e] font-semibold">
+                Your cancellation request is under review.
+              </p>
+              <p className="text-xs text-[#78350f]">
+                Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'Pending'}</span>. We will keep your attendees informed.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-[#4b5563]">If you need to cancel this event, please tell us the reason.</p>
+              <p className="text-xs text-[#4b5563]">This will help us process your request and keep your attendees informed.</p>
+            </>
+          )}
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setIsCancelModalOpen(true)}
-        className="bg-[#1d4ed8] hover:bg-[#1e40af] text-white text-xs font-semibold px-4 py-2.5 rounded-md shadow-sm transition-all cursor-pointer whitespace-nowrap"
-      >
-        Cancel Event
-      </button>
+      {eventData.cancelRequest !== 'accept' && (
+        <button
+          type="button"
+          disabled={eventData.cancelRequest === 'pending'}
+          onClick={() => setIsCancelModalOpen(true)}
+          className={`text-xs font-semibold px-4 py-2.5 rounded-md shadow-sm transition-all whitespace-nowrap ${
+            eventData.cancelRequest === 'pending'
+              ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+              : 'bg-[#1d4ed8] hover:bg-[#1e40af] text-white cursor-pointer'
+          }`}
+        >
+          {eventData.cancelRequest === 'pending' 
+            ? 'Request Pending' 
+            : eventData.cancelRequest === 'reject' 
+            ? 'Cancel Event' 
+            : 'Cancel Event'}
+        </button>
+      )}
     </div>
+                  {/* Cancel Event Modal */}
+                      {isCancelModalOpen && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                          <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-2xl space-y-5">
+                            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                              <h3 className="text-base font-bold text-slate-900">Cancel Event</h3>
+                              <button
+                                type="button"
+                                onClick={() => setIsCancelModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </div>
 
- {/* Cancel Event Modal */}
-    {isCancelModalOpen && (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-2xl space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 className="text-base font-bold text-slate-900">Cancel Event</h3>
-            <button
-              type="button"
-              onClick={() => setIsCancelModalOpen(false)}
-              className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                                  Reason for cancellation <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                  value={cancelReason}
+                                  onChange={(e) => setCancelReason(e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                                  <option value="Select reason" disabled>Select reason</option>
+                                  <option value="Event Postponed">Event Postponed</option>
+                                  <option value="Event Rescheduled">Event Rescheduled</option>
+                                  <option value="Venue Unavailable">Venue Unavailable</option>
+                                  <option value="Artist / Performer Unavailable">Artist / Performer Unavailable</option>
+                                  <option value="Low Ticket Sales">Low Ticket Sales</option>
+                                  <option value="Technical / Production Issue">Technical / Production Issue</option>
+                                  <option value="Financial / Sponsorship Issue">Financial / Sponsorship Issue</option>
+                                  <option value="Permit / Government Issue">Permit / Government Issue</option>
+                                  <option value="Weather / Natural Conditions">Weather / Natural Conditions</option>
+                                  <option value="Logistics / Operational Issue">Logistics / Operational Issue</option>
+                                  <option value="Legal / Compliance Issue">Legal / Compliance Issue</option>
+                                  <option value="Force Majeure">Force Majeure</option>
+                                  <option value="Organizer Decision">Organizer Decision</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                              </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                Reason for cancellation <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="Select reason" disabled>Select reason</option>
-                <option value="Event Postponed">Event Postponed</option>
-                <option value="Event Rescheduled">Event Rescheduled</option>
-                <option value="Venue Unavailable">Venue Unavailable</option>
-                <option value="Artist / Performer Unavailable">Artist / Performer Unavailable</option>
-                <option value="Low Ticket Sales">Low Ticket Sales</option>
-                <option value="Technical / Production Issue">Technical / Production Issue</option>
-                <option value="Financial / Sponsorship Issue">Financial / Sponsorship Issue</option>
-                <option value="Permit / Government Issue">Permit / Government Issue</option>
-                <option value="Weather / Natural Conditions">Weather / Natural Conditions</option>
-                <option value="Logistics / Operational Issue">Logistics / Operational Issue</option>
-                <option value="Legal / Compliance Issue">Legal / Compliance Issue</option>
-                <option value="Force Majeure">Force Majeure</option>
-                <option value="Organizer Decision">Organizer Decision</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                                  Description <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                  rows="4"
+                                  maxLength={1000}
+                                  placeholder="Please provide more details about the cancellation..."
+                                  value={cancelDescription}
+                                  onChange={(e) => setCancelDescription(e.target.value)}
+                                  className="w-full bg-white border border-slate-300 rounded-md p-3 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                                />
+                                <div className="flex justify-between items-center mt-0.5">
+                                  {cancelDescription.length >= 1000 ? (
+                                    <span className="text-[11px] font-semibold text-red-500">Maximum 1000 characters reached.</span>
+                                  ) : (
+                                    <span></span>
+                                  )}
+                                  <div className={`text-[11px] ml-auto ${cancelDescription.length >= 1000 ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
+                                    {cancelDescription.length}/1000
+                                  </div>
+                                </div>
+                              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                rows="4"
-                maxLength={1000}
-                placeholder="Please provide more details about the cancellation..."
-                value={cancelDescription}
-                onChange={(e) => setCancelDescription(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-md p-3 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-              />
-              <div className="flex justify-between items-center mt-0.5">
-                {cancelDescription.length >= 1000 ? (
-                  <span className="text-[11px] font-semibold text-red-500">Maximum 1000 characters reached.</span>
-                ) : (
-                  <span></span>
-                )}
-                <div className={`text-[11px] ml-auto ${cancelDescription.length >= 1000 ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
-                  {cancelDescription.length}/1000
-                </div>
-              </div>
-            </div>
+                              <div>
+                                <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                                  Attachment <span className="text-slate-400 font-normal">(optional)</span>
+                                </label>
+                                <div
+                                  onDragOver={(e) => e.preventDefault()}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    const file = e.dataTransfer.files?.[0];
+                                    if (file) {
+                                      if (file.size > 5 * 1024 * 1024) {
+                                        toast.error('File size exceeds 5MB limit.');
+                                        return;
+                                      }
+                                      const reader = new FileReader();
+                                      reader.onloadend = () => {
+                                        setCancelFile({ name: file.name, data: reader.result });
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  }}
+                                  className={`border-2 border-dashed rounded-lg p-6 text-center relative transition cursor-pointer ${
+                                    cancelFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  <input
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        if (file.size > 5 * 1024 * 1024) {
+                                          toast.error('File size exceeds 5MB limit.');
+                                          return;
+                                        }
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                          setCancelFile({ name: file.name, data: reader.result });
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                  />
+                                  <div className="flex flex-col items-center justify-center space-y-1 pointer-events-none">
+                                    <svg className={`w-6 h-6 ${cancelFile ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    <p className={`text-xs font-semibold ${cancelFile ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                      {cancelFile ? `Attached: ${cancelFile.name}` : 'Drag and drop files here, or click to upload'}
+                                    </p>
+                                    <p className="text-[11px] text-slate-400">Supported formats: JPG, PNG, PDF (Max 5MB)</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                Attachment <span className="text-slate-400 font-normal">(optional)</span>
-              </label>
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) {
-                    if (file.size > 5 * 1024 * 1024) {
-                      toast.error('File size exceeds 5MB limit.');
-                      return;
-                    }
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setCancelFile({ name: file.name, data: reader.result });
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-                className={`border-2 border-dashed rounded-lg p-6 text-center relative transition cursor-pointer ${
-                  cancelFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
-                }`}
-              >
-                <input
-                  type="file"
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (file.size > 5 * 1024 * 1024) {
-                        toast.error('File size exceeds 5MB limit.');
-                        return;
-                      }
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setCancelFile({ name: file.name, data: reader.result });
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-                <div className="flex flex-col items-center justify-center space-y-1 pointer-events-none">
-                  <svg className={`w-6 h-6 ${cancelFile ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  <p className={`text-xs font-semibold ${cancelFile ? 'text-emerald-700' : 'text-slate-700'}`}>
-                    {cancelFile ? `Attached: ${cancelFile.name}` : 'Drag and drop files here, or click to upload'}
-                  </p>
-                  <p className="text-[11px] text-slate-400">Supported formats: JPG, PNG, PDF (Max 5MB)</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setIsCancelModalOpen(false)}
-              className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-5 py-2.5 rounded-md border border-slate-300 transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleCancelSubmit}
-              className="bg-[#1d4ed8] hover:bg-[#1e40af] text-white text-xs font-semibold px-5 py-2.5 rounded-md shadow-sm transition cursor-pointer"
-            >
-              Submit Request
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-)}
-            </div>
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                              <button
+                                type="button"
+                                onClick={() => setIsCancelModalOpen(false)}
+                                className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-5 py-2.5 rounded-md border border-slate-300 transition cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleCancelSubmit}
+                                className="bg-[#1d4ed8] hover:bg-[#1e40af] text-white text-xs font-semibold px-5 py-2.5 rounded-md shadow-sm transition cursor-pointer"
+                              >
+                                Submit Request
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  </div>
 
         {/* Bottom Save Changes Button - Hidden on Setting tab */}
             {activeTab !== 'Setting' && (

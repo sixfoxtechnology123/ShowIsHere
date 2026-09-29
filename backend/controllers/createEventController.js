@@ -336,7 +336,7 @@ exports.getMyEvents = async (req, res) => {
       .lean()
       .sort({ updatedAt: -1 })
       .skip(skip)
-      .limit(limitNum);
+      .limit(limitNum); 
 
     if (!events || events.length === 0) {
       return res.status(200).json({ success: true, data: [] });
@@ -517,6 +517,53 @@ CRITICAL RULES:
     return res.status(200).json({ success: true, hashtags: finalTags });
   } catch (error) {
     console.error('AI Hashtag Generation Error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+exports.cancelEvent = async (req, res) => {
+  try {
+    const { eventId, reason, description, attachment } = req.body;
+    
+    if (!eventId) {
+      return res.status(400).json({ success: false, message: 'Event ID is required.' });
+    }
+
+    const query = mongoose.Types.ObjectId.isValid(eventId) ? { _id: eventId } : { createEventId: eventId };
+    const event = await CreateEvent.findOne(query);
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    // Generate a secure sequential or timestamp-based Request ID
+    const currentHistoryLength = Array.isArray(event.cancelHistory) ? event.cancelHistory.length : 0;
+    const requestId = `CR-${String(currentHistoryLength + 1).padStart(5, '0')}`;
+
+    const cancelEntry = {
+      requestId,
+      reason,
+      description: description || '',
+      attachment: attachment?.data || attachment || '',
+      cancelledAt: new Date()
+    };
+const updatedEvent = await CreateEvent.findOneAndUpdate(
+      query,
+      {
+        $set: { cancelRequest: 'pending' }, // <--- Updates status to pending
+        $push: { cancelHistory: cancelEntry }
+      },
+      { new: true, runValidators: false }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Cancellation request submitted successfully`,
+      data: updatedEvent
+    });
+  } catch (error) {
+    console.error('Cancel Event Error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
