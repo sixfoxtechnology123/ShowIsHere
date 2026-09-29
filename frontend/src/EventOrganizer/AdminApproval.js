@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 import EventOrgHeader from './EventOrgHeader';
 import EventOrgFooter from './EventOrgFooter';
-
+import AgreementPdf from './AgreementPdf';
 import SignAgrement from '../utils/SignAgrement';
 import {
   dashLayoutWrapper,
@@ -19,6 +20,7 @@ const statusClasses = {
 };
 
 const AdminApproval = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('events');
   const [events, setEvents] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -273,17 +275,17 @@ const updateAccountStatus = async (account, status) => {
                             <div>GST: {account.gstinNumber || '-'}</div>
                             <div>Holder: {account.accountHolderName || '-'}</div>
                             <div>A/C: {account.accountNumber || '-'} ({account.accountType || '-'})</div>
-                            {account.signinAgreement && (
-                              <div>
-                                <button 
-                                  type="button" 
-                                  onClick={() => setViewingAgreementId(account._id)} 
-                                  className="text-blue-600 underline font-semibold hover:text-blue-800 cursor-pointer"
-                                >
-                                  View signed agreement
-                                </button>
-                              </div>
-                            )}
+                        {account.signinAgreement && (
+  <div>
+    <button 
+      type="button" 
+      onClick={() => setViewingAgreementId(account._id)} // 👈 CHANGE THIS
+      className="text-blue-600 underline font-semibold hover:text-blue-800 cursor-pointer"
+    >
+      View signed agreement
+    </button>
+  </div>
+)}
                           </td>
                           <td className="px-4 py-4">
                             {renderStatus(account.approvalStatus || account.status)}
@@ -352,7 +354,22 @@ const updateAccountStatus = async (account, status) => {
           </div>
         </main>
     
+{/* Agreement Popup Modal */}
+{viewingAgreementId && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+    <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl relative my-auto">
+      
+      {/* Scrollable Container for AgreementPdf */}
+      <div className="overflow-y-auto flex-1 w-full">
+        <AgreementPdf 
+          orgId={viewingAgreementId} 
+          onClose={() => setViewingAgreementId(null)} 
+        />
+      </div>
 
+    </div>
+  </div>
+)}
       {/* PAN Card Image Popup Modal */}
       {selectedPanImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -374,35 +391,7 @@ const updateAccountStatus = async (account, status) => {
         </div>
       )}
 
-   {/* Full-Width Agreement Modal Popup */}
-      {viewingAgreementId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs overflow-y-auto p-4">
-          <div className="bg-white rounded-2xl max-w-5xl w-full max-h-[95vh] flex flex-col shadow-2xl overflow-hidden relative">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
-              <h3 className="text-sm font-bold text-slate-900">Signed Agreement Preview</h3>
-              <div className="flex items-center gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => window.print()} 
-                  className="rounded-md bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition cursor-pointer shadow-sm"
-                >
-                  Download PDF
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setViewingAgreementId(null)} 
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 text-slate-700 hover:bg-slate-300 transition text-sm font-bold cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            <div className="overflow-y-auto flex-1">
-              <AgreementModalContent accountId={viewingAgreementId} />
-            </div>
-          </div>
-        </div>
-      )}
+
    
    {reKycAccount && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
@@ -467,46 +456,6 @@ const updateAccountStatus = async (account, status) => {
   );
 };
 
-// Agreement Modal Content Helper Component with exact padding and scroll classes
-const AgreementModalContent = ({ accountId }) => {
-  const [account, setAccount] = useState(null);
 
-  useEffect(() => {
-    API.get(`/org/get-kyc?id=${accountId}`)
-      .then((response) => setAccount(response.data || response))
-      .catch(() => setAccount(false));
-  }, [accountId]);
-
-  if (account === null) return <p className="text-center text-sm text-slate-600">Loading signed agreement...</p>;
-  if (!account) return <p className=" text-center text-sm text-red-700">Signed agreement not found.</p>;
-
-  return (
-    <div className="bg-white pb-24 min-h-screen p-6 sm:px-40 shadow-sm w-full max-w-5xl mx-auto my-auto overflow-hidden">
-      
-      <SignAgrement
-        signingDate={account.signingAt ? new Date(account.signingAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
-        organizerName={account.orgName}
-        organizerLocation={account.orgAddress || [account.address1, account.city, account.state].filter(Boolean).join(', ')}
-        organizerPan={account.panNumber}
-        organizerGst={account.gstinNumber}
-        organizerType={account.panLinkedAadhaar}
-        isPanLinkedWithAadhaar={account.panLinkedAadhaar}
-        bankAccountName={account.accountHolderName}
-        bankName={account.bankName}
-        bankAccountNumber={account.accountNumber}
-        accountHolderName={account.accountHolderName}
-        contactPersonName={account.contactFullName}
-        contactMobile={account.contactMobile || account.loginMobileNumber}
-        accountType={account.accountType}
-        bankIfsc={account.bankIfsc}
-        signatoryEmail={account.contactEmail}
-        signedDateTime={account.signingAt ? new Date(account.signingAt).toLocaleString('en-IN') : ''}
-        signatureImage={account.signatureImage}
-        onCreateSignature={() => {}}
-        onDeleteSignature={null}
-      />
-    </div>
-  );
-};
 
 export default AdminApproval;
