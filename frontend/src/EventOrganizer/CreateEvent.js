@@ -2916,28 +2916,20 @@ const formatDateToDDMMYYYY = (dateStr) => {
         };
         const maxSalesDate = getMaxSalesStartDate();
 
-      const slotTickets = savedTickets.filter(t => {
-          const slotIdentifier = `${displayDate}_${displayStart}`;
-          if (t.excludedSlots && t.excludedSlots.includes(slotIdentifier)) {
-            return false;
-          }
-          if (t.slotDate === 'all') return true;
+    const slotTickets = savedTickets.filter(t => {
+      if (t.slotDate === 'all') return true;
 
-          const ticketDate = t.slotDate ? String(t.slotDate).split('T')[0] : '';
-          const currentSlotDate = displayDate ? String(displayDate).split('T')[0] : '';
-          const dateMatch = ticketDate === currentSlotDate;
+      const ticketDate = t.slotDate ? String(t.slotDate).split('T')[0] : '';
+      const currentSlotDate = displayDate ? String(displayDate).split('T')[0] : '';
+      const dateMatch = ticketDate === currentSlotDate;
 
-          const cleanTicketTime = t.startTime ? String(t.startTime).trim().substring(0, 5) : '';
-          const cleanSlotTime = displayStart ? String(displayStart).trim().substring(0, 5) : '';
-          const timeMatch = !cleanTicketTime || !cleanSlotTime || cleanTicketTime === cleanSlotTime;
+      const cleanTicketTime = t.startTime ? String(t.startTime).trim().substring(0, 5) : '';
+      const cleanSlotTime = displayStart ? String(displayStart).trim().substring(0, 5) : '';
+      // If time is defined on both, require it to match, otherwise match strictly by date
+      const timeMatch = !cleanTicketTime || !cleanSlotTime || cleanTicketTime === cleanSlotTime;
 
-          // Fallback: If dates are loading or slightly mismatched on edit, show ticket in the first slot so it's never lost
-          if (!dateMatch && slotIdx === 0 && savedTickets.length > 0) {
-            return true;
-          }
-
-          return dateMatch && timeMatch;
-        });
+      return dateMatch && timeMatch;
+    });
 
         return (
           <div key={slotIdx} className="border border-slate-200/80 rounded-md overflow-hidden bg-white mb-4">
@@ -3066,7 +3058,8 @@ const formatDateToDDMMYYYY = (dateStr) => {
                                     setEbEndDate(hasEB && t.ebEnd !== '-' ? t.ebEnd : '');
                                     setEbEndTime(hasEB && t.ebEndTime !== '-' ? (t.ebEndTime || '') : '');
 
-                                    setSameTicketForEvent(t.slotDate === 'all');
+                                   setSameTicketForEvent(t.slotDate === 'all');
+                                    setTicketCategoryTypes(prev => ({ ...prev, [slotIdx]: t.ticketType })); // <--- ADD THIS LINE
                                     setShowTicketForm(true);
                                   }}
                                   className="text-blue-600 cursor-pointer" 
@@ -3655,27 +3648,26 @@ const formatDateToDDMMYYYY = (dateStr) => {
                           }
                         }
 
-                        // Build the ticket data object
+                       // Build the ticket data object
                         const newTicketData = { 
                           ticketType: ticketCategoryType, 
-                          name: ticketName || (ticketCategoryType === 'free' ? 'Free Ticket' : ''), 
-                          price: ticketCategoryType === 'free' ? '0' : price, 
-                          qty: ticketCategoryType === 'free' ? (quantity || '100') : quantity, 
-                          available: ticketCategoryType === 'free' ? (available || quantity || '100') : (available || quantity),
-                          startDate: ticketCategoryType === 'free' ? startDate : '', 
-                          startTime: ticketCategoryType === 'free' ? startTime : '',
-                          endDate: ticketCategoryType === 'free' ? endDate : '', 
-                          endTime: ticketCategoryType === 'free' ? endTime : '',
-                          ebPrice: '-', 
-                          ebQty: '-',
-                          ebStart: '-', 
-                          ebStartTime: '-',
-                          ebEnd: '-', 
-                          ebEndTime: '-',
+                          name: ticketName || (ticketCategoryType === 'free' ? 'Free Ticket' : 'Paid Ticket'), 
+                          price: ticketCategoryType === 'free' ? '0' : String(price), 
+                          qty: String(quantity || '0'), 
+                          available: String(available || quantity || '0'),
+                          startDate: startDate || '', 
+                          startTime: startTime || '',
+                          endDate: endDate || '', 
+                          endTime: endTime || '',
+                          ebPrice: hasEarlyBird ? String(ebPrice) : '-', 
+                          ebQty: hasEarlyBird ? String(ebQuantity) : '-',
+                          ebStart: hasEarlyBird ? (ebStartDate || '-') : '-', 
+                          ebStartTime: hasEarlyBird ? (ebStartTime || '-') : '-',
+                          ebEnd: hasEarlyBird ? (ebEndDate || '-') : '-', 
+                          ebEndTime: hasEarlyBird ? (ebEndTime || '-') : '-',
                           slotDate: targetSlotDate,
                           startTime: displayStart
                         };
-
                         if (editingIndex !== null) {
                           const updated = [...savedTickets];
                           updated[editingIndex] = newTicketData;
