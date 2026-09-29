@@ -21,9 +21,56 @@ const getStoredOrganizer = () => {
   }
 };
 
+// Normalizes 12-hour (9:26 PM) or 24-hour (21:26) to standard HH:mm
+const normalizeTimeTo24 = (timeStr) => {
+  if (!timeStr) return '00:00';
+  const clean = timeStr.trim();
+  const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+  if (!match) return clean;
+  let [, h, m, meridiem] = match;
+  let hours = parseInt(h, 10);
+  if (meridiem) {
+    const isPM = meridiem.toUpperCase() === 'PM';
+    if (isPM && hours < 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+  }
+  return `${String(hours).padStart(2, '0')}:${m}`;
+};
+
 const getEventEndDate = (event) => {
+  const sch = event.schedule || {};
+
+  // 1. Ticket tier end date takes first priority
   const tierEnd = event.ticketTiers?.find((tier) => tier.endDate)?.endDate;
-  return tierEnd || event.schedule?.startDate || event.updatedAt || event.createdAt;
+  if (tierEnd) return tierEnd;
+
+  // 2. Weekly recurring
+  if (Array.isArray(sch.weeklyTimeSlots) && sch.weeklyTimeSlots.length > 0) {
+    const lastSlot = sch.weeklyTimeSlots[sch.weeklyTimeSlots.length - 1];
+    if (lastSlot?.date) {
+      const time = normalizeTimeTo24(lastSlot.endTime || lastSlot.startTime || '23:59');
+      return `${lastSlot.date.split('T')[0]}T${time}`;
+    }
+  }
+
+  // 3. Daily recurring
+  if (Array.isArray(sch.dailyTimeSlots) && sch.dailyTimeSlots.length > 0) {
+    const lastSlot = sch.dailyTimeSlots[sch.dailyTimeSlots.length - 1];
+    const baseDate = sch.endDate || sch.startDate;
+    if (baseDate) {
+      const time = normalizeTimeTo24(lastSlot.endTime || lastSlot.startTime || '23:59');
+      return `${baseDate.split('T')[0]}T${time}`;
+    }
+  }
+
+  // 4. Single event
+  const baseDate = sch.endDate || sch.startDate;
+  if (baseDate) {
+    const time = normalizeTimeTo24(sch.endTime || sch.startTime || '23:59');
+    return `${baseDate.split('T')[0]}T${time}`;
+  }
+
+  return null;
 };
 
 const buildEventStatus = (event) => {
@@ -42,13 +89,12 @@ const buildEventStatus = (event) => {
     return { label: 'Pending Approval', statusColor: 'bg-amber-500', rightBarColor: 'bg-amber-500', muted: false };
   }
 
-  // Check if event date/time has expired -> Complete
+  // Check if date has expired ONLY if it's not pending/draft/etc.
   const endDate = new Date(getEventEndDate(event));
   if (!Number.isNaN(endDate.getTime()) && endDate < new Date()) {
     return { label: 'Complete', statusColor: 'bg-blue-600', rightBarColor: 'bg-blue-600', muted: false };
   }
 
-  // If approved and not expired -> Live
   if (statusUpper === 'APPROVED') {
     return { label: 'Live', statusColor: 'bg-emerald-500', rightBarColor: 'bg-emerald-500', muted: false };
   }
@@ -57,14 +103,30 @@ const buildEventStatus = (event) => {
 };
 
 const formatDateParts = (event) => {
-  const rawDate = event.schedule?.startDate;
+  const sch = event.schedule || {};
+  let rawDate = null;
+  let startTime = null;
+  let endTime = null;
+
+  if (Array.isArray(sch.weeklyTimeSlots) && sch.weeklyTimeSlots.length > 0) {
+    rawDate = sch.weeklyTimeSlots[0]?.date;
+    startTime = sch.weeklyTimeSlots[0]?.startTime;
+    endTime = sch.weeklyTimeSlots[0]?.endTime;
+  } else if (Array.isArray(sch.dailyTimeSlots) && sch.dailyTimeSlots.length > 0) {
+    rawDate = sch.startDate;
+    startTime = sch.dailyTimeSlots[0]?.startTime;
+    endTime = sch.dailyTimeSlots[0]?.endTime;
+  } else {
+    rawDate = sch.startDate;
+    startTime = sch.startTime;
+    endTime = sch.endTime;
+  }
+
   if (!rawDate) return { day: null, month: null, timeRange: null };
 
   const date = new Date(rawDate);
   if (Number.isNaN(date.getTime())) return { day: null, month: null, timeRange: null };
 
-  const startTime = event.schedule?.startTime;
-  const endTime = event.schedule?.endTime;
   const timeRange = startTime && endTime ? `${startTime}-${endTime}` : (startTime || null);
 
   return {
@@ -161,21 +223,24 @@ const handleDuplicateEvent = async (e, eventId) => {
     fetchMyEvents();
   }, []);
 
-  const calculateTimeLeft = (startDateStr, startTimeStr) => {
-    if (!startDateStr || !startTimeStr) return null;
-    
-    const eventDate = new Date(`${startDateStr.split('T')[0]}T${startTimeStr}`);
-    const difference = eventDate.getTime() - new Date().getTime();
-    if (difference <= 0) return { days: '00', hours: '00', minutes: '00', seconds: '00', expired: true };
+const calculateTimeLeft = (startDateStr, startTimeStr) => {
+  if (!startDateStr || !startTimeStr) return null;
+  
+  const cleanDate = startDateStr.split('T')[0];
+  const cleanTime = normalizeTimeTo24(startTimeStr);
+  const eventDate = new Date(`${cleanDate}T${cleanTime}:00`);
+  const difference = eventDate.getTime() - new Date().getTime();
+  
+  if (difference <= 0) return { days: '00', hours: '00', minutes: '00', seconds: '00', expired: true };
 
-    return {
-      days: String(Math.floor(difference / (1000 * 60 * 60 * 24))).padStart(2, '0'),
-      hours: String(Math.floor((difference / (1000 * 60 * 60)) % 24)).padStart(2, '0'),
-      minutes: String(Math.floor((difference / 1000 / 60) % 60)).padStart(2, '0'),
-      seconds: String(Math.floor((difference / 1000) % 60)).padStart(2, '0'),
-      expired: false
-    };
+  return {
+    days: String(Math.floor(difference / (1000 * 60 * 60 * 24))).padStart(2, '0'),
+    hours: String(Math.floor((difference / (1000 * 60 * 60)) % 24)).padStart(2, '0'),
+    minutes: String(Math.floor((difference / 1000 / 60) % 60)).padStart(2, '0'),
+    seconds: String(Math.floor((difference / 1000) % 60)).padStart(2, '0'),
+    expired: false
   };
+};
 
   const filteredEvents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -398,8 +463,26 @@ const handleDuplicateEvent = async (e, eventId) => {
                   const isApproved = evt.status?.toUpperCase() === 'APPROVED';
                   if (!isApproved) return null;
 
-                  const rawDate = evt.schedule?.startDate;
-                  const startTime = evt.schedule?.startTime;
+               const weeklySlots = evt.schedule?.weeklyTimeSlots;
+                  const firstSlot = Array.isArray(weeklySlots) && weeklySlots.length > 0 ? weeklySlots[0] : null;
+                 
+                  
+
+                  const sch = evt.schedule || {};
+                  let rawDate = null;
+                  let startTime = null;
+
+                  if (Array.isArray(sch.weeklyTimeSlots) && sch.weeklyTimeSlots.length > 0) {
+                    rawDate = sch.weeklyTimeSlots[0]?.date;
+                    startTime = sch.weeklyTimeSlots[0]?.startTime;
+                  } else if (Array.isArray(sch.dailyTimeSlots) && sch.dailyTimeSlots.length > 0) {
+                    rawDate = sch.startDate;
+                    startTime = sch.dailyTimeSlots[0]?.startTime;
+                  } else {
+                    rawDate = sch.startDate;
+                    startTime = sch.startTime;
+                  }
+
                   if (!rawDate || !startTime) return null;
 
                   const timeLeft = calculateTimeLeft(rawDate, startTime);

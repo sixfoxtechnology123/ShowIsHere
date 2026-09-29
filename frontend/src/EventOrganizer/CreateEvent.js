@@ -2973,9 +2973,9 @@ const formatDateToDDMMYYYY = (dateStr) => {
                   const cannotAddMore = slotTickets.length > 0; 
 
                   return (
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center justify-between w-full py-2">
                      {slotTickets.length === 0 && (
-                        <div className="flex-1 py-3.5 px-4 bg-slate-100/90 rounded-md text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
+                        <div className="flex-1 py-2.5 px-4 bg-slate-100/90 rounded-md text-xs text-slate-600 font-medium text-center select-none border border-slate-200/60">
                           No tickets added yet!
                         </div>
                       )}
@@ -3004,8 +3004,8 @@ const formatDateToDDMMYYYY = (dateStr) => {
                 })()}
 
                 {slotTickets.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="overflow-x-auto">
+                  <div className="space-y-3 ">
+                    <div className="overflow-x-auto ">
                       <table className="w-full text-left border-collapse ">
                         <thead>
                             <tr className="text-slate-500 text-[11px]  tracking-wider">
