@@ -68,7 +68,7 @@ const hasOverlappingSlots = (slots) => {
 const CreateEvent = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(1);
-  const [isDataSaved, setIsDataSaved] = useState(false);
+  const [savedSteps, setSavedSteps] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [masterCategories, setMasterCategories] = useState([]);
   const [eventCategoryTrees, setEventCategoryTrees] = useState([]);
@@ -423,6 +423,14 @@ useEffect(() => {
       if (parsed.savedTickets) setSavedTickets(parsed.savedTickets);
       if (parsed.bannerPreview) setBannerPreview(parsed.bannerPreview);
       if (parsed.thumbnailPreview) setThumbnailPreview(parsed.thumbnailPreview);
+
+      // Restore saved steps state so buttons stay disabled across page routes
+      const storedSteps = sessionStorage.getItem('create_event_saved_steps');
+      if (storedSteps) {
+        setSavedSteps(JSON.parse(storedSteps));
+      }
+
+   
       
       // If eventId was not passed on location.state direct, grab it from parsed data
       if (parsed.createdEventId) {
@@ -512,7 +520,7 @@ useEffect(() => {
            // Schedule & Venue
             eventScheduleType: ev.schedule?.eventScheduleType || 'single',
             recurringType: ev.schedule?.recurringType || 'daily',
-            startDate: ev.schedule?.startDate ? new Date(ev.schedule.startDate).toISOString().split('T')[0] : '',
+            startDate: ev.schedule?.startDate && !isNaN(new Date(ev.schedule.startDate)) ? new Date(ev.schedule.startDate).toISOString().split('T')[0] : '',
             startTime: ev.schedule?.startTime || '',
             endTime: ev.schedule?.endTime || '',
             dailyTimeSlots: Array.isArray(ev.schedule?.dailyTimeSlots) && ev.schedule.dailyTimeSlots.length > 0 
@@ -560,7 +568,7 @@ const handleInputChange = (e) => {
     ...formData,
     [name]: processedValue
   });
-  setIsDataSaved(false);
+  setSavedSteps(prev => ({ ...prev, [activeStep]: false }));
 };
 
 
@@ -971,7 +979,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
         setCreatedEventId(savedDoc._id);
       }
 
-      setIsDataSaved(true);
+      setSavedSteps(prev => {
+  const updated = { ...prev, [activeStep]: true };
+  sessionStorage.setItem('create_event_saved_steps', JSON.stringify(updated));
+  return updated;
+});
       toast.success(res.data?.message || 'Draft saved successfully!');
     } catch (err) {
       console.error('Draft error:', err);
@@ -1011,8 +1023,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
         }
 
         toast.success(res.data?.message || `Step ${activeStep} saved!`, { duration: 1500 });
+        setSavedSteps(prev => {
+          const updated = { ...prev, [activeStep]: true };
+          sessionStorage.setItem('create_event_saved_steps', JSON.stringify(updated));
+          return updated;
+        });
         setActiveStep(activeStep + 1);
-        setIsDataSaved(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         // Final submit handler keeping status as DRAFT and resetting form
@@ -1078,7 +1094,6 @@ const formatDateToDDMMYYYY = (dateStr) => {
   const handleSecondaryAction = () => {
     if (activeStep > 1) {
       setActiveStep(activeStep - 1);
-      setIsDataSaved(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       handleSaveDraft();
@@ -1201,7 +1216,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
                           eventSubCategory: '', 
                           eventType: '' 
                         });
-                        setIsDataSaved(false);
+                        setSavedSteps(prev => ({ ...prev, [activeStep]: false }));
                       }}
                       className={`h-28 flex flex-col items-center justify-center p-4 rounded-md border-2 cursor-pointer transition-all ${
                         isSelected
@@ -1597,6 +1612,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
               const nt = [...formData.hashtags];
               nt[index] = val;
               setFormData({ ...formData, hashtags: nt });
+              setSavedSteps(prev => ({ ...prev, [activeStep]: false })); // <--- ADD THIS LINE
             }}
             className={`${inputFieldStyle} border-2 text-center`}
           />
@@ -1884,10 +1900,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
             setFormData(prev => ({
               ...prev,
               startDate: val,
-              endDate: prev.endDate && val > prev.endDate ? val : prev.endDate, // Optional: adjust end date if earlier than start date
+              endDate: prev.endDate && val > prev.endDate ? val : prev.endDate,
               startTime: '',
               endTime: ''
             }));
+            setSavedSteps(prev => ({ ...prev, [activeStep]: false })); // <--- ADDED
           }} 
           className={`${inputFieldStyle} border-2 w-full`} 
         />
@@ -1902,12 +1919,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
           onChange={(e) => {
             const val = e.target.value;
             setFormData(prev => ({ ...prev, startTime: val, endTime: '' }));
+            setSavedSteps(prev => ({ ...prev, [activeStep]: false })); // <--- ADDED
           }} 
           className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
         />
       </div>
 
-      {/* 2. INSERT END DATE FIELD HERE */}
       <div>
         <label className="block text-[11px] font-semibold text-slate-600 mb-1">End date</label>
         <input 
@@ -1923,6 +1940,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
               return;
             }
             setFormData(prev => ({ ...prev, endDate: val }));
+            setSavedSteps(prev => ({ ...prev, [activeStep]: false })); // <--- ADDED
           }} 
           className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
         />
@@ -1937,12 +1955,12 @@ const formatDateToDDMMYYYY = (dateStr) => {
           value={formData.endTime || ''} 
           onChange={(e) => {
             const val = e.target.value;
-            // Add date & time validation logic if end date equals start date
             if (formData.startDate === formData.endDate && formData.startTime && val <= formData.startTime) {
               toast.error('End time must be later than start time.', { id: 'time-validation-error' });
               return;
             }
             setFormData(prev => ({ ...prev, endTime: val }));
+            setSavedSteps(prev => ({ ...prev, [activeStep]: false })); // <--- ADDED
           }} 
           className={`${inputFieldStyle} border-2 w-full disabled:bg-slate-100 disabled:cursor-not-allowed`} 
         />
@@ -2810,6 +2828,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
                 createdEventId
               };
               sessionStorage.setItem('create_event_temp_data', JSON.stringify(snapshotToPersist));
+              setSavedSteps(prev => {
+                const updated = { ...prev, 4: false };
+                sessionStorage.setItem('create_event_saved_steps', JSON.stringify(updated));
+                return updated;
+              }); // <--- UNLOCKS STEP 4 SAVE AS DRAFT BUTTON
               navigate('/seatmap', { state: { eventFormData: snapshotToPersist } });
             }}
             className="w-full py-2.5 px-4 bg-[#1E60F2] hover:bg-blue-700 text-white text-xs font-semibold rounded-md text-center shadow-xs transition cursor-pointer"
@@ -2832,6 +2855,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
                     setSeatMapImage(r.result);
                     setImgZoom(1);
                     setImgPan({ x: 0, y: 0 });
+                    setSavedSteps(prev => {
+                      const updated = { ...prev, 4: false };
+                      sessionStorage.setItem('create_event_saved_steps', JSON.stringify(updated));
+                      return updated;
+                    }); // <--- UNLOCKS STEP 4 SAVE AS DRAFT BUTTON ON UPLOAD
                     toast.success('Seat map image uploaded successfully!');
                   };
                   r.readAsDataURL(f);
@@ -3997,10 +4025,10 @@ const formatDateToDDMMYYYY = (dateStr) => {
       <button 
         type="button" 
         onClick={handleSaveDraft} 
-        disabled={!hasFormContent} 
-        className={`${accountSecondaryBtn} whitespace-nowrap px-5 ${!hasFormContent ? 'opacity-30 cursor-not-allowed bg-slate-100' : ''}`}
+        disabled={!hasFormContent || Boolean(savedSteps[activeStep]) || isSaving} 
+        className={`${accountSecondaryBtn} whitespace-nowrap px-5 ${(!hasFormContent || savedSteps[activeStep] || isSaving) ? 'opacity-30 cursor-not-allowed bg-slate-100' : ''}`}
       >
-        Save as Draft
+        {isSaving ? 'Saving...' : 'Save as Draft'}
       </button>
 
       <button 
