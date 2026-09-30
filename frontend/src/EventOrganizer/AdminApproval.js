@@ -339,9 +339,28 @@ const submitCancelRejection = async () => {
                             <div>Languages: {(event.eventLanguages || []).join(', ') || '-'}</div>
                             <div>Tickets: {event.ticketTiers?.length || 0}</div>
                           </td>
-                          <td className="px-4 py-4">
-                            {renderStatus(event.status)}
-                            {event.rejectionReason && <div className="text-red-600 mt-2">Reason: {event.rejectionReason}</div>}
+                       <td className="px-4 py-4">
+                            {/* Dynamic Status Display */}
+                            {event.status === 'APPROVED' ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                Approved
+                              </span>
+                            ) : event.resubmit ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                Resubmission Requested
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                Organizer Updated
+                              </span>
+                            )}
+
+                            {/* Reason / Note Display
+                            {event.rejectionReason && (
+                              <div className="text-red-600 text-xs mt-1.5 font-medium">
+                                Reason: {event.rejectionReason}
+                              </div>
+                            )} */}
                           </td>
                           <td className="px-4 py-4 text-right">
                             <div className="inline-flex gap-2">
@@ -357,18 +376,19 @@ const submitCancelRejection = async () => {
                               >
                                 Resubmit
                               </button>
-                              <button 
-                                type="button" 
-                                disabled={isApproved} 
-                                onClick={() => updateEventStatus(event, 'approved')} 
-                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
-                                  isApproved 
-                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
-                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
-                                }`}
-                              >
-                                Approve
-                              </button>
+                            
+                                <button 
+                                  type="button" 
+                                  disabled={isApproved || event.resubmit} 
+                                  onClick={() => updateEventStatus(event, 'approved')} 
+                                  className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                    isApproved || event.resubmit 
+                                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                      : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
+                                  }`}
+                                >
+                                  Approve
+                                </button>
                               <button 
                                 type="button" 
                                 disabled={isPending} 
@@ -663,7 +683,7 @@ const submitCancelRejection = async () => {
         </div>
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-700">Write reason:</label>
-          <textarea value={resubmitReason} onChange={(event) => setResubmitReason(event.target.value)} rows="4" placeholder="Enter reason for re-KYC..." className="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" />
+          <textarea value={resubmitReason} onChange={(event) => setResubmitReason(event.target.value)} rows="6" placeholder="Enter reason for re-KYC..." className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" />
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">
           <button type="button" onClick={() => setResubmitEventItem(null)} className="px-5 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 cursor-pointer">Cancel</button>

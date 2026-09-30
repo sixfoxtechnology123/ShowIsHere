@@ -72,30 +72,57 @@ const EventOrgHeader = () => {
     }
   };
 
-  // API 2: Fetch Notifications Data
+ // API 2: Fetch Notifications Data (Org Profile + Create Event Database combined)
   const fetchNotifications = async () => {
     try {
       const savedUser = JSON.parse(localStorage.getItem('orgUserData') || '{}');
       const mobile = savedUser.loginMobileNumber || savedUser.contactMobile || localStorage.getItem('loginMobileNumber');
 
       if (mobile) {
-        const resData = await API.get(`/org/profile?loginMobileNumber=${mobile}`);
-        
-        if (resData && resData.success && resData.data) {
-          const u = resData.data;
-          if (u.reasonNotifications && Array.isArray(u.reasonNotifications)) {
-            setNotifications(u.reasonNotifications);
+        let combinedNotifications = [];
 
-            const lastSeen = localStorage.getItem('lastSeenNotificationTime');
-            if (u.reasonNotifications.length > 0) {
-              const latestNotificationTime = new Date(u.reasonNotifications[u.reasonNotifications.length - 1].createdAt).getTime();
-              
-              if (!lastSeen || latestNotificationTime > Number(lastSeen)) {
-                setHasNewNotifications(true);
-              } else {
-                setHasNewNotifications(false);
-              }
+        // 1. Keep old Org Profile notifications fetch
+        try {
+          const profileRes = await API.get(`/org/profile?loginMobileNumber=${mobile}`);
+          if (profileRes && profileRes.success && profileRes.data) {
+            const u = profileRes.data;
+            if (u.reasonNotifications && Array.isArray(u.reasonNotifications)) {
+              combinedNotifications = [...combinedNotifications, ...u.reasonNotifications];
             }
+          }
+        } catch (profileErr) {
+          console.error('Error fetching profile notifications:', profileErr);
+        }
+
+        // 2. Add new Create Event database notifications fetch from /events route
+        try {
+          const eventRes = await API.get(`/events?loginMobileNumber=${mobile}`);
+          const eventsList = eventRes?.data || eventRes;
+          
+          if (Array.isArray(eventsList)) {
+            eventsList.forEach(event => {
+              if (event.resonNotification && Array.isArray(event.resonNotification)) {
+                combinedNotifications = [...combinedNotifications, ...event.resonNotification];
+              }
+            });
+          }
+        } catch (eventErr) {
+          console.error('Error fetching event notifications:', eventErr);
+        }
+
+        // Set and sort combined notifications
+        if (combinedNotifications.length > 0) {
+          combinedNotifications.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          
+          setNotifications(combinedNotifications);
+
+          const lastSeen = localStorage.getItem('lastSeenNotificationTime');
+          const latestNotificationTime = new Date(combinedNotifications[combinedNotifications.length - 1].createdAt).getTime();
+          
+          if (!lastSeen || latestNotificationTime > Number(lastSeen)) {
+            setHasNewNotifications(true);
+          } else {
+            setHasNewNotifications(false);
           }
         }
       }
@@ -156,18 +183,18 @@ const EventOrgHeader = () => {
             )}
           </div>
 
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50">
+     {showNotifications && (
+            <div className="absolute right-0 mt-2 w-96 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50">
               <div className="px-4 py-2 border-b border-slate-100 flex justify-between items-center">
                 <span className="font-semibold text-sm text-slate-800">Notifications</span>
               </div>
-            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+            <div className="max-h-[450px] overflow-y-auto divide-y divide-slate-100">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-6 text-center text-sm text-slate-500">
                     No new notifications
                   </div>
                 ) : (
-                  notifications.slice().reverse().slice(0, 10).map((item, index) => {
+                  notifications.slice().reverse().slice(0, 20).map((item, index) => {
                     // Use a permanent, unique signature combining timestamp and reason instead of shifting index
                     const notificationId = item._id || `${item.createdAt}-${item.reason}`;
                     const isRead = readNotificationIds.includes(notificationId);

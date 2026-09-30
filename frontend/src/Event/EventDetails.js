@@ -84,6 +84,7 @@ const EventDetails = () => {
     contactMobile: '',
     cancelRequest: '',
     cancelHistory: [],
+    resonNotification: [],
   });
 
 
@@ -241,6 +242,7 @@ const handleCancelSubmit = async () => {
             eventType: data.eventFormat || '',
             cancelRequest: data.cancelRequest || '',
             cancelHistory: Array.isArray(data.cancelHistory) ? data.cancelHistory : [],
+            resonNotification: Array.isArray(data.resonNotification) ? data.resonNotification : [],
             eventScheduleType: data.schedule?.eventScheduleType || 'single',
              schedules: (() => {
             const sch = data.schedule || data.eventData?.schedule || {};
@@ -490,8 +492,9 @@ const handleSave = async () => {
           <div className={dashScrollableBody}>
             
             {/* Sub-Navigation Tabs Bar */}
+            {/* without blink */}
             <div className="bg-white border-b border-slate-200 px-8 py-3 flex items-center justify-between  rounded-none shadow-none ">
-              <div className="flex space-x-8 text-sm font-medium text-slate-500">
+              {/* <div className="flex space-x-8 text-sm font-medium text-slate-500">
                 {['Basics', 'Artists & Tags', 'Date & Location', 'Features', 'Contact', ...(eventStatus === 'APPROVED' ? ['Setting'] : [])].map((tab) => (
                   <button
                     key={tab}
@@ -506,6 +509,73 @@ const handleSave = async () => {
                     {tab}
                   </button>
                 ))}
+              </div> */}
+
+{/* with blink */}
+
+           <div className="flex space-x-8 text-sm font-medium text-slate-500">
+                {['Basics', 'Artists & Tags', 'Date & Location', 'Features', 'Contact', ...(eventStatus === 'APPROVED' ? ['Setting'] : [])].map((tab) => {
+                  
+                  // Determine if this specific tab has resubmission fields or notifications
+                  let hasResubmissionAlert = false;
+
+                  // ONLY check if resubmission mode is active AND the status is not APPROVED
+                  if (isResubmitMode && eventStatus !== 'APPROVED') {
+                    if (tab === 'Basics') {
+                      hasResubmissionAlert = resubmitFieldsList.some(field => 
+                        ['eventTitle', 'description', 'eventBanner'].includes(field)
+                      );
+                    } else if (tab === 'Artists & Tags') {
+                      hasResubmissionAlert = resubmitFieldsList.some(field => 
+                        ['artist', 'hashtags'].includes(field)
+                      );
+                    } else if (tab === 'Date & Location') {
+                      hasResubmissionAlert = resubmitFieldsList.some(field => 
+                        ['date', 'venue'].includes(field)
+                      );
+                    } else if (tab === 'Features') {
+                      hasResubmissionAlert = resubmitFieldsList.some(field => 
+                        ['ageLimit', 'eventGuide'].includes(field)
+                      );
+                    } else if (tab === 'Contact') {
+                      hasResubmissionAlert = resubmitFieldsList.some(field => 
+                        ['eventContact'].includes(field)
+                      );
+                    }
+                  }
+
+                  // Setting tab checks for unread notifications separately
+                  if (tab === 'Setting') {
+                    const readIds = JSON.parse(localStorage.getItem('readNotificationIds') || '[]');
+                    hasResubmissionAlert = Array.isArray(eventData.resonNotification) && eventData.resonNotification.some(item => {
+                      const id = item._id || `${item.createdAt}-${item.reason}`;
+                      return !readIds.includes(id);
+                    });
+                  }
+
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`pb-1 transition-colors relative flex items-center gap-1.5 ${
+                        activeTab === tab
+                          ? 'text-blue-600 border-b-2 border-blue-600 font-semibold'
+                          : 'hover:text-slate-800'
+                      }`}
+                    >
+                      <span>{tab}</span>
+                      
+                      {/* Blinking red dot shows on the tab that needs updates */}
+                      {hasResubmissionAlert && (
+                        <span className="relative flex h-1 w-1 -top-1">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1 w-1 bg-red-500"></span>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

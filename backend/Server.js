@@ -40,7 +40,7 @@ app.get('/', (req, res) => {
 });
 
 // Register Routes
-app.use('/events', eventRoutes);
+app.use('/events', eventRoutes); 
 app.use('/artists', artistRoutes);
 app.use('/org', orgKycRoutes);
 app.use('/profile', profileRoutes);
