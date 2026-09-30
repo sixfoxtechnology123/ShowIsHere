@@ -1487,8 +1487,8 @@ const handleSave = async () => {
                               </div>
                             </div>
 
-                          {/* 2. Duration Section */}
-                        <div className="space-y-3 pt-4 border-t border-slate-100">
+                         
+                        {/* <div className="space-y-3 pt-4 border-t border-slate-100">
                           <div className="flex items-center gap-4 flex-wrap">
                             <label className="text-sm font-bold text-slate-900 mb-0">Duration</label>
                             
@@ -1536,7 +1536,7 @@ const handleSave = async () => {
                             </button>
                           </div>
 
-                          {/* Duration Preview Badge */}
+                        
                           {(eventData.durationHours || eventData.durationMinutes) && (
                             <div className="flex pl-[72px]">
                               <div className="bg-[#eff6ff] border border-[#dbeafe] text-[#1e40af] text-xs font-semibold px-12 py-2 rounded-lg text-center shadow-2xs">
@@ -1544,7 +1544,7 @@ const handleSave = async () => {
                               </div>
                             </div>
                           )}
-                        </div>
+                        </div> */}
 
                     {/* 3. Event Guide Section (Attempted Questions matched with Master DB Options) */}
                       <div className="space-y-4 pt-4 border-t border-slate-100">
