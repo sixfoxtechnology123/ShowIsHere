@@ -544,14 +544,14 @@ const handleSave = async () => {
                     }
                   }
 
-                  // Setting tab checks for unread notifications separately
-                  if (tab === 'Setting') {
-                    const readIds = JSON.parse(localStorage.getItem('readNotificationIds') || '[]');
-                    hasResubmissionAlert = Array.isArray(eventData.resonNotification) && eventData.resonNotification.some(item => {
-                      const id = item._id || `${item.createdAt}-${item.reason}`;
-                      return !readIds.includes(id);
-                    });
-                  }
+                  // // Setting tab checks for unread notifications separately
+                  // if (tab === 'Setting') {
+                  //   const readIds = JSON.parse(localStorage.getItem('readNotificationIds') || '[]');
+                  //   hasResubmissionAlert = Array.isArray(eventData.resonNotification) && eventData.resonNotification.some(item => {
+                  //     const id = item._id || `${item.createdAt}-${item.reason}`;
+                  //     return !readIds.includes(id);
+                  //   });
+                  // }
 
                   return (
                     <button
