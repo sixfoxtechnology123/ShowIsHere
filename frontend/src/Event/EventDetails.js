@@ -1675,18 +1675,47 @@ const handleSave = async () => {
                                 </div>
                               </div>
 
-                              <div>
-                                <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                                  Attachment <span className="text-slate-400 font-normal">(optional)</span>
-                                </label>
-                                <div
-                                  onDragOver={(e) => e.preventDefault()}
-                                  onDrop={(e) => {
-                                    e.preventDefault();
-                                    const file = e.dataTransfer.files?.[0];
+                             <div>
+                              <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                                Attachment <span className="text-slate-400 font-normal">(optional)</span>
+                              </label>
+                              <div
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  const file = e.dataTransfer.files?.[0];
+                                  if (file) {
+                                    if (file.type !== 'application/pdf') {
+                                      toast.error('Only PDF files are supported.');
+                                      return;
+                                    }
+                                    if (file.size > 2 * 1024 * 1024) {
+                                      toast.error('File size exceeds 2MB limit.');
+                                      return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      setCancelFile({ name: file.name, data: reader.result });
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                className={`border-2 border-dashed rounded-lg p-6 text-center relative transition cursor-pointer ${
+                                  cancelFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                                }`}
+                              >
+                                <input
+                                  type="file"
+                                  accept=".pdf,application/pdf"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
                                     if (file) {
-                                      if (file.size > 5 * 1024 * 1024) {
-                                        toast.error('File size exceeds 5MB limit.');
+                                      if (file.type !== 'application/pdf') {
+                                        toast.error('Only PDF files are supported.');
+                                        return;
+                                      }
+                                      if (file.size > 2 * 1024 * 1024) {
+                                        toast.error('File size exceeds 2MB limit.');
                                         return;
                                       }
                                       const reader = new FileReader();
@@ -1696,40 +1725,19 @@ const handleSave = async () => {
                                       reader.readAsDataURL(file);
                                     }
                                   }}
-                                  className={`border-2 border-dashed rounded-lg p-6 text-center relative transition cursor-pointer ${
-                                    cancelFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
-                                  }`}
-                                >
-                                  <input
-                                    type="file"
-                                    accept=".jpg,.jpeg,.png,.pdf"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        if (file.size > 5 * 1024 * 1024) {
-                                          toast.error('File size exceeds 5MB limit.');
-                                          return;
-                                        }
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                          setCancelFile({ name: file.name, data: reader.result });
-                                        };
-                                        reader.readAsDataURL(file);
-                                      }
-                                    }}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                  />
-                                  <div className="flex flex-col items-center justify-center space-y-1 pointer-events-none">
-                                    <svg className={`w-6 h-6 ${cancelFile ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                    </svg>
-                                    <p className={`text-xs font-semibold ${cancelFile ? 'text-emerald-700' : 'text-slate-700'}`}>
-                                      {cancelFile ? `Attached: ${cancelFile.name}` : 'Drag and drop files here, or click to upload'}
-                                    </p>
-                                    <p className="text-[11px] text-slate-400">Supported formats: JPG, PNG, PDF (Max 5MB)</p>
-                                  </div>
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                />
+                                <div className="flex flex-col items-center justify-center space-y-1 pointer-events-none">
+                                  <svg className={`w-6 h-6 ${cancelFile ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                  </svg>
+                                  <p className={`text-xs font-semibold ${cancelFile ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                    {cancelFile ? `Attached: ${cancelFile.name}` : 'Drag and drop PDF here, or click to upload'}
+                                  </p>
+                                  <p className="text-[11px] text-slate-400">Supported format: PDF only (Max 2MB)</p>
                                 </div>
                               </div>
+                            </div>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">

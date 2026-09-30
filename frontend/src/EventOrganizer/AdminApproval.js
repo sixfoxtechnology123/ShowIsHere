@@ -39,6 +39,28 @@ const AdminApproval = () => {
   // State for opening the agreement inside a popup modal on the same page
   const [viewingAgreementId, setViewingAgreementId] = useState(null);
 
+
+  const getPdfBlobUrl = (base64String) => {
+  try {
+    // Clean data prefix if present
+    const base64Clean = base64String.includes('base64,') 
+      ? base64String.split('base64,')[1] 
+      : base64String;
+
+    const byteCharacters = atob(base64Clean);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('Blob conversion error:', error);
+    return base64String; // Fallback
+  }
+};
+
   const fetchApprovals = async () => {
     setLoading(true);
     try {
@@ -509,50 +531,60 @@ const AdminApproval = () => {
         </div>
       </main>
 
-      {/* Cancellation Reason & Description Popup Modal */}
-      {selectedCancelDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Cancellation Request Details ({selectedCancelDetail.requestId})</h3>
-              <button 
-                type="button" 
-                onClick={() => setSelectedCancelDetail(null)} 
-                className="text-slate-400 hover:text-slate-600 text-base font-bold cursor-pointer"
+{/* Cancellation Reason & Description Popup Modal */}
+{selectedCancelDetail && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto">
+    <div className="bg-white rounded-xl max-w-lg w-full p-6 relative shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 className="text-sm font-bold text-slate-900">Cancellation Request Details ({selectedCancelDetail?.requestId || ''})</h3>
+        <button 
+          type="button" 
+          onClick={() => setSelectedCancelDetail(null)} 
+          className="text-slate-400 hover:text-slate-600 text-base font-bold cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="space-y-4 text-xs text-slate-700">
+        <div>
+          <span className="font-bold text-slate-900 block mb-1">Reason:</span>
+          <p className="bg-slate-50 p-2.5 rounded border border-slate-200">{selectedCancelDetail?.reason || '-'}</p>
+        </div>
+        <div>
+          <span className="font-bold text-slate-900 block mb-1">Description:</span>
+          <p className="bg-slate-50 p-2.5 rounded border border-slate-200 whitespace-pre-wrap">{selectedCancelDetail?.description || 'No description provided.'}</p>
+        </div>
+        
+        {/* Centered View Document Link with Hover Effect */}
+        {Array.isArray(selectedCancelDetail?.documentPaths) && selectedCancelDetail.documentPaths[0] && (
+          <div className="pt-2 text-center">
+            <span className="font-bold text-slate-900 block mb-1.5">Attached Document:</span>
+            <div className="bg-slate-50 p-3 rounded border border-slate-200 flex flex-col items-center justify-center space-y-2">
+              {/* <span className="text-slate-600 text-[11px]">{selectedCancelDetail?.documentNames?.[0] || 'Document'}</span> */}
+              <button
+                type="button"
+                onClick={() => {
+                  const docPath = selectedCancelDetail.documentPaths[0];
+                  const isPdf = docPath.includes('pdf') || docPath.startsWith('JVBERi0') || docPath.startsWith('data:application/pdf');
+
+                  if (isPdf) {
+                    const blobUrl = getPdfBlobUrl(docPath);
+                    window.open(blobUrl, '_blank');
+                  } else {
+                    setSelectedAttachment(docPath);
+                  }
+                }}
+                className="text-blue-600 hover:text-blue-800 font-bold text-xs underline cursor-pointer transition"
               >
-                ✕
+                View Document 
               </button>
             </div>
-            <div className="space-y-4 text-xs text-slate-700">
-              <div>
-                <span className="font-bold text-slate-900 block mb-1">Reason:</span>
-                <p className="bg-slate-50 p-2.5 rounded border border-slate-200">{selectedCancelDetail.reason || '-'}</p>
-              </div>
-              <div>
-                <span className="font-bold text-slate-900 block mb-1">Description:</span>
-                <p className="bg-slate-50 p-2.5 rounded border border-slate-200 whitespace-pre-wrap">{selectedCancelDetail.description || 'No description provided.'}</p>
-              </div>
-              {selectedCancelDetail.attachment && (
-                <div>
-                  <span className="font-bold text-slate-900 block mb-1.5">Attached Document:</span>
-                  <div className="flex justify-center bg-slate-100 p-2 rounded border border-slate-200 overflow-hidden max-h-[50vh]">
-                    {selectedCancelDetail.attachment.startsWith('data:application/pdf') ? (
-                      <iframe src={selectedCancelDetail.attachment} title="PDF Viewer" className="w-full h-[40vh]" />
-                    ) : (
-                      <img 
-                        src={selectedCancelDetail.attachment} 
-                        alt="Attachment Document" 
-                        className="max-h-[40vh] w-auto object-contain cursor-pointer hover:opacity-95" 
-                        onClick={() => setSelectedAttachment(selectedCancelDetail.attachment)}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Agreement Popup Modal */}
       {viewingAgreementId && (

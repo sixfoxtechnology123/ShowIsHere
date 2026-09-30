@@ -89,17 +89,20 @@ const buildEventStatus = (event) => {
     return { label: 'Pending Approval', statusColor: 'bg-amber-500', rightBarColor: 'bg-amber-500', muted: false };
   }
 
-  // Check if date has expired ONLY if it's not pending/draft/etc.
-  const endDate = new Date(getEventEndDate(event));
-  if (!Number.isNaN(endDate.getTime()) && endDate < new Date()) {
-    return { label: 'Complete', statusColor: 'bg-blue-600', rightBarColor: 'bg-blue-600', muted: false };
+  // Check if date has expired ONLY if an end date exists
+  const endDateStr = getEventEndDate(event);
+  if (endDateStr) {
+    const endDate = new Date(endDateStr);
+    if (!Number.isNaN(endDate.getTime()) && endDate < new Date()) {
+      return { label: 'Complete', statusColor: 'bg-blue-600', rightBarColor: 'bg-blue-600', muted: false };
+    }
   }
 
   if (statusUpper === 'APPROVED') {
     return { label: 'Live', statusColor: 'bg-emerald-500', rightBarColor: 'bg-emerald-500', muted: false };
   }
 
-  return { label: statusUpper, statusColor: 'bg-slate-500', rightBarColor: 'bg-slate-400', muted: false };
+  return { label: statusUpper || 'Pending Approval', statusColor: 'bg-amber-500', rightBarColor: 'bg-amber-500', muted: false };
 };
 
 const formatDateParts = (event) => {

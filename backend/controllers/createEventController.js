@@ -540,9 +540,34 @@ CRITICAL RULES:
 };
 
 
+// Function: Finds the highest global CR number across all events and returns the next one (e.g., CR-00005)
+const getNextGlobalRequestId = async () => {
+  const events = await CreateEvent.find(
+    { "cancelHistory.requestId": { $exists: true,$ne: "" } },
+    { "cancelHistory.requestId": 1 }
+  ).lean();
+
+  let maxNum = 0;
+
+  events.forEach((event) => {
+    if (Array.isArray(event.cancelHistory)) {
+      event.cancelHistory.forEach((item) => {
+        if (item.requestId) {
+          const num = parseInt(item.requestId.replace(/\D/g, ''), 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+    }
+  });
+
+  return `CR-${String(maxNum + 1).padStart(5, '0')}`;
+};
+
 exports.cancelEvent = async (req, res) => {
   try {
-    const { eventId, reason, description, attachment } = req.body;
+    const { eventId, reason, description, attachment, fileName } = req.body;
     
     if (!eventId) {
       return res.status(400).json({ success: false, message: 'Event ID is required.' });
@@ -555,19 +580,21 @@ exports.cancelEvent = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Event not found.' });
     }
 
-    // 1. Generate Request ID and create history entry
-    const currentHistoryLength = Array.isArray(event.cancelHistory) ? event.cancelHistory.length : 0;
-    const requestId = `CR-${String(currentHistoryLength + 1).padStart(5, '0')}`;
+    // ── GET CONTINUOUS GLOBAL REQUEST ID ACROSS ALL EVENTS ──
+    const requestId = await getNextGlobalRequestId();
+
+    const base64Data = attachment?.data || attachment || '';
+    const nameOfFile = fileName || attachment?.name || (base64Data ? `Document_${requestId}` : '');
 
     const cancelEntry = {
       requestId,
       reason,
       description: description || '',
-      attachment: attachment?.data || attachment || '',
+      documentPaths: base64Data ? [base64Data] : [],
+      documentNames: nameOfFile ? [nameOfFile] : [],
       cancelledAt: new Date()
     };
 
-    // 2. Update DB with pending request and push to cancelHistory array
     const updatedEvent = await CreateEvent.findOneAndUpdate(
       query,
       {
@@ -576,7 +603,7 @@ exports.cancelEvent = async (req, res) => {
       { returnDocument: 'after', runValidators: false }
     );
 
-    // 3. Match event's orgkycId with the Organizer model to fetch contactEmail
+    // Organizer email notification block...
     const orgDoc = await Organizer.findOne({ 
       $or: [
         { orgkycId: event.orgkycId },
@@ -587,18 +614,14 @@ exports.cancelEvent = async (req, res) => {
     const recipientEmail = orgDoc?.contactEmail || event.contactPerson?.email;
     const recipientName = orgDoc?.orgName || orgDoc?.contactFullName || event.contactPerson?.name || 'User';
 
-    // 4. Send Email Notification
     if (recipientEmail) {
       const template = getEventCancellationSubmittedEmailTemplate(recipientName, requestId);
-      
       transporter.sendMail({
         from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
         to: recipientEmail,
         subject: template.subject,
         html: template.html,
-      }).catch(err => {
-        console.error('Background Cancellation Email Error:', err);
-      });
+      }).catch(err => console.error('Background Cancellation Email Error:', err));
     }
 
     return res.status(200).json({
