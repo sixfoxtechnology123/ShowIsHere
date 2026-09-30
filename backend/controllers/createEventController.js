@@ -8,7 +8,11 @@ const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 
-const { getEventCancellationSubmittedEmailTemplate } = require('../utils/EmailTemplates');
+const { 
+  getEventCancellationSubmittedEmailTemplate,
+  getEventCancellationAcceptedEmailTemplate, 
+  getEventCancellationRejectedEmailTemplate 
+} = require('../utils/EmailTemplates');
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
@@ -644,9 +648,43 @@ exports.updateCancelRequestStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Event or cancel request not found in database.' });
     }
 
+    // ── FIND SPECIFIC CANCEL ITEM TO GET REQUEST ID ──
+    const targetCancelItem = updated.cancelHistory.find(
+      (item) => String(item._id) === String(cancelObjectId)
+    );
+    const requestId = targetCancelItem?.requestId || '';
+
+    // ── FETCH ORGANIZER EMAIL ──
+    const orgDoc = await Organizer.findOne({ 
+      $or: [
+        { orgkycId: updated.orgkycId },
+        { loginMobileNumber: updated.loginMobileNumber }
+      ] 
+    });
+    
+    const recipientEmail = orgDoc?.contactEmail || updated.contactPerson?.email;
+    const recipientName = orgDoc?.orgName || orgDoc?.contactFullName || updated.contactPerson?.name || 'User';
+
+    // ── SEND EMAIL NOTIFICATION (ACCEPTED / REJECTED) ──
+    if (recipientEmail) {
+      const isAccepted = targetStatus === 'APPROVED';
+      const template = isAccepted
+        ? getEventCancellationAcceptedEmailTemplate(recipientName, updated.eventName, requestId)
+        : getEventCancellationRejectedEmailTemplate(recipientName, updated.eventName, requestId);
+
+      transporter.sendMail({
+        from: `"ShowIsHere" <${process.env.SMTP_USER}>`,
+        to: recipientEmail,
+        subject: template.subject,
+        html: template.html,
+      }).catch(err => {
+        console.error('Background Cancellation Status Email Error:', err);
+      });
+    }
+
     return res.status(200).json({ 
       success: true, 
-      message: 'Cancel request updated successfully.', 
+      message: 'Cancel request updated successfully and email sent.', 
       data: updated 
     });
   } catch (error) {

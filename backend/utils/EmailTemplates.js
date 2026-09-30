@@ -43,3 +43,34 @@ exports.getEventCancellationSubmittedEmailTemplate = (userName = 'User', request
     </div>
   `
 });
+
+
+exports.getEventCancellationAcceptedEmailTemplate = (userName = 'User', eventName = '', requestId = '') => ({
+  subject: "ShowIsHere - Event Cancellation Request Accepted",
+  html: `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #0E3652; line-height: 1.6;">
+      <p><b>Dear ${userName},</b></p>
+      <p>Your cancellation request for the event <b>${eventName}</b> has been <b>accepted</b>.</p>
+      <p>The event status has now been updated to <b>CANCELED</b> on the platform.</p>
+      <p><b>Request ID:</b> ${requestId}</p>
+      <br/>
+      <p><b>Thanks &amp; Best Regards</b><br/>Team ShowIsHere</p>
+      <br/><hr style="border: none; border-top: 1px solid #e2e8f0;"/><p style="font-size: 11px; color: #64748b;">This is a system-generated email. Please do not reply to this mail.</p>
+    </div>
+  `
+});
+
+exports.getEventCancellationRejectedEmailTemplate = (userName = 'User', eventName = '', requestId = '') => ({
+  subject: "ShowIsHere - Event Cancellation Request Rejected",
+  html: `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #0E3652; line-height: 1.6;">
+      <p><b>Dear ${userName},</b></p>
+      <p>Your cancellation request for the event <b>${eventName}</b> has been <b>rejected</b> by the admin.</p>
+      <p>Your event remains active on the platform.</p>
+      <p><b>Request ID:</b> ${requestId}</p>
+      <br/>
+      <p><b>Thanks &amp; Best Regards</b><br/>Team ShowIsHere</p>
+      <br/><hr style="border: none; border-top: 1px solid #e2e8f0;"/><p style="font-size: 11px; color: #64748b;">This is a system-generated email. Please do not reply to this mail.</p>
+    </div>
+  `
+});
