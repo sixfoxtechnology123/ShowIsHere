@@ -391,48 +391,56 @@ const handleSave = async () => {
       return;
     }
 
-    const payload = {
+    // ✅ Always include eventName and eventCategoryId to satisfy backend validation
+    let payload = {
       eventId: createEventId,
       status: 'PENDING',
       eventName: eventData.title,
-      eventCategoryId: eventData.eventCategoryId || 'DEFAULT_CAT',
-      eventCategoryName: eventData.eventCategoryName || '',
-      eventFormat: eventData.subTitle || eventData.eventType,
-      eventDescription: eventData.fullDescription,
-      media: {
+      eventCategoryId: eventData.eventCategoryId || 'DEFAULT_CAT'
+    };
+
+    if (activeTab === 'Basics') {
+      payload.eventCategoryName = eventData.eventCategoryName || '';
+      payload.eventFormat = eventData.subTitle || eventData.eventType;
+      payload.eventDescription = eventData.fullDescription;
+      payload.media = {
         bannerImage: eventData.bannerImage,
         thumbnailImage: eventData.thumbnailImage
-      },
-      artists: eventData.artists.map(a => ({
+      };
+    } else if (activeTab === 'Artists & Tags') {
+      payload.artists = eventData.artists.map(a => ({
         artistId: a.id,
         artistName: a.name,
         role: a.role,
         description: a.description,
         photoUrl: a.photo
-      })),
-      hashtags: eventData.hashtags,
-      minAgeLimit: eventData.minAgeLimit,
-      durationHours: eventData.durationHours,
-      durationMinutes: eventData.durationMinutes,
-      guideResponses: eventData.guideResponses,
-      venue: {
+      }));
+      payload.hashtags = eventData.hashtags;
+    } else if (activeTab === 'Date & Location') {
+      payload.venue = {
         name: eventData.venueName,
         addressLine1: eventData.address,
         city: eventData.city,
         pincode: eventData.pinCode
-      },
-      contactPerson: {
+      };
+    } else if (activeTab === 'Features') {
+      payload.minAgeLimit = eventData.minAgeLimit;
+      payload.durationHours = eventData.durationHours;
+      payload.durationMinutes = eventData.durationMinutes;
+      payload.guideResponses = eventData.guideResponses;
+    } else if (activeTab === 'Contact') {
+      payload.contactPerson = {
         name: eventData.contactName,
         email: eventData.contactEmail,
         mobile: eventData.contactMobile
-      }
-    };
+      };
+    }
 
     const response = await API.post('/events/save-step', payload);
     const result = response?.success !== undefined ? response : response?.data;
 
     if (result?.success) {
-      setIsDirty(false); // Clears dirty state for only the active tab via our wrapper
+      setDirtyTabs(prev => ({ ...prev, [activeTab]: false }));
 
       const updatedEvent = result.data || result;
       if (Array.isArray(updatedEvent.resubmitFields)) {
@@ -442,7 +450,7 @@ const handleSave = async () => {
         setIsResubmitMode(false);
       }
 
-      // ✅ STRICTLY LOCK ONLY THE FIELDS FOR THE ACTIVE TAB BEING SAVED
+      // Lock only the active tab's edit states
       if (activeTab === 'Basics') {
         setIsTitleEditable(false);
         setIsDescEditable(false);
@@ -555,15 +563,14 @@ const handleSave = async () => {
                         <textarea
                           name="fullDescription"
                           rows="7"
-                          readOnly={!isDescEditable && !resubmitFieldsList.includes('description')}
-                          maxLength={2000}
+                          readOnly={!isDescEditable}
                           value={eventData.fullDescription}
                           onChange={handleChange}
                           className={`w-full border rounded-md p-3.5 text-sm text-slate-800 focus:outline-none resize-none ${
-                          (!isDescEditable && !resubmitFieldsList.includes('description')) 
-                            ? 'bg-slate-100 text-slate-600 cursor-default border-slate-200' 
-                            : 'bg-white border-slate-300'
-                        }`}
+                            !isDescEditable 
+                              ? 'bg-slate-100 text-slate-600 cursor-default border-slate-200' 
+                              : 'bg-white border-slate-300'
+                          }`}
                         />
                         <div className="text-right text-xs text-slate-400 mt-0.5">
                           {eventData.fullDescription.length}/2000
@@ -1107,7 +1114,7 @@ const handleSave = async () => {
                                         return (
                                           <input 
                                             type={isRowEditable ? "date" : "text"} 
-                                            readOnly={!isRowEditable && !resubmitFieldsList.includes('date')}
+                                            readOnly={!isRowEditable}
                                             value={isRowEditable ? (schedule.startDate ? schedule.startDate.split('T')[0] : '') : formatDateDisplay(schedule.startDate)} 
                                             onChange={(e) => {
                                               const updated = [...eventData.schedules];
@@ -1115,8 +1122,8 @@ const handleSave = async () => {
                                               setEventData({ ...eventData, schedules: updated });
                                               setIsDirty(true);
                                             }}
-                                            className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                          (!isRowEditable && !resubmitFieldsList.includes('date')) 
+                                        className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                          !isRowEditable 
                                             ? 'bg-slate-100 cursor-default border-slate-200' 
                                             : 'bg-white border-slate-300'
                                         }`} 
@@ -1152,7 +1159,7 @@ const handleSave = async () => {
                                               <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">Start time</label>
                                               <input 
                                                 type="time" 
-                                                readOnly={!isRowEditable && !resubmitFieldsList.includes('date')}
+                                                readOnly={!isRowEditable}
                                                 value={slot.startTime || ''} 
                                                 onChange={(e) => {
                                                   const updated = [...eventData.schedules];
@@ -1160,11 +1167,11 @@ const handleSave = async () => {
                                                   setEventData({ ...eventData, schedules: updated });
                                                   setIsDirty(true);
                                                 }}
-                                                className={`w-full border rounded-lg px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                                  (!isRowEditable && !resubmitFieldsList.includes('date')) 
-                                                    ? 'bg-slate-100 cursor-default border-slate-200' 
-                                                    : 'bg-white border-slate-300'
-                                                }`}
+                                                className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                                !isRowEditable 
+                                                  ? 'bg-slate-100 cursor-default border-slate-200' 
+                                                  : 'bg-white border-slate-300'
+                                              }`} 
                                               />
                                             </div>
                                             <span className="text-slate-400 pt-5">-</span>
@@ -1172,7 +1179,7 @@ const handleSave = async () => {
                                               <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">End time</label>
                                               <input 
                                                 type="time" 
-                                                readOnly={!isRowEditable && !resubmitFieldsList.includes('date')}
+                                                readOnly={!isRowEditable}
                                                 value={slot.endTime || ''} 
                                                 onChange={(e) => {
                                                   const updated = [...eventData.schedules];
@@ -1180,11 +1187,11 @@ const handleSave = async () => {
                                                   setEventData({ ...eventData, schedules: updated });
                                                   setIsDirty(true);
                                                 }}
-                                                className={`w-full border rounded-lg px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-    (!isRowEditable && !resubmitFieldsList.includes('date')) 
-      ? 'bg-slate-100 cursor-default border-slate-200' 
-      : 'bg-white border-slate-300'
-  }`}
+                                           className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                          !isRowEditable 
+                                            ? 'bg-slate-100 cursor-default border-slate-200' 
+                                            : 'bg-white border-slate-300'
+                                        }`} 
                                               />
                                             </div>
                                           </div>
@@ -1203,14 +1210,14 @@ const handleSave = async () => {
                                 <input 
                                   type="text" 
                                   name="venueName" 
-                                  readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
+                                  readOnly={!isVenueEditable}
                                   value={eventData.venueName} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
+                             className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                !isVenueEditable 
                                   ? 'bg-slate-100 cursor-default border-slate-200' 
                                   : 'bg-white border-slate-300'
-                              }`} 
+                              }`}
                                 />
                               </div>
                               <div>
@@ -1218,14 +1225,14 @@ const handleSave = async () => {
                                 <input 
                                   type="text" 
                                   name="address" 
-                                  readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
+                                  readOnly={!isVenueEditable}
                                   value={eventData.address} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                  (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
+                               className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                  !isVenueEditable 
                                     ? 'bg-slate-100 cursor-default border-slate-200' 
                                     : 'bg-white border-slate-300'
-                                }`} 
+                                }`}
                                 />
                               </div>
                               <div className="grid grid-cols-2 gap-4">
@@ -1234,14 +1241,14 @@ const handleSave = async () => {
                                   <input 
                                     type="text" 
                                     name="city" 
-                                    readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
+                                    readOnly={!isVenueEditable}
                                     value={eventData.city} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-  (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
-    ? 'bg-slate-100 cursor-default border-slate-200' 
-    : 'bg-white border-slate-300'
-}`} 
+                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                  !isVenueEditable 
+                                    ? 'bg-slate-100 cursor-default border-slate-200' 
+                                    : 'bg-white border-slate-300'
+                                }`}
                                   />
                                 </div>
                                 <div>
@@ -1249,14 +1256,14 @@ const handleSave = async () => {
                                   <input 
                                     type="text" 
                                     name="pinCode" 
-                                    readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
+                                    readOnly={!isVenueEditable}
                                     value={eventData.pinCode} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-  (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
-    ? 'bg-slate-100 cursor-default border-slate-200' 
-    : 'bg-white border-slate-300'
-}`} 
+                                      className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                        !isVenueEditable 
+                                          ? 'bg-slate-100 cursor-default border-slate-200' 
+                                          : 'bg-white border-slate-300'
+                                      }`}
                                   />
                                 </div>
                               </div>
@@ -1333,10 +1340,14 @@ const handleSave = async () => {
                                 <div className="flex-1">
                                   <select 
                                     name="minAgeLimit" 
-                                    disabled={!isAgeEditable && !resubmitFieldsList.includes('ageLimit')}
+                                    disabled={!isAgeEditable}
                                     value={eventData.minAgeLimit || ''} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isAgeEditable ? 'bg-slate-100 cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                      !isAgeEditable 
+                                        ? 'bg-slate-100 cursor-default border-slate-200' 
+                                        : 'bg-white border-slate-300'
+                                    }`}
                                   >
                                     <option value="">Select</option>
                                     {Array.from({ length: 99 }, (_, i) => i + 1).map((age) => (
@@ -1565,14 +1576,14 @@ const handleSave = async () => {
                                 <input 
                                   type="text" 
                                   name="contactName" 
-                                  readOnly={!isContactEditable && !resubmitFieldsList.includes('eventContact')}
+                                  readOnly={!isContactEditable}
                                   value={eventData.contactName || ''} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                (!isContactEditable && !resubmitFieldsList.includes('eventContact')) 
-                                  ? 'bg-slate-100 cursor-default border-slate-200' 
-                                  : 'bg-white border-slate-300'
-                              }`}
+                                className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                  !isContactEditable 
+                                    ? 'bg-slate-100 cursor-default border-slate-200' 
+                                    : 'bg-white border-slate-300'
+                                }`}
                                 />
                               </div>
 
@@ -1581,14 +1592,14 @@ const handleSave = async () => {
                                 <input 
                                   type="email" 
                                   name="contactEmail" 
-                                  readOnly={!isContactEditable && !resubmitFieldsList.includes('eventContact')}
+                                 readOnly={!isContactEditable}
                                   value={eventData.contactEmail || ''} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                        (!isContactEditable && !resubmitFieldsList.includes('eventContact')) 
-                          ? 'bg-slate-100 cursor-default border-slate-200' 
-                          : 'bg-white border-slate-300'
-                      }`}
+                                   className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                  !isContactEditable 
+                                    ? 'bg-slate-100 cursor-default border-slate-200' 
+                                    : 'bg-white border-slate-300'
+                                }`}
                                 />
                               </div>
 
@@ -1598,14 +1609,14 @@ const handleSave = async () => {
                                   <input 
                                     type="text" 
                                     name="contactMobile" 
-                                    readOnly={!isContactEditable && !resubmitFieldsList.includes('eventContact')}
+                                    readOnly={!isContactEditable}
                                     value={eventData.contactMobile || ''} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                (!isContactEditable && !resubmitFieldsList.includes('eventContact')) 
-                                  ? 'bg-slate-100 cursor-default border-slate-200' 
-                                  : 'bg-white border-slate-300'
-                              }`}
+                                     className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                  !isContactEditable 
+                                    ? 'bg-slate-100 cursor-default border-slate-200' 
+                                    : 'bg-white border-slate-300'
+                                }`}
                                   />
                                 </div>
 
