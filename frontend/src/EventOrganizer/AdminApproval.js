@@ -309,12 +309,14 @@ const submitCancelRejection = async () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {events
+                {events
                     .filter((event) => (event.status || '').toUpperCase() !== 'DRAFT')
                     .map((event) => {
                       const normalizedStatus = (event.status || '').toLowerCase();
                       const isApproved = normalizedStatus === 'approved';
                       const isRejected = normalizedStatus === 'rejected';
+                      const isPending = normalizedStatus === 'pending';
+                      const isResubmit = normalizedStatus === 'resubmit';
 
                       return (
                         <tr key={event._id} className="align-top">
@@ -340,7 +342,7 @@ const submitCancelRejection = async () => {
                             {renderStatus(event.status)}
                             {event.rejectionReason && <div className="text-red-600 mt-2">Reason: {event.rejectionReason}</div>}
                           </td>
-                       <td className="px-4 py-4 text-right">
+                          <td className="px-4 py-4 text-right">
                             <div className="inline-flex gap-2">
                               <button 
                                 type="button" 
@@ -363,15 +365,25 @@ const submitCancelRejection = async () => {
                               </button>
                               <button 
                                 type="button" 
+                                disabled={isPending} 
                                 onClick={() => cancelEvent(event)} 
-                                className="px-3 py-1.5 rounded text-[11px] font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer"
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isPending 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer'
+                                }`}
                               >
                                 Cancel
                               </button>
                               <button 
                                 type="button" 
+                                disabled={isApproved || isResubmit} 
                                 onClick={() => deleteEvent(event)} 
-                                className="px-3 py-1.5 rounded text-[11px] font-bold bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isApproved || isResubmit 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-red-600 text-white hover:bg-red-700 cursor-pointer'
+                                }`}
                               >
                                 Delete
                               </button>
