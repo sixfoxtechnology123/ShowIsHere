@@ -639,7 +639,7 @@ exports.cancelEvent = async (req, res) => {
 exports.updateCancelRequestStatus = async (req, res) => {
   try {
     const { id, cancelRequestId } = req.params;
-    const { status } = req.body;
+    const { status, reason } = req.body; // <-- Added reason here
     const targetStatus = status?.toUpperCase();
 
     const eventObjectId = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
@@ -659,6 +659,9 @@ exports.updateCancelRequestStatus = async (req, res) => {
 
     if (targetStatus === 'APPROVED') {
       updateFields.status = 'CANCELED';
+    } else if (targetStatus === 'REJECTED' && reason) {
+      // Stores the rejection reason inside the specific cancelHistory subdocument
+      updateFields["cancelHistory.$.reason"] = reason; 
     }
 
     const updated = await CreateEvent.findOneAndUpdate(

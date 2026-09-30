@@ -155,6 +155,7 @@ cancelHistory: [{
   requestId: { type: String, default: '' },
   reason: { type: String, default: '' },
   description: { type: String, default: '' },
+  rejectedReason: { type: String, default: '' },
   documentPaths: [{ type: String }], // Stores base64 strings or PDF data streams
   documentNames: [{ type: String }], // Stores original file names (e.g. "DH Invoice_Aug'2026.pdf")
   cancelledAt: { type: Date, default: Date.now },
