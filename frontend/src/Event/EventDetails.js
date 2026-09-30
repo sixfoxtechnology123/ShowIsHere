@@ -38,7 +38,13 @@ const EventDetails = () => {
   const [newArtistPhoto, setNewArtistPhoto] = useState('');
   const [isSavingArtist, setIsSavingArtist] = useState(false);
   const [isHashtagsEditable, setIsHashtagsEditable] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
+  const [dirtyTabs, setDirtyTabs] = useState({
+  Basics: false,
+  'Artists & Tags': false,
+  'Date & Location': false,
+  Features: false,
+  Contact: false
+});
   const [isDateEditable, setIsDateEditable] = useState(false);
   const [editScheduleIndex, setEditScheduleIndex] = useState(null);
   const [isVenueEditable, setIsVenueEditable] = useState(false);
@@ -52,6 +58,8 @@ const EventDetails = () => {
   const [cancelReason, setCancelReason] = useState('Select reason');
   const [cancelDescription, setCancelDescription] = useState('');
   const [cancelFile, setCancelFile] = useState(null);
+  const [isResubmitMode, setIsResubmitMode] = useState(false);
+  const [resubmitFieldsList, setResubmitFieldsList] = useState([]);
 
   const [eventData, setEventData] = useState({
     title: '',
@@ -77,6 +85,12 @@ const EventDetails = () => {
     cancelRequest: '',
     cancelHistory: [],
   });
+
+
+  const setIsDirty = (value) => {
+  setDirtyTabs(prev => ({ ...prev, [activeTab]: value }));
+};
+const isDirty = dirtyTabs[activeTab];
 
 const isNotApproved = eventStatus !== 'APPROVED';
 // Fetch master questions list on mount
@@ -208,6 +222,8 @@ const handleCancelSubmit = async () => {
             : [];
 
             setEventStatus(data.status || '');
+            setIsResubmitMode(data.resubmit || false);            
+            setResubmitFieldsList(data.resubmitFields || []);
           setEventData({
             title: data.eventName || '',
             subTitle: data.eventFormat || '',
@@ -364,7 +380,7 @@ const handleImageChange = (e, field) => {
 const handleChange = (e) => {
   const { name, value } = e.target;
   setEventData((prev) => ({ ...prev, [name]: value }));
-  setIsDirty(true); // <--- Add this here
+  setDirtyTabs(prev => ({ ...prev, [activeTab]: true }));
 };
 
 const handleSave = async () => {
@@ -416,8 +432,36 @@ const handleSave = async () => {
     const result = response?.success !== undefined ? response : response?.data;
 
     if (result?.success) {
-      setIsDirty(false);
-      toast.success('Event details updated successfully in database!');
+      setIsDirty(false); // Clears dirty state for only the active tab via our wrapper
+
+      const updatedEvent = result.data || result;
+      if (Array.isArray(updatedEvent.resubmitFields)) {
+        setResubmitFieldsList(updatedEvent.resubmitFields);
+      }
+      if (updatedEvent.resubmit === false) {
+        setIsResubmitMode(false);
+      }
+
+      // ✅ STRICTLY LOCK ONLY THE FIELDS FOR THE ACTIVE TAB BEING SAVED
+      if (activeTab === 'Basics') {
+        setIsTitleEditable(false);
+        setIsDescEditable(false);
+        setIsImagesEditable(false);
+      } else if (activeTab === 'Artists & Tags') {
+        setIsArtistsEditable(false);
+        setIsHashtagsEditable(false);
+      } else if (activeTab === 'Date & Location') {
+        setEditScheduleIndex(null);
+        setIsVenueEditable(false);
+      } else if (activeTab === 'Features') {
+        setIsAgeEditable(false);
+        setIsDurationEditable(false);
+        setIsGuideEditable(false);
+      } else if (activeTab === 'Contact') {
+        setIsContactEditable(false);
+      }
+
+      toast.success(result.message || `${activeTab} details updated successfully!`);
     } else {
       toast.error(result?.message || 'Failed to save changes.');
     }
@@ -469,20 +513,24 @@ const handleSave = async () => {
                       <input
                         type="text"
                         name="title"
-                        readOnly={!isTitleEditable}
-                        value={eventData.title}
-                        onChange={handleChange}
-                        className={`w-full bg-white border border-slate-300 rounded-md px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none ${!isTitleEditable ? 'bg-slate-50 text-slate-600 cursor-default' : 'border-blue-500 ring-1 ring-blue-500'}`}
+                     readOnly={!isTitleEditable}
+                      value={eventData.title}
+                      onChange={handleChange}
+                      className={`w-full border rounded-md px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                        !isTitleEditable 
+                          ? 'bg-slate-100 text-slate-600 cursor-default border-slate-200' 
+                          : 'bg-white border-slate-300'
+                      }`}
                       />
                       
                       <button 
                         type="button" 
-                        disabled={isNotApproved}
+                       disabled={isNotApproved && !resubmitFieldsList.includes('eventTitle')}
                         onClick={() => setIsTitleEditable(!isTitleEditable)}
-                           className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                          isNotApproved 
-                            ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                            : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                        className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                          resubmitFieldsList.includes('eventTitle')
+                            ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                            : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
                         }`}
                         title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                       >
@@ -507,11 +555,15 @@ const handleSave = async () => {
                         <textarea
                           name="fullDescription"
                           rows="7"
-                          readOnly={!isDescEditable}
+                          readOnly={!isDescEditable && !resubmitFieldsList.includes('description')}
                           maxLength={2000}
                           value={eventData.fullDescription}
                           onChange={handleChange}
-                          className={`w-full bg-white border border-slate-300 rounded-md p-3.5 text-sm text-slate-800 focus:outline-none resize-none ${!isDescEditable ? 'bg-slate-50 text-slate-600 cursor-default' : 'border-blue-500 ring-1 ring-blue-500'}`}
+                          className={`w-full border rounded-md p-3.5 text-sm text-slate-800 focus:outline-none resize-none ${
+                          (!isDescEditable && !resubmitFieldsList.includes('description')) 
+                            ? 'bg-slate-100 text-slate-600 cursor-default border-slate-200' 
+                            : 'bg-white border-slate-300'
+                        }`}
                         />
                         <div className="text-right text-xs text-slate-400 mt-0.5">
                           {eventData.fullDescription.length}/2000
@@ -519,13 +571,13 @@ const handleSave = async () => {
                       </div>
                       <button 
                         type="button" 
-                        disabled={isNotApproved}
-                        onClick={() => setIsDescEditable(!isDescEditable)}
-                        className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                        isNotApproved 
-                          ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                          : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                      }`}
+                        disabled={isNotApproved && !resubmitFieldsList.includes('description')}
+                          onClick={() => setIsDescEditable(!isDescEditable)}
+                          className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                            resubmitFieldsList.includes('description')
+                              ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                              : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+                          }`}
                       title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
@@ -553,7 +605,7 @@ const handleSave = async () => {
                           ) : (
                             <div className="p-6 text-center text-sm text-slate-400">No banner image uploaded</div>
                           )}
-                          {isImagesEditable && (
+                          {(isImagesEditable || resubmitFieldsList.includes('eventBanner')) && (
                             <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-xs font-semibold cursor-pointer">
                               <span>Drag & drop or Click to change (1200x600)</span>
                               <input type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'banner')} className="hidden" />
@@ -576,7 +628,7 @@ const handleSave = async () => {
                             ) : (
                               <div className="p-6 text-center text-sm text-slate-400">No thumbnail uploaded</div>
                             )}
-                            {isImagesEditable && (
+                            {(isImagesEditable || resubmitFieldsList.includes('eventBanner')) && (
                               <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-xs font-semibold cursor-pointer text-center p-2">
                                 <span>Drop or Click to change (600x750)</span>
                                 <input type="file" accept="image/*" onChange={(e) => handleFileSelect(e, 'thumbnail')} className="hidden" />
@@ -587,13 +639,13 @@ const handleSave = async () => {
 
                         <button 
                           type="button"
-                          disabled={isNotApproved} 
-                          onClick={() => setIsImagesEditable(!isImagesEditable)}
-                         className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                          isNotApproved 
-                            ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                            : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                        }`}
+                          disabled={isNotApproved && !resubmitFieldsList.includes('eventBanner')}
+                            onClick={() => setIsImagesEditable(!isImagesEditable)}
+                            className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                              resubmitFieldsList.includes('eventBanner')
+                                ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+                            }`}
                         title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
@@ -615,13 +667,13 @@ const handleSave = async () => {
                             <h3 className="text-base font-bold text-slate-900">Artists</h3>
                             <button 
                               type="button"
-                              disabled={isNotApproved} 
+                              disabled={isNotApproved && !resubmitFieldsList.includes('artist')}
                               onClick={() => setIsArtistsEditable(!isArtistsEditable)}
                               className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                              isNotApproved 
-                                ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                                : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                            }`}
+                                resubmitFieldsList.includes('artist')
+                                  ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                  : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+                              }`}
                             title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -632,7 +684,7 @@ const handleSave = async () => {
                         </div>
                           
                           {/* Search & Add Artist Section */}
-                          {isArtistsEditable && (
+                          {(isArtistsEditable || resubmitFieldsList.includes('artist')) && (
                             <div className="relative space-y-2">
                               <label className="block text-xs font-semibold text-slate-700 ">Search & Add Artist/Performer</label>
                               <div className="flex gap-4">
@@ -679,7 +731,7 @@ const handleSave = async () => {
                                           toast.error('Artist already added.',{ id: 'event-error' });
                                         }
                                       }}
-                                      className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-none"
+                                      className="flex items-center gap-3 p-3 hover:bg-slate-100 cursor-pointer border-b border-slate-100 last:border-none"
                                     >
                                       {artist.photoUrl || artist.photoBase64 ? (
                                         <img src={artist.photoUrl || artist.photoBase64} alt={artist.artistName} className="w-10 h-10 rounded-full object-cover border border-slate-200" />
@@ -712,7 +764,7 @@ const handleSave = async () => {
                                     className="relative group flex flex-col items-center cursor-pointer"
                                     onClick={() => setSelectedArtistModal(artist)}
                                   >
-                                    {isArtistsEditable && (
+                                    {(isArtistsEditable || resubmitFieldsList.includes('artist')) && (
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -768,7 +820,11 @@ const handleSave = async () => {
                                           setEventData({ ...eventData, hashtags: newTags });
                                           setIsDirty(true);
                                         }}
-                                        className={`${inputFieldStyle} border-2 text-center ${!isHashtagsEditable ? 'bg-slate-50 cursor-default' : ''}`}
+                                      className={`${inputFieldStyle} border-2 text-center ${
+                                    (!isHashtagsEditable && !resubmitFieldsList.includes('eventBanner') && !resubmitFieldsList.includes('description')) 
+                                      ? 'bg-slate-100 text-slate-600 cursor-default border-slate-200' 
+                                      : 'bg-white border-slate-300'
+                                  }`}
                                       />
                                     );
                                   })}
@@ -815,7 +871,7 @@ const handleSave = async () => {
                                 </div>
                                 <div className="pt-3 border-t border-slate-100">
                                   <h4 className="text-xs font-bold text-slate-800 mb-1">Description</h4>
-                                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-md border border-slate-200">
+                                  <p className="text-xs text-slate-600 leading-relaxed bg-slate-100 p-3 rounded-md border border-slate-200">
                                     {selectedArtistModal.description || 'No description available for this artist.'}
                                   </p>
                                 </div>
@@ -955,7 +1011,7 @@ const handleSave = async () => {
                                           reader.readAsDataURL(file);
                                         }
                                       }}
-                                      className="w-24 h-24 rounded-full border-2 border-slate-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-slate-50 hover:bg-slate-100 transition relative group shadow-xs"
+                                      className="w-24 h-24 rounded-full border-2 border-slate-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-slate-100 hover:bg-slate-100 transition relative group shadow-xs"
                                     >
                                       {newArtistPhoto ? (
                                         <div className="w-full h-full relative flex items-center justify-center">
@@ -1051,7 +1107,7 @@ const handleSave = async () => {
                                         return (
                                           <input 
                                             type={isRowEditable ? "date" : "text"} 
-                                            readOnly={!isRowEditable}
+                                            readOnly={!isRowEditable && !resubmitFieldsList.includes('date')}
                                             value={isRowEditable ? (schedule.startDate ? schedule.startDate.split('T')[0] : '') : formatDateDisplay(schedule.startDate)} 
                                             onChange={(e) => {
                                               const updated = [...eventData.schedules];
@@ -1059,7 +1115,11 @@ const handleSave = async () => {
                                               setEventData({ ...eventData, schedules: updated });
                                               setIsDirty(true);
                                             }}
-                                            className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                            className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                          (!isRowEditable && !resubmitFieldsList.includes('date')) 
+                                            ? 'bg-slate-100 cursor-default border-slate-200' 
+                                            : 'bg-white border-slate-300'
+                                        }`} 
                                           />
                                         );
                                       })()}
@@ -1068,13 +1128,13 @@ const handleSave = async () => {
                                     <div className="pt-5 shrink-0">
                                       <button 
                                         type="button" 
-                                        disabled={isNotApproved}
+                                        disabled={isNotApproved && !resubmitFieldsList.includes('date')}
                                         onClick={() => setEditScheduleIndex(isRowEditable ? null : index)}
-                                     className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                                      isNotApproved 
-                                        ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                                        : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                                    }`}
+                                        className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                          resubmitFieldsList.includes('date')
+                                            ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                            : (isNotApproved ? 'opacity-40  cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+                                        }`}
                                     title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -1092,7 +1152,7 @@ const handleSave = async () => {
                                               <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">Start time</label>
                                               <input 
                                                 type="time" 
-                                                readOnly={!isRowEditable}
+                                                readOnly={!isRowEditable && !resubmitFieldsList.includes('date')}
                                                 value={slot.startTime || ''} 
                                                 onChange={(e) => {
                                                   const updated = [...eventData.schedules];
@@ -1100,7 +1160,11 @@ const handleSave = async () => {
                                                   setEventData({ ...eventData, schedules: updated });
                                                   setIsDirty(true);
                                                 }}
-                                                className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                                className={`w-full border rounded-lg px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                                  (!isRowEditable && !resubmitFieldsList.includes('date')) 
+                                                    ? 'bg-slate-100 cursor-default border-slate-200' 
+                                                    : 'bg-white border-slate-300'
+                                                }`}
                                               />
                                             </div>
                                             <span className="text-slate-400 pt-5">-</span>
@@ -1108,7 +1172,7 @@ const handleSave = async () => {
                                               <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">End time</label>
                                               <input 
                                                 type="time" 
-                                                readOnly={!isRowEditable}
+                                                readOnly={!isRowEditable && !resubmitFieldsList.includes('date')}
                                                 value={slot.endTime || ''} 
                                                 onChange={(e) => {
                                                   const updated = [...eventData.schedules];
@@ -1116,7 +1180,11 @@ const handleSave = async () => {
                                                   setEventData({ ...eventData, schedules: updated });
                                                   setIsDirty(true);
                                                 }}
-                                                className={`w-full border rounded-lg bg-white px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isRowEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                                className={`w-full border rounded-lg px-3 py-1.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+    (!isRowEditable && !resubmitFieldsList.includes('date')) 
+      ? 'bg-slate-100 cursor-default border-slate-200' 
+      : 'bg-white border-slate-300'
+  }`}
                                               />
                                             </div>
                                           </div>
@@ -1135,10 +1203,14 @@ const handleSave = async () => {
                                 <input 
                                   type="text" 
                                   name="venueName" 
-                                  readOnly={!isVenueEditable}
+                                  readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
                                   value={eventData.venueName} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
+                                  ? 'bg-slate-100 cursor-default border-slate-200' 
+                                  : 'bg-white border-slate-300'
+                              }`} 
                                 />
                               </div>
                               <div>
@@ -1146,10 +1218,14 @@ const handleSave = async () => {
                                 <input 
                                   type="text" 
                                   name="address" 
-                                  readOnly={!isVenueEditable}
+                                  readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
                                   value={eventData.address} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                  (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
+                                    ? 'bg-slate-100 cursor-default border-slate-200' 
+                                    : 'bg-white border-slate-300'
+                                }`} 
                                 />
                               </div>
                               <div className="grid grid-cols-2 gap-4">
@@ -1158,10 +1234,14 @@ const handleSave = async () => {
                                   <input 
                                     type="text" 
                                     name="city" 
-                                    readOnly={!isVenueEditable}
+                                    readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
                                     value={eventData.city} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+  (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
+    ? 'bg-slate-100 cursor-default border-slate-200' 
+    : 'bg-white border-slate-300'
+}`} 
                                   />
                                 </div>
                                 <div>
@@ -1169,10 +1249,14 @@ const handleSave = async () => {
                                   <input 
                                     type="text" 
                                     name="pinCode" 
-                                    readOnly={!isVenueEditable}
+                                    readOnly={!isVenueEditable && !resubmitFieldsList.includes('venue')}
                                     value={eventData.pinCode} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isVenueEditable ? 'cursor-default border-slate-200' : 'border-slate-300'}`} 
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+  (!isVenueEditable && !resubmitFieldsList.includes('venue')) 
+    ? 'bg-slate-100 cursor-default border-slate-200' 
+    : 'bg-white border-slate-300'
+}`} 
                                   />
                                 </div>
                               </div>
@@ -1205,13 +1289,13 @@ const handleSave = async () => {
                               </button>
                                 <button 
                                   type="button"
-                                  disabled={isNotApproved} 
-                                  onClick={() => setIsVenueEditable(!isVenueEditable)}
-                                className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                                  isNotApproved 
-                                    ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                                    : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                                }`}
+                                 disabled={isNotApproved && !resubmitFieldsList.includes('venue')}
+                                    onClick={() => setIsVenueEditable(!isVenueEditable)}
+                                    className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                      resubmitFieldsList.includes('venue')
+                                        ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                        : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+                                    }`}
                                 title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -1249,10 +1333,10 @@ const handleSave = async () => {
                                 <div className="flex-1">
                                   <select 
                                     name="minAgeLimit" 
-                                    disabled={!isAgeEditable}
+                                    disabled={!isAgeEditable && !resubmitFieldsList.includes('ageLimit')}
                                     value={eventData.minAgeLimit || ''} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isAgeEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isAgeEditable ? 'bg-slate-100 cursor-default border-slate-200' : 'bg-white border-slate-300'}`}
                                   >
                                     <option value="">Select</option>
                                     {Array.from({ length: 99 }, (_, i) => i + 1).map((age) => (
@@ -1264,12 +1348,12 @@ const handleSave = async () => {
                                 
                                 <button 
                                   type="button"
-                                  disabled={isNotApproved} 
-                                  onClick={() => setIsAgeEditable(!isAgeEditable)}
-                                className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                                      isNotApproved 
-                                        ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                                        : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                                  disabled={isNotApproved && !resubmitFieldsList.includes('ageLimit')}
+                                    onClick={() => setIsAgeEditable(!isAgeEditable)}
+                                    className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                      resubmitFieldsList.includes('ageLimit')
+                                        ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                        : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
                                     }`}
                                     title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                                 >
@@ -1293,7 +1377,7 @@ const handleSave = async () => {
                                 readOnly={!isDurationEditable}
                                 value={eventData.durationHours || ''} 
                                 onChange={handleChange} 
-                                className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-slate-100 cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
                               />
                               <span className="text-sm text-slate-700">Hours</span>
                             </div>
@@ -1307,7 +1391,7 @@ const handleSave = async () => {
                                 readOnly={!isDurationEditable}
                                 value={eventData.durationMinutes || ''} 
                                 onChange={handleChange} 
-                                className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                className={`border rounded-lg px-3 py-2 text-sm w-20 text-center text-slate-800 focus:outline-none focus:border-blue-500 ${!isDurationEditable ? 'bg-slate-100 cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
                               />
                               <span className="text-sm text-slate-700">Minutes</span>
                             </div>
@@ -1346,13 +1430,13 @@ const handleSave = async () => {
                             <h3 className="font-bold text-base text-slate-900">Event Guide</h3>
                             <button 
                               type="button"
-                              disabled={isNotApproved} 
+                             disabled={isNotApproved && !resubmitFieldsList.includes('eventGuide')}
                               onClick={() => setIsGuideEditable(!isGuideEditable)}
-                          className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                              isNotApproved 
-                                ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                                : 'text-blue-600 hover:text-blue-800 cursor-pointer'
-                            }`}
+                              className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                                resubmitFieldsList.includes('eventGuide')
+                                  ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                  : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+                              }`}
                             title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -1397,7 +1481,7 @@ const handleSave = async () => {
                                           <label key={oIdx} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                                             <input
                                               type="radio"
-                                              disabled={!isGuideEditable}
+                                              disabled={!isGuideEditable && !resubmitFieldsList.includes('eventGuide')}
                                               name={`question_${resp.questionId}`}
                                               value={opt}
                                               checked={currentAnswer === opt}
@@ -1419,7 +1503,7 @@ const handleSave = async () => {
                                       </div>
                                     ) : optionsCount > 2 ? (
                                       <select 
-                                        disabled={!isGuideEditable}
+                                        disabled={!isGuideEditable && !resubmitFieldsList.includes('eventGuide')}
                                         value={currentAnswer} 
                                         onChange={(e) => {
                                           const val = e.target.value;
@@ -1431,7 +1515,7 @@ const handleSave = async () => {
                                           setEventData({ ...eventData, guideResponses: updated });
                                           setIsDirty(true);
                                         }}
-                                        className={`w-full sm:w-1/3 text-xs p-2 rounded-md border-2 border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`}
+                                        className={`w-full sm:w-1/3 text-xs p-2 rounded-md border-2 border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-100 cursor-default' : 'bg-white'}`}
                                       >
                                         <option value="">Select</option>
                                         {allOptions.map((opt, oIdx) => (
@@ -1441,7 +1525,7 @@ const handleSave = async () => {
                                     ) : (
                                       <input 
                                         type="text" 
-                                        readOnly={!isGuideEditable}
+                                        readOnly={!isGuideEditable && !resubmitFieldsList.includes('eventGuide')}
                                         placeholder="Type answer..." 
                                         value={currentAnswer} 
                                         onChange={(e) => {
@@ -1454,7 +1538,7 @@ const handleSave = async () => {
                                           setEventData({ ...eventData, guideResponses: updated });
                                           setIsDirty(true);
                                         }} 
-                                        className={`w-full sm:w-1/3 text-xs p-2 rounded-md border border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-50 cursor-default' : 'bg-white'}`} 
+                                        className={`w-full sm:w-1/3 text-xs p-2 rounded-md border border-slate-200 focus:outline-none focus:border-blue-500 ${!isGuideEditable ? 'bg-slate-100 cursor-default' : 'bg-white'}`} 
                                       />
                                     )}
                                   </div>
@@ -1481,10 +1565,14 @@ const handleSave = async () => {
                                 <input 
                                   type="text" 
                                   name="contactName" 
-                                  readOnly={!isContactEditable}
+                                  readOnly={!isContactEditable && !resubmitFieldsList.includes('eventContact')}
                                   value={eventData.contactName || ''} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                (!isContactEditable && !resubmitFieldsList.includes('eventContact')) 
+                                  ? 'bg-slate-100 cursor-default border-slate-200' 
+                                  : 'bg-white border-slate-300'
+                              }`}
                                 />
                               </div>
 
@@ -1493,10 +1581,14 @@ const handleSave = async () => {
                                 <input 
                                   type="email" 
                                   name="contactEmail" 
-                                  readOnly={!isContactEditable}
+                                  readOnly={!isContactEditable && !resubmitFieldsList.includes('eventContact')}
                                   value={eventData.contactEmail || ''} 
                                   onChange={handleChange} 
-                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                  className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                        (!isContactEditable && !resubmitFieldsList.includes('eventContact')) 
+                          ? 'bg-slate-100 cursor-default border-slate-200' 
+                          : 'bg-white border-slate-300'
+                      }`}
                                 />
                               </div>
 
@@ -1506,21 +1598,25 @@ const handleSave = async () => {
                                   <input 
                                     type="text" 
                                     name="contactMobile" 
-                                    readOnly={!isContactEditable}
+                                    readOnly={!isContactEditable && !resubmitFieldsList.includes('eventContact')}
                                     value={eventData.contactMobile || ''} 
                                     onChange={handleChange} 
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${!isContactEditable ? 'bg-white cursor-default border-slate-200' : 'bg-white border-slate-300'}`} 
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                (!isContactEditable && !resubmitFieldsList.includes('eventContact')) 
+                                  ? 'bg-slate-100 cursor-default border-slate-200' 
+                                  : 'bg-white border-slate-300'
+                              }`}
                                   />
                                 </div>
 
                                 <button 
                                   type="button"
-                                  disabled={isNotApproved}
-                                  onClick={() => setIsContactEditable(!isContactEditable)}
+                                  disabled={isNotApproved && !resubmitFieldsList.includes('eventContact')}
+                                onClick={() => setIsContactEditable(!isContactEditable)}
                                 className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                                  isNotApproved 
-                                    ? 'opacity-40 cursor-not-allowed text-slate-400' 
-                                    : 'text-blue-600 hover:text-blue-800 cursor-pointer'
+                                  resubmitFieldsList.includes('eventContact')
+                                    ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                    : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
                                 }`}
                                 title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
                                 >
@@ -1701,7 +1797,7 @@ const handleSave = async () => {
                                   }
                                 }}
                                 className={`border-2 border-dashed rounded-lg p-6 text-center relative transition cursor-pointer ${
-                                  cancelFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                                  cancelFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-300 bg-slate-100 hover:bg-slate-100'
                                 }`}
                               >
                                 <input
@@ -1744,7 +1840,7 @@ const handleSave = async () => {
                               <button
                                 type="button"
                                 onClick={() => setIsCancelModalOpen(false)}
-                                className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-5 py-2.5 rounded-md border border-slate-300 transition cursor-pointer"
+                                className="bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold px-5 py-2.5 rounded-md border border-slate-300 transition cursor-pointer"
                               >
                                 Cancel
                               </button>
@@ -1763,24 +1859,22 @@ const handleSave = async () => {
                   )}
                   </div>
 
-        {/* Bottom Save Changes Button - Hidden on Setting tab */}
-            {activeTab !== 'Setting' && (
-              <div className="w-full max-w-full pr-6 pb-12 flex justify-end">
-                <button
-                  type="button"
-                  disabled={!isDirty || eventStatus !== 'APPROVED'}
-                  onClick={handleSave}
-                  className={`px-6 py-2.5 text-white text-sm font-semibold rounded-md shadow-sm transition-all ${
-                    (!isDirty || eventStatus !== 'APPROVED') 
-                      ? 'bg-slate-400 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                  }`}
-                  title={eventStatus !== 'APPROVED' ? "This Event is not Live" : ""}
-                >
-                  Save Changes
-                </button>
-              </div>
-            )}
+               {activeTab !== 'Setting' && (
+                <div className="w-full max-w-full pr-6 pb-12 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={!dirtyTabs[activeTab]}
+                    onClick={handleSave}
+                    className={`px-6 py-2.5 text-sm font-semibold rounded-md shadow-sm transition-all ${
+                      !dirtyTabs[activeTab] 
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                    }`}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              )}
 
           </div>
         </main>

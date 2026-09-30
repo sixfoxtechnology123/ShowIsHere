@@ -61,7 +61,7 @@ exports.saveEventStepData = async (req, res) => {
     const { eventId, currentActiveStep, loginMobileNumber, ...eventData } = req.body;
     const tenantKey = req.tenantKey || req.headers['x-tenant-key'] || 'default-tenant';
 
- const mobile = loginMobileNumber || req.headers['x-login-mobile'];
+    const mobile = loginMobileNumber || req.headers['x-login-mobile'];
     const orgDoc = mobile ? await Organizer.findOne({
       $or: [{ loginMobileNumber: mobile }, { contactMobile: mobile }]
     }) : null;
@@ -74,15 +74,54 @@ exports.saveEventStepData = async (req, res) => {
       });
     }
 
-    
     if (eventId) {
       const isObjectId = mongoose.Types.ObjectId.isValid(eventId);
       const query = isObjectId ? { _id: eventId } : { createEventId: eventId };
 
       const existingEvent = await CreateEvent.findOne(query).lean();
-      if (existingEvent && existingEvent.status === 'APPROVED') {
+      if (!existingEvent) {
+        return res.status(404).json({ success: false, message: 'Event not found.' });
+      }
+
+      if (existingEvent.status === 'APPROVED') {
         eventData.status = 'PENDING';
       }
+
+      // ── SMART RESUBMISSION FIELD RESOLUTION ──
+      let currentResubmitFields = existingEvent.resubmitFields || [];
+      const updatedKeys = Object.keys(eventData);
+
+      // Map incoming saved properties to your resubmit field keys
+      if (updatedKeys.includes('eventName') || updatedKeys.includes('title')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'eventTitle');
+      }
+      if (updatedKeys.includes('eventDescription') || updatedKeys.includes('fullDescription')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'description');
+      }
+      if (updatedKeys.includes('media') || updatedKeys.includes('bannerImage')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'eventBanner');
+      }
+      if (updatedKeys.includes('venue') || updatedKeys.includes('venueName')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'venue');
+      }
+      if (updatedKeys.includes('artists')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'artist');
+      }
+      if (updatedKeys.includes('minAgeLimit')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'ageLimit');
+      }
+      if (updatedKeys.includes('contactPerson') || updatedKeys.includes('contactName')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'eventContact');
+      }
+      if (updatedKeys.includes('guideResponses')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'eventGuide');
+      }
+      if (updatedKeys.includes('schedules') || updatedKeys.includes('schedule')) {
+        currentResubmitFields = currentResubmitFields.filter(f => f !== 'date');
+      }
+
+      // If all requested fields are addressed, resubmit becomes false
+      const isFullyResolved = currentResubmitFields.length === 0;
 
       const updatedEvent = await CreateEvent.findOneAndUpdate(
         query,
@@ -90,22 +129,22 @@ exports.saveEventStepData = async (req, res) => {
           $set: {
             ...eventData,
             tenantKey,
-           orgkycId,
+            orgkycId,
             loginMobileNumber,
-            currentActiveStep: currentActiveStep || 1
+            currentActiveStep: currentActiveStep || 1,
+            resubmitFields: currentResubmitFields,
+            resubmit: !isFullyResolved
           }
         },
         { new: true, runValidators: false }
       );
 
-      if (!updatedEvent) {
-        return res.status(404).json({ success: false, message: 'Event not found.' });
-      }
-
       return res.status(200).json({
         success: true,
         data: updatedEvent,
-        message: `Saved successfully! (${updatedEvent.createEventId})`
+        message: isFullyResolved 
+          ? 'All resubmission fields updated successfully!' 
+          : 'Progress saved. Complete remaining requested fields.'
       });
     }
 
@@ -116,7 +155,7 @@ exports.saveEventStepData = async (req, res) => {
       ...eventData,
       createEventId,
       tenantKey,
-     orgkycId,
+      orgkycId,
       loginMobileNumber,
       currentActiveStep: currentActiveStep || 1,
       status: 'DRAFT'
@@ -728,21 +767,28 @@ exports.resubmitEvent = async (req, res) => {
 
     const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
     
+ const notificationLink = `/event-details`;
+
     const updated = await CreateEvent.findOneAndUpdate(
       query,
       {
         $set: {
           status: 'PENDING',
-          rejectionReason: reason,
-          resubmitFields: fields || []
+          resubmit: true,
+          resubmitFields: fields || [],
+          rejectionReason: reason
         },
-        $push: { approvalHistory: { status: 'RESUBMIT', reason, fields } }
+        $push: { 
+          resubmitHistory: { fields: fields || [], reason, date: new Date() },
+          resonNotification: { reason, link: notificationLink, createdAt: new Date() },
+          approvalHistory: { status: 'RESUBMIT', reason, fields } 
+        }
       },
       { new: true }
     );
 
     if (!updated) return res.status(404).json({ success: false, message: 'Event not found.' });
-    return res.status(200).json({ success: true, message: 'Event marked for resubmission.', data: updated });
+    return res.status(200).json({ success: true, message: 'Resubmission requested successfully.', data: updated });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

@@ -402,9 +402,9 @@ const calculateTimeLeft = (startDateStr, startTimeStr) => {
                           </p>
                         )}
 
-                        {evt.rejectionReason && (
+                        {/* {evt.rejectionReason && (
                           <p className="text-xs font-semibold text-red-600 pt-1">Reason: {evt.rejectionReason}</p>
-                        )}
+                        )} */}
                       </div>
 
                       {location ? (

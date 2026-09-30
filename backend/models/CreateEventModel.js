@@ -127,7 +127,23 @@ orgkycId: {
     email: { type: String, default: '' },
     mobile: { type: String, default: '' }
   },
-
+  
+  resubmit: { type: Boolean, default: false },
+resubmitFields: { type: [String], default: [] },
+resubmitHistory: [
+  {
+    fields: [String],
+    reason: String,
+    date: { type: Date, default: Date.now }
+  }
+],
+resonNotification: [
+  {
+    reason: String,
+    link: String,
+    createdAt: { type: Date, default: Date.now }
+  }
+],
   // Status & Stepper Tracker
   currentActiveStep: {
     type: Number,

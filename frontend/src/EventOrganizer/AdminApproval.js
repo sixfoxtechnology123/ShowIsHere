@@ -64,22 +64,23 @@ const AdminApproval = () => {
     fetchApprovals();
   }, []);
 
-  const updateEventStatus = async (event, status) => {
-    const label = status === 'approved' ? 'approve' : 'reject';
-    if (!window.confirm(`Are you sure you want to ${label} this event?`)) return;
+const updateEventStatus = async (eventItem, status) => {
+  const label = status === 'approved' ? 'approve' : 'reject';
+  if (!window.confirm(`Are you sure you want to ${label} this event?`)) return;
 
-    const reason = status === 'rejected'
-      ? window.prompt('Reject reason (optional)', event.rejectionReason || '') || ''
-      : '';
+  const reason = status === 'rejected'
+    ? window.prompt('Reject reason (optional)', eventItem.rejectionReason || '') || ''
+    : '';
 
-    try {
-      const response = await API.put(`/events/admin/events/${event._id}/approval`, { status, reason });
-      setEvents((prev) => prev.map((item) => (item._id === event._id ? response.data : item)));
-      toast.success(`Event ${status}.`);
-    } catch (error) {
-      toast.error(error.message || 'Failed to update event.');
-    }
-  };
+  try {
+    const response = await API.put(`/events/admin/events/${eventItem._id}/approval`, { status, reason });
+    const updated = response.data.data || response.data;
+    setEvents((prev) => prev.map((item) => (item._id === eventItem._id ? { ...updated, resubmit: false } : item)));
+    toast.success(`Event ${status}.`);
+  } catch (error) {
+    toast.error(error.message || 'Failed to update event.');
+  }
+};
 
 
   const toggleResubmitField = (field) => {
@@ -346,8 +347,13 @@ const submitCancelRejection = async () => {
                             <div className="inline-flex gap-2">
                               <button 
                                 type="button" 
-                                onClick={() => { setResubmitEventItem(event); setResubmitFields([]); setResubmitReason(''); }} 
-                                className="px-3 py-1.5 rounded text-[11px] font-bold bg-amber-500 text-white hover:bg-amber-600 cursor-pointer"
+                                disabled={event.resubmit === true}
+                                onClick={() => { setResubmitEventItem(event); setResubmitFields(event.resubmitFields || []); setResubmitReason(''); }} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  event.resubmit === true
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none'
+                                    : 'bg-amber-500 text-white hover:bg-amber-600 cursor-pointer'
+                                }`}
                               >
                                 Resubmit
                               </button>
@@ -370,7 +376,7 @@ const submitCancelRejection = async () => {
                                 className={`px-3 py-1.5 rounded text-[11px] font-bold ${
                                   isPending 
                                     ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
-                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300 cursor-pointer'
+                                    : 'bg-orange-50 border border-orange-300 text-orange-600 hover:bg-orange-100 cursor-pointer shadow-2xs'
                                 }`}
                               >
                                 Cancel
