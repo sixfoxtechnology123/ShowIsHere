@@ -212,16 +212,17 @@ const resubmitEvent = async (event) => {
     toast.error(error.message || 'Failed to update event.');
   }
 };
-// Handler to submit the rejection reason to the backend database
 const submitCancelRejection = async () => {
   if (!rejectCancelItem) return;
   const { event, cancelRequestId } = rejectCancelItem;
 
   try {
+    // This sends data to your backend server
     const response = await API.put(`/events/admin/events/${event._id}/cancel-request/${cancelRequestId}`, {
       status: 'rejected',
       reason: rejectCancelReason
     });
+    
     const updatedEvent = response.data.data || response.data;
     setEvents((prev) => prev.map((item) => (item._id === event._id ? updatedEvent : item)));
     setRejectCancelItem(null);

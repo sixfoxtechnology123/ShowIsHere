@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import EventOrgHeader from './../EventOrganizer/EventOrgHeader';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import EventOrgFooter from './../EventOrganizer/EventOrgFooter';
 import EventOrgLefSidebar from './../EventOrganizer/EventOrgLefSidebar';
 import toast from 'react-hot-toast';
@@ -24,6 +25,7 @@ const formatDateDisplay = (dateStr) => {
   };
   
 const EventDetails = () => {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('Basics');
   const [isImagesEditable, setIsImagesEditable] = useState(false);
   const [isTitleEditable, setIsTitleEditable] = useState(false);
@@ -87,6 +89,14 @@ const EventDetails = () => {
     resonNotification: [],
   });
 
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+  
 
   const setIsDirty = (value) => {
   setDirtyTabs(prev => ({ ...prev, [activeTab]: value }));
@@ -1715,76 +1725,76 @@ const handleSave = async () => {
                       {activeTab === 'Setting' && (
                     <div className="space-y-6">
                     
-              {/* Event Cancel Banner with Dynamic States (Pending, Accepted, Rejected) */}
-{/* Event Cancel Banner with Dynamic States (Pending, Accepted, Rejected) */}
-    <div className={`border rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
-      eventData.cancelRequest === 'accept'
-        ? 'bg-[#ecfdf5] border-[#10b981]'
-        : eventData.cancelRequest === 'reject'
-        ? 'bg-[#fee2e2] border-[#f87171]'
-        : eventData.cancelRequest === 'pending' 
-        ? 'bg-[#fef3c7] border-[#f59e0b]' 
-        : 'bg-[#f2e6e6] border-[#e5b4b4]'
-    }`}>
-      <div className="flex items-start gap-3.5">
-        <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center shrink-0 font-bold text-sm ${
-          eventData.cancelRequest === 'accept' ? 'bg-[#10b981]' : eventData.cancelRequest === 'reject' ? 'bg-[#ef4444]' : eventData.cancelRequest === 'pending' ? 'bg-[#f59e0b]' : 'bg-[#e15252]'
-        }`}>
-          {eventData.cancelRequest === 'accept' ? '✓' : eventData.cancelRequest === 'reject' ? '✕' : eventData.cancelRequest === 'pending' ? '!' : '✕'}
-        </div>
-        <div className="space-y-0.5">
-          <h4 className="text-sm font-bold text-[#1e293b]">Event Cancel</h4>
-          
-          {eventData.cancelRequest === 'accept' ? (
-            <p className="text-xs text-[#065f46] font-semibold pt-0.5">
-              Your cancellation request has been approved.
-            </p>
-          ) : eventData.cancelRequest === 'reject' ? (
-            <>
-              <p className="text-xs text-[#991b1b] font-semibold">
-                Your previous cancellation request was rejected.
-              </p>
-              <p className="text-xs text-[#b91c1c]">
-                Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'N/A'}</span>. You can review the details and submit a new cancellation request.
-              </p>
-            </>
-          ) : eventData.cancelRequest === 'pending' ? (
-            <>
-              <p className="text-xs text-[#92400e] font-semibold">
-                Your cancellation request is under review.
-              </p>
-              <p className="text-xs text-[#78350f]">
-                Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'Pending'}</span>. We will keep your attendees informed.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-xs text-[#4b5563]">If you need to cancel this event, please tell us the reason.</p>
-              <p className="text-xs text-[#4b5563]">This will help us process your request and keep your attendees informed.</p>
-            </>
-          )}
-        </div>
-      </div>
+                      {/* Event Cancel Banner with Dynamic States (Pending, Accepted, Rejected) */}
+                    {/* Event Cancel Banner with Dynamic States (Pending, Accepted, Rejected) */}
+                        <div className={`border rounded-lg p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                          eventData.cancelRequest === 'accept'
+                            ? 'bg-[#ecfdf5] border-[#10b981]'
+                            : eventData.cancelRequest === 'reject'
+                            ? 'bg-[#fee2e2] border-[#f87171]'
+                            : eventData.cancelRequest === 'pending' 
+                            ? 'bg-[#fef3c7] border-[#f59e0b]' 
+                            : 'bg-[#f2e6e6] border-[#e5b4b4]'
+                        }`}>
+                          <div className="flex items-start gap-3.5">
+                            <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center shrink-0 font-bold text-sm ${
+                              eventData.cancelRequest === 'accept' ? 'bg-[#10b981]' : eventData.cancelRequest === 'reject' ? 'bg-[#ef4444]' : eventData.cancelRequest === 'pending' ? 'bg-[#f59e0b]' : 'bg-[#e15252]'
+                            }`}>
+                              {eventData.cancelRequest === 'accept' ? '✓' : eventData.cancelRequest === 'reject' ? '✕' : eventData.cancelRequest === 'pending' ? '!' : '✕'}
+                            </div>
+                            <div className="space-y-0.5">
+                              <h4 className="text-sm font-bold text-[#1e293b]">Event Cancel</h4>
+                              
+                              {eventData.cancelRequest === 'accept' ? (
+                                <p className="text-xs text-[#065f46] font-semibold pt-0.5">
+                                  Your cancellation request has been approved.
+                                </p>
+                              ) : eventData.cancelRequest === 'reject' ? (
+                                <>
+                                  <p className="text-xs text-[#991b1b] font-semibold">
+                                    Your previous cancellation request was rejected.
+                                  </p>
+                                  <p className="text-xs text-[#b91c1c]">
+                                    Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'N/A'}</span>. You can review the details and submit a new cancellation request.
+                                  </p>
+                                </>
+                              ) : eventData.cancelRequest === 'pending' ? (
+                                <>
+                                  <p className="text-xs text-[#92400e] font-semibold">
+                                    Your cancellation request is under review.
+                                  </p>
+                                  <p className="text-xs text-[#78350f]">
+                                    Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'Pending'}</span>. We will keep your attendees informed.
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-xs text-[#4b5563]">If you need to cancel this event, please tell us the reason.</p>
+                                  <p className="text-xs text-[#4b5563]">This will help us process your request and keep your attendees informed.</p>
+                                </>
+                              )}
+                            </div>
+                          </div>
 
-      {eventData.cancelRequest !== 'accept' && (
-        <button
-          type="button"
-          disabled={eventData.cancelRequest === 'pending'}
-          onClick={() => setIsCancelModalOpen(true)}
-          className={`text-xs font-semibold px-4 py-2.5 rounded-md shadow-sm transition-all whitespace-nowrap ${
-            eventData.cancelRequest === 'pending'
-              ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
-              : 'bg-[#1d4ed8] hover:bg-[#1e40af] text-white cursor-pointer'
-          }`}
-        >
-          {eventData.cancelRequest === 'pending' 
-            ? 'Request Pending' 
-            : eventData.cancelRequest === 'reject' 
-            ? 'Cancel Event' 
-            : 'Cancel Event'}
-        </button>
-      )}
-    </div>
+                          {eventData.cancelRequest !== 'accept' && (
+                            <button
+                              type="button"
+                              disabled={eventData.cancelRequest === 'pending'}
+                              onClick={() => setIsCancelModalOpen(true)}
+                              className={`text-xs font-semibold px-4 py-2.5 rounded-md shadow-sm transition-all whitespace-nowrap ${
+                                eventData.cancelRequest === 'pending'
+                                  ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+                                  : 'bg-[#1d4ed8] hover:bg-[#1e40af] text-white cursor-pointer'
+                              }`}
+                            >
+                              {eventData.cancelRequest === 'pending' 
+                                ? 'Request Pending' 
+                                : eventData.cancelRequest === 'reject' 
+                                ? 'Cancel Event' 
+                                : 'Cancel Event'}
+                            </button>
+                          )}
+                        </div>
                   {/* Cancel Event Modal */}
                       {isCancelModalOpen && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

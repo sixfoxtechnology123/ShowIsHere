@@ -679,7 +679,7 @@ exports.cancelEvent = async (req, res) => {
 exports.updateCancelRequestStatus = async (req, res) => {
   try {
     const { id, cancelRequestId } = req.params;
-    const { status, reason } = req.body; // <-- Added reason here
+    const { status, reason } = req.body;
     const targetStatus = status?.toUpperCase();
 
     const eventObjectId = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
@@ -691,22 +691,33 @@ exports.updateCancelRequestStatus = async (req, res) => {
 
     const cancelReqValue = targetStatus === 'APPROVED' ? 'accept' : 'reject';
 
-    // Update BOTH the root cancelRequest and the subdocument inside cancelHistory
-    const updateFields = {
-      cancelRequest: cancelReqValue,
-      "cancelHistory.$.cancelRequest": cancelReqValue
+    // ── BUILD UPDATE QUERY ──
+    const updateQuery = {
+      $set: {
+        cancelRequest: cancelReqValue,
+        "cancelHistory.$.cancelRequest": cancelReqValue
+      }
     };
 
     if (targetStatus === 'APPROVED') {
-      updateFields.status = 'CANCELED';
+      updateQuery.$set.status = 'CANCELED';
     } else if (targetStatus === 'REJECTED' && reason) {
       // Stores the rejection reason inside the specific cancelHistory subdocument
-      updateFields["cancelHistory.$.reason"] = reason; 
+      updateQuery.$set["cancelHistory.$.reason"] = reason; 
+
+      // ── PUSHES INTOresonNotification (Matching your DB schema) ──
+      updateQuery.$push = {
+        resonNotification: {
+          reason: reason,
+          link: `/event-details?tab=Setting`, // Passes tab parameter so frontend opens the Setting tab
+          createdAt: new Date()
+        }
+      };
     }
 
     const updated = await CreateEvent.findOneAndUpdate(
       { _id: eventObjectId, "cancelHistory._id": cancelObjectId },
-      { $set: updateFields },
+      updateQuery,
       { returnDocument: 'after' }
     );
 
