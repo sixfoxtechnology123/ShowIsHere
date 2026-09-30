@@ -440,12 +440,26 @@ const handleSave = async () => {
       payload.durationHours = eventData.durationHours;
       payload.durationMinutes = eventData.durationMinutes;
       payload.guideResponses = eventData.guideResponses;
-    } else if (activeTab === 'Contact') {
+   } else if (activeTab === 'Contact') {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+      const mobileRegex = /^\d{10}$/;
+
+      if (eventData.contactEmail && !emailRegex.test(eventData.contactEmail)) {
+        toast.error('Please enter a valid Gmail address (e.g., name@gmail.com).', { id: 'contact-error' });
+        return;
+      }
+      
+      if (eventData.contactMobile && !mobileRegex.test(eventData.contactMobile)) {
+        toast.error('Mobile number must be exactly 10 digits.', { id: 'contact-error' });
+        return;
+      }
+
       payload.contactPerson = {
         name: eventData.contactName,
         email: eventData.contactEmail,
         mobile: eventData.contactMobile
       };
+    
     }
 
     const response = await API.post('/events/save-step', payload);
@@ -594,49 +608,67 @@ const handleSave = async () => {
               {activeTab === 'Basics' && (
                 <div className="bg-transparent space-y-6 ">
                   
-                  {/* Event Title */}
-                  <div>
-                    <label className=" text-base font-semibold text-slate-900 mb-3 block">Event Title <span className="text-red-600">*</span></label>
-                    <div className="flex items-center gap-3 ">
-                      <input
-                        type="text"
-                        name="title"
-                     readOnly={!isTitleEditable}
-                      value={eventData.title}
-                      onChange={handleChange}
-                      className={`w-full border rounded-md px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                        !isTitleEditable 
-                          ? 'bg-slate-100 text-slate-600 cursor-default border-slate-200' 
-                          : 'bg-white border-slate-300'
-                      }`}
-                      />
-                      
-                      <button 
-                        type="button" 
-                       disabled={isNotApproved && !resubmitFieldsList.includes('eventTitle')}
-                        onClick={() => setIsTitleEditable(!isTitleEditable)}
-                        className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                          resubmitFieldsList.includes('eventTitle')
-                            ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
-                            : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
-                        }`}
-                        title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
-                          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                        </svg>
-                      </button>
-                     
-                    </div>
-                  </div>
+                 {/* Event Title */}
+                    <div>
+                      <label className="text-base font-semibold text-slate-900 mb-3 block">
+                        Event Title <span className="text-red-600">*</span>
+                      </label>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="text"
+                            name="title"
+                            maxLength={50}
+                            readOnly={!isTitleEditable}
+                            value={eventData.title}
+                            onChange={handleChange}
+                            className={`w-full border rounded-md px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                              !isTitleEditable 
+                                ? 'bg-slate-100 text-slate-600 cursor-default border-slate-200' 
+                                : 'bg-white border-slate-300'
+                            }`}
+                          />
+                          
+                          <button 
+                            type="button" 
+                            disabled={isNotApproved && !resubmitFieldsList.includes('eventTitle')}
+                            onClick={() => setIsTitleEditable(!isTitleEditable)}
+                            className={`focus:outline-none bg-transparent p-0 shrink-0 ${
+                              resubmitFieldsList.includes('eventTitle')
+                                ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                                : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+                            }`}
+                            title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-blue-600">
+                              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+                            </svg>
+                          </button>
+                        </div>
 
+                        {/* Right-aligned bottom corner character counter & warning */}
+                        <div className="flex justify-between items-center px-1">
+                          <div>
+                            {eventData.title.length >= 50 && (
+                              <span className="text-[11px] font-semibold text-red-600">
+                                Maximum 50 characters limit reached.
+                              </span>
+                            )}
+                          </div>
+                          <div className={`text-[11px] ml-auto font-medium ${eventData.title.length >= 50 ? 'text-red-600 font-bold' : 'text-slate-400'}`}>
+                            {eventData.title.length}/50
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   {/* Full Description */}
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
                       <label className="text-base font-semibold text-slate-900 mb-3 block">Full Description</label>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4 text-slate-400">
+                       <span title="Describe your event in detail, including highlights, activities, and important information for attendees." className="inline-flex cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 text-slate-400">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                      </svg>
+                      </svg></span>
                     </div>
                     <div className="flex items-end gap-3">
                       <div className="w-full">
@@ -1643,83 +1675,102 @@ const handleSave = async () => {
                           </div>
                         );
                       })()}
-                      {activeTab === 'Contact' && (() => {
-                        return (
-                          <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-base font-bold text-slate-900">Contact Person</h3>
-                            </div>
+                    {activeTab === 'Contact' && (() => {
+  const isEmailValid = !eventData.contactEmail || /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(eventData.contactEmail);
+  const isMobileValid = !eventData.contactMobile || /^\d{10}$/.test(eventData.contactMobile);
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-600  mb-1">Name</label>
-                                <input 
-                                  type="text" 
-                                  name="contactName" 
-                                  readOnly={!isContactEditable}
-                                  value={eventData.contactName || ''} 
-                                  onChange={handleChange} 
-                                className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                  !isContactEditable 
-                                    ? 'bg-slate-100 cursor-default border-slate-200' 
-                                    : 'bg-white border-slate-300'
-                                }`}
-                                />
-                              </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold text-slate-900">Contact Person</h3>
+      </div>
 
-                              <div>
-                                <label className="block text-sm font-semibold text-slate-600  mb-1">Email</label>
-                                <input 
-                                  type="email" 
-                                  name="contactEmail" 
-                                 readOnly={!isContactEditable}
-                                  value={eventData.contactEmail || ''} 
-                                  onChange={handleChange} 
-                                   className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                  !isContactEditable 
-                                    ? 'bg-slate-100 cursor-default border-slate-200' 
-                                    : 'bg-white border-slate-300'
-                                }`}
-                                />
-                              </div>
+      {/* Changed items-end to items-start so grid columns don't break when errors appear */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="relative pb-5">
+          <label className="block text-sm font-semibold text-slate-600 mb-1">Name</label>
+          <input 
+            type="text" 
+            name="contactName" 
+            readOnly={!isContactEditable}
+            value={eventData.contactName || ''} 
+            onChange={handleChange} 
+            className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+              !isContactEditable 
+                ? 'bg-slate-100 cursor-default border-slate-200' 
+                : 'bg-white border-slate-300'
+            }`}
+          />
+        </div>
 
-                              <div className="flex items-center gap-3">
-                                <div className="flex-1">
-                                  <label className="block text-sm font-semibold text-slate-600  mb-1">Mobile</label>
-                                  <input 
-                                    type="text" 
-                                    name="contactMobile" 
-                                    readOnly={!isContactEditable}
-                                    value={eventData.contactMobile || ''} 
-                                    onChange={handleChange} 
-                                     className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                  !isContactEditable 
-                                    ? 'bg-slate-100 cursor-default border-slate-200' 
-                                    : 'bg-white border-slate-300'
-                                }`}
-                                  />
-                                </div>
+        <div className="relative pb-5">
+          <label className="block text-sm font-semibold text-slate-600 mb-1">Email <span className="text-[11px] text-slate-400 font-normal">(Gmail only)</span></label>
+          <input 
+            type="email" 
+            name="contactEmail" 
+            readOnly={!isContactEditable}
+            value={eventData.contactEmail || ''} 
+            onChange={handleChange} 
+            className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+              !isEmailValid && eventData.contactEmail ? 'border-red-500 bg-red-50/20' : ''
+            } ${
+              !isContactEditable 
+                ? 'bg-slate-100 cursor-default border-slate-200' 
+                : 'bg-white border-slate-300'
+            }`}
+          />
+          {!isEmailValid && eventData.contactEmail && (
+            <span className="absolute left-0 bottom-0 text-[11px] text-red-600 truncate w-full">Please enter a valid Gmail address</span>
+          )}
+        </div>
 
-                                <button 
-                                  type="button"
-                                  disabled={isNotApproved && !resubmitFieldsList.includes('eventContact')}
-                                onClick={() => setIsContactEditable(!isContactEditable)}
-                                className={`focus:outline-none bg-transparent p-0 shrink-0 ${
-                                  resubmitFieldsList.includes('eventContact')
-                                    ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
-                                    : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
-                                }`}
-                                title={isNotApproved ? "This event is not live" : (isTitleEditable ? "Lock field" : "Edit field")}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                                    <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
+        <div className="relative pb-5 flex items-start gap-3">
+          <div className="flex-1">
+            <label className="block text-sm font-semibold text-slate-600 mb-1">Mobile <span className="text-[11px] text-slate-400 font-normal">(10 digits)</span></label>
+            <input 
+              type="text" 
+              name="contactMobile" 
+              maxLength={10}
+              readOnly={!isContactEditable}
+              value={eventData.contactMobile || ''} 
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setEventData((prev) => ({ ...prev, contactMobile: val }));
+                setDirtyTabs(prev => ({ ...prev, [activeTab]: true }));
+              }} 
+              className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                !isMobileValid && eventData.contactMobile ? 'border-red-500 bg-red-50/20' : ''
+              } ${
+                !isContactEditable 
+                  ? 'bg-slate-100 cursor-default border-slate-200' 
+                  : 'bg-white border-slate-300'
+              }`}
+            />
+            {!isMobileValid && eventData.contactMobile && (
+              <span className="absolute left-0 bottom-0 text-[11px] text-red-600 truncate w-full">Mobile must be exactly 10 digits</span>
+            )}
+          </div>
+
+          <button 
+            type="button"
+            disabled={isNotApproved && !resubmitFieldsList.includes('eventContact')}
+            onClick={() => setIsContactEditable(!isContactEditable)}
+            className={`mt-7 focus:outline-none bg-transparent p-0 shrink-0 ${
+              resubmitFieldsList.includes('eventContact')
+                ? 'text-blue-700 hover:text-blue-800 cursor-pointer'
+                : (isNotApproved ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-blue-600 hover:text-blue-800 cursor-pointer')
+            }`}
+            title={isNotApproved ? "This event is not live" : "Edit field"}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+              <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+})()}
 
 
                       {activeTab === 'Setting' && (
