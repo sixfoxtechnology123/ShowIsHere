@@ -342,91 +342,97 @@ const submitCancelRejection = async () => {
                           </td>
                          
                          
-                          <td className="px-4 py-4">
-                            {/* Dynamic Status Display */}
-                            {event.status === 'APPROVED' ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                                Approved
-                              </span>
-                            ) : (!event.resubmitHistory || event.resubmitHistory.length === 0) ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                                Pending
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                Organizer Updated
-                              </span>
-                            )}
-                          </td>
-                            {/* Reason / Note Display
-                            {event.rejectionReason && (
-                              <div className="text-red-600 text-xs mt-1.5 font-medium">
-                                Reason: {event.rejectionReason}
-                              </div>
-                            )} */}
+                        <td className="px-4 py-4">
+                        {/* Dynamic Status Display */}
+                        {event.status === 'CANCELLED' ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                            Cancelled
+                          </span>
+                        ) : event.status === 'APPROVED' ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                            Approved
+                          </span>
+                        ) : event.resubmit === true ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                            Requested to Organizer
+                          </span>
+                        ) : (event.resubmitHistory && event.resubmitHistory.length > 0) ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                            Organizer Updated
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-4 text-right">
+                        {(() => {
+                          // ── Helper Flags ──
+                          const isCancelled = event.status === 'CANCELLED';
+                          const isApproved = event.status === 'APPROVED';
+                          const isResubmit = event.resubmit === true;
+                          const hasResubmitActivity = event.resubmitHistory && event.resubmitHistory.length > 0;
+                          const isPending = !isApproved && !hasResubmitActivity;
+
+                          return (
+                            <div className="inline-flex gap-2">
+                              <button 
+                                type="button" 
+                                disabled={isCancelled || isResubmit}
+                                onClick={() => { setResubmitEventItem(event); setResubmitFields(event.resubmitFields || []); setResubmitReason(''); }} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isCancelled || isResubmit
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none'
+                                    : 'bg-amber-500 text-white hover:bg-amber-600 cursor-pointer'
+                                }`}
+                              >
+                                Resubmit
+                              </button>
                             
-                          <td className="px-4 py-4 text-right">
-                          {(() => {
-                            // ── Integrated Logic: Cancel is enabled if Approved OR has resubmitHistory activity ──
-                            const isPending = event.status !== 'APPROVED' && (!event.resubmitHistory || event.resubmitHistory.length === 0);
-                            const hasResubmitActivity = event.resubmitHistory && event.resubmitHistory.length > 0;
-                            return (
-                              <div className="inline-flex gap-2">
-                                <button 
-                                  type="button" 
-                                  disabled={event.resubmit === true}
-                                  onClick={() => { setResubmitEventItem(event); setResubmitFields(event.resubmitFields || []); setResubmitReason(''); }} 
-                                  className={`px-3 py-1.5 rounded text-[11px] font-bold ${
-                                    event.resubmit === true
-                                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none'
-                                      : 'bg-amber-500 text-white hover:bg-amber-600 cursor-pointer'
-                                  }`}
-                                >
-                                  Resubmit
-                                </button>
-                              
-                                <button 
-                                  type="button" 
-                                  disabled={isApproved || event.resubmit} 
-                                  onClick={() => updateEventStatus(event, 'approved')} 
-                                  className={`px-3 py-1.5 rounded text-[11px] font-bold ${
-                                    isApproved || event.resubmit 
-                                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
-                                      : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
-                                  }`}
-                                >
-                                  Approve
-                                </button>
+                              <button 
+                                type="button" 
+                                disabled={isCancelled || isApproved || isResubmit} 
+                                onClick={() => updateEventStatus(event, 'approved')} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isCancelled || isApproved || isResubmit 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
+                                }`}
+                              >
+                                Approve
+                              </button>
 
-                                <button 
-                                  type="button" 
-                                  disabled={isPending} 
-                                  onClick={() => cancelEvent(event)} 
-                                  className={`px-3 py-1.5 rounded text-[11px] font-bold ${
-                                    isPending 
-                                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
-                                      : 'bg-orange-50 border border-orange-300 text-orange-600 hover:bg-orange-100 cursor-pointer shadow-2xs'
-                                  }`}
-                                >
-                                  Cancel
-                                </button>
+                              <button 
+                                type="button" 
+                                disabled={isCancelled || isPending} 
+                                onClick={() => cancelEvent(event)} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isCancelled || isPending 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-orange-50 border border-orange-300 text-orange-600 hover:bg-orange-100 cursor-pointer shadow-2xs'
+                                }`}
+                              >
+                                Cancel
+                              </button>
 
-                               <button 
-                                    type="button" 
-                                    disabled={isApproved || isResubmit || hasResubmitActivity} 
-                                    onClick={() => deleteEvent(event)} 
-                                    className={`px-3 py-1.5 rounded text-[11px] font-bold ${
-                                      isApproved || isResubmit || hasResubmitActivity 
-                                        ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
-                                        : 'bg-red-600 text-white hover:bg-red-700 cursor-pointer'
-                                    }`}
-                                  >
-                                    Delete
-                                  </button>
-                              </div>
-                            );
-                          })()}
-                        </td>
+                              <button 
+                                type="button" 
+                                disabled={isCancelled || isApproved || isResubmit || hasResubmitActivity} 
+                                onClick={() => deleteEvent(event)} 
+                                className={`px-3 py-1.5 rounded text-[11px] font-bold ${
+                                  isCancelled || isApproved || isResubmit || hasResubmitActivity 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-red-600 text-white hover:bg-red-700 cursor-pointer'
+                                }`}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </td>
                         </tr>
                       );
                     })}
