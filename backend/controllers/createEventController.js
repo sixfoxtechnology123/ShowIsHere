@@ -426,18 +426,19 @@ exports.updateEventApprovalStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, reason = '' } = req.body;
-const targetStatus = status?.toUpperCase();
+    const targetStatus = status?.toUpperCase();
 
-    if (!['PENDING', 'APPROVED', 'REJECTED'].includes(targetStatus)) {
+    if (!['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(targetStatus)) {
       return res.status(400).json({ success: false, message: 'Invalid approval status.' });
     }
 
     const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
-const updated = await CreateEvent.findOneAndUpdate(query,
+    const updated = await CreateEvent.findOneAndUpdate(
+      query,
       {
-          $set: {
+        $set: {
           status: targetStatus,
-          rejectionReason: targetStatus === 'REJECTED' ? reason : ''
+          rejectionReason: ['REJECTED', 'CANCELLED'].includes(targetStatus) ? reason : ''
         },
         $push: { approvalHistory: { status: targetStatus, reason } }
       },
@@ -715,6 +716,47 @@ exports.updateCancelRequestStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Update Cancel Request Error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+exports.resubmitEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fields, reason = '' } = req.body;
+
+    const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
+    
+    const updated = await CreateEvent.findOneAndUpdate(
+      query,
+      {
+        $set: {
+          status: 'PENDING',
+          rejectionReason: reason,
+          resubmitFields: fields || []
+        },
+        $push: { approvalHistory: { status: 'RESUBMIT', reason, fields } }
+      },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ success: false, message: 'Event not found.' });
+    return res.status(200).json({ success: true, message: 'Event marked for resubmission.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
+    const deleted = await CreateEvent.findOneAndDelete(query);
+
+    if (!deleted) return res.status(404).json({ success: false, message: 'Event not found.' });
+    return res.status(200).json({ success: true, message: 'Event permanently deleted.' });
+  } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };

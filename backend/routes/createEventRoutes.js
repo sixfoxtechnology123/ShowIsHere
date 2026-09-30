@@ -14,6 +14,8 @@ router.post('/duplicate/:id', createEventController.duplicateEvent);
 router.post('/generate-hashtags', createEventController.generateHashtags);
 router.post('/cancel', createEventController.cancelEvent);
 router.put('/admin/events/:id/cancel-request/:cancelRequestId', createEventController.updateCancelRequestStatus);
+router.put('/admin/events/:id/resubmit', createEventController.resubmitEvent);
+router.delete('/admin/events/:id', createEventController.deleteEvent);
 
 module.exports = router;
  
