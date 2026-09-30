@@ -145,20 +145,20 @@ orgkycId: {
     type: Boolean,
     default: false
     },
-
 cancelRequest: {
-    type: String,
-    enum: ['', 'pending', 'accept', 'reject'],
-    default: '',
-    index: true
-  },
-  cancelHistory: [{
-    requestId: { type: String, default: '' },
-    reason: { type: String, default: '' },
-    description: { type: String, default: '' },
-    attachment: { type: String, default: '' },
-    cancelledAt: { type: Date, default: Date.now }
-  }],
+  type: String,
+  enum: ['', 'pending', 'accept', 'reject'],
+  default: '',
+  index: true
+},
+cancelHistory: [{
+  requestId: { type: String, default: '' },
+  reason: { type: String, default: '' },
+  description: { type: String, default: '' },
+  attachment: { type: String, default: '' },
+  cancelledAt: { type: Date, default: Date.now },
+  cancelRequest: { type: String, enum: ['', 'pending', 'accept', 'reject'], default: 'pending' } // <-- Added here
+}],
   rejectionReason: { type: String, default: '' },
   approvalHistory: [{
     status: { type: String, enum: ['pending', 'approved', 'rejected'] },

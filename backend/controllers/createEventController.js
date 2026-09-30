@@ -607,3 +607,50 @@ exports.cancelEvent = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+exports.updateCancelRequestStatus = async (req, res) => {
+  try {
+    const { id, cancelRequestId } = req.params;
+    const { status } = req.body;
+    const targetStatus = status?.toUpperCase();
+
+    const eventObjectId = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
+    const cancelObjectId = mongoose.Types.ObjectId.isValid(cancelRequestId) ? new mongoose.Types.ObjectId(cancelRequestId) : null;
+
+    if (!eventObjectId || !cancelObjectId) {
+      return res.status(400).json({ success: false, message: 'Invalid ID format.' });
+    }
+
+    const cancelReqValue = targetStatus === 'APPROVED' ? 'accept' : 'reject';
+
+    // Update BOTH the root cancelRequest and the subdocument inside cancelHistory
+    const updateFields = {
+      cancelRequest: cancelReqValue,
+      "cancelHistory.$.cancelRequest": cancelReqValue
+    };
+
+    if (targetStatus === 'APPROVED') {
+      updateFields.status = 'CANCELED';
+    }
+
+    const updated = await CreateEvent.findOneAndUpdate(
+      { _id: eventObjectId, "cancelHistory._id": cancelObjectId },
+      { $set: updateFields },
+      { returnDocument: 'after' }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Event or cancel request not found in database.' });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Cancel request updated successfully.', 
+      data: updated 
+    });
+  } catch (error) {
+    console.error('Update Cancel Request Error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

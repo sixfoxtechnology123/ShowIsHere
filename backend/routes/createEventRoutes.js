@@ -13,6 +13,7 @@ router.get('/:id', createEventController.getEventById);
 router.post('/duplicate/:id', createEventController.duplicateEvent);
 router.post('/generate-hashtags', createEventController.generateHashtags);
 router.post('/cancel', createEventController.cancelEvent);
+router.put('/admin/events/:id/cancel-request/:cancelRequestId', createEventController.updateCancelRequestStatus);
 
 module.exports = router;
  

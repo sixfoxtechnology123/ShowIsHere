@@ -79,7 +79,7 @@ const buildEventStatus = (event) => {
   if (statusUpper === 'DRAFT') {
     return { label: 'Draft', statusColor: 'bg-slate-500', rightBarColor: 'bg-slate-400', muted: false };
   }
-  if (statusUpper === 'CANCELLED' || statusUpper === 'CANCEL') {
+  if (statusUpper === 'CANCELED' || statusUpper === 'CANCEL') {
     return { label: 'Cancelled', statusColor: 'bg-rose-700', rightBarColor: 'bg-rose-700', muted: true };
   }
   if (statusUpper === 'REJECTED') {
@@ -319,14 +319,24 @@ const calculateTimeLeft = (startDateStr, startTimeStr) => {
                 const venueString = [evt.venue?.name, evt.venue?.city].filter(Boolean).join(', ') || evt.venue?.addressLine1 || '';
                 const location = venueString ? venueString : '';
 
+              const isCancelled = status.label === 'Cancelled';
+
               return (
                 <Link
-                  to="/event-dashboard"
+                  to={isCancelled ? "#" : "/event-dashboard"}
                   state={{ createEventId: evt.createEventId }}
-                  onClick={() => localStorage.setItem('createEventId', evt.createEventId)}
+                  onClick={(e) => {
+                    if (isCancelled) {
+                      e.preventDefault(); // Stops navigation entirely
+                      return;
+                    }
+                    localStorage.setItem('createEventId', evt.createEventId);
+                  }}
                   key={evt._id || evt.createEventId}
                   className={`bg-white rounded-sm border border-slate-200 overflow-hidden shadow-xs flex flex-col md:flex-row items-stretch relative transition shadow-md no-underline group ${
-                    status.label === 'Live' ? 'hover:bg-[#cccccc]' : ''
+                    isCancelled 
+                      ? 'opacity-80 bg-slate-100cursor-not-allowed pointer-events-none grayscale-[30%]' 
+                      : (status.label === 'Live' ? 'hover:bg-[#cccccc]' : '')
                   }`}
                 >
                   <div 

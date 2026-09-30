@@ -1568,7 +1568,7 @@ const handleSave = async () => {
                 Your previous cancellation request was rejected.
               </p>
               <p className="text-xs text-[#b91c1c]">
-                Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'N/A'}</span>. You can review the details and submit a new cancellation request below.
+                Request ID: <span className="font-bold">{eventData.cancelHistory?.[eventData.cancelHistory.length - 1]?.requestId || 'N/A'}</span>. You can review the details and submit a new cancellation request.
               </p>
             </>
           ) : eventData.cancelRequest === 'pending' ? (
