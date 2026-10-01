@@ -433,6 +433,7 @@ const submitCancelRejection = async () => {
                             <div>{event.schedule?.startTime || '--'} to {event.schedule?.endTime || '--'}</div>
                             <div>{[event.venue?.name, event.venue?.city].filter(Boolean).join(', ') || 'No venue'}</div>
                           </td>
+                           <td className="px-4 py-2 text-slate-700">
                          <button
                           type="button"
                           onClick={() => setViewEventModalData(event)}
@@ -440,6 +441,7 @@ const submitCancelRejection = async () => {
                         >
                           View Event Application
                         </button>
+                        </td>
                          
                          
                         <td className="px-4 py-4">
@@ -1000,7 +1002,7 @@ const submitCancelRejection = async () => {
           </div>
         </div>
 
-        {/* STEP 3: SCHEDULE & VENUE */}
+      {/* STEP 3: SCHEDULE & VENUE */}
         <div className="space-y-4 pt-4 border-t">
           <h4 className="font-bold text-sm text-blue-600 border-b pb-2">3. Date & Venue</h4>
           
@@ -1010,7 +1012,7 @@ const submitCancelRejection = async () => {
               <div className="p-3 bg-slate-50 border rounded-lg uppercase font-semibold">{viewEventModalData.schedule?.eventScheduleType || 'single'}</div>
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Recurring Type</label>
+              <label className="block font-bold text-slate-700 mb-1">Repeat Type</label>
               <div className="p-3 bg-slate-50 border rounded-lg uppercase font-semibold">{viewEventModalData.schedule?.recurringType || '-'}</div>
             </div>
           </div>
@@ -1023,42 +1025,51 @@ const submitCancelRejection = async () => {
               </div>
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Start Time</label>
-              <div className="p-3 bg-slate-50 border rounded-lg font-medium">
-                {viewEventModalData.schedule?.startTime || '-'}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
               <label className="block font-bold text-slate-700 mb-1">End Date</label>
               <div className="p-3 bg-slate-50 border rounded-lg font-medium">
                 {viewEventModalData.schedule?.endDate ? new Date(viewEventModalData.schedule.endDate).toLocaleDateString() : '-'}
               </div>
             </div>
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">End Time</label>
-              <div className="p-3 bg-slate-50 border rounded-lg font-medium">
-                {viewEventModalData.schedule?.endTime || '-'}
-              </div>
-            </div>
           </div>
 
-          {/* Weekly Time Slots Display */}
-          {Array.isArray(viewEventModalData.schedule?.weeklyTimeSlots) && viewEventModalData.schedule.weeklyTimeSlots.length > 0 && (
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Weekly / Recurring Slots</label>
-              <div className="space-y-1.5">
-                {viewEventModalData.schedule.weeklyTimeSlots.map((slot, sIdx) => (
-                  <div key={sIdx} className="p-2.5 bg-slate-50 border rounded-md flex justify-between">
-                    <span>Date: {slot.date ? new Date(slot.date).toLocaleDateString() : 'All Dates'}</span>
-                    <span className="font-bold">Time: {slot.startTime || '--'} to {slot.endTime || '--'}</span>
+          {/* Dynamic Time Slots for Single, Daily, or Weekly Events */}
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Time Slots & Schedule Details</label>
+            <div className="space-y-1.5">
+              {/* Single Event Time */}
+              {viewEventModalData.schedule?.startTime && (
+                <div className="p-2.5 bg-slate-50 border rounded-md flex justify-between font-medium">
+                  <span>Single Event Time</span>
+                  <span className="font-bold">{viewEventModalData.schedule.startTime} to {viewEventModalData.schedule.endTime || '--'}</span>
+                </div>
+              )}
+
+              {/* Daily Time Slots */}
+              {Array.isArray(viewEventModalData.schedule?.dailyTimeSlots) && viewEventModalData.schedule.dailyTimeSlots.map((slot, sIdx) => (
+                slot.startTime ? (
+                  <div key={sIdx} className="p-2.5 bg-slate-50 border rounded-md flex justify-between font-medium">
+                    <span>Daily Slot {sIdx + 1}</span>
+                    <span className="font-bold">{slot.startTime} to {slot.endTime || '--'} {slot.durationHours ? `(${slot.durationHours}h ${slot.durationMinutes || 0}m)` : ''}</span>
                   </div>
-                ))}
-              </div>
+                ) : null
+              ))}
+
+              {/* Weekly Time Slots */}
+              {Array.isArray(viewEventModalData.schedule?.weeklyTimeSlots) && viewEventModalData.schedule.weeklyTimeSlots.map((slot, sIdx) => (
+                slot.startTime ? (
+                  <div key={sIdx} className="p-2.5 bg-slate-50 border rounded-md flex justify-between font-medium">
+                    <span>Date: {slot.date ? new Date(slot.date).toLocaleDateString() : 'All Dates'}</span>
+                    <span className="font-bold">{slot.startTime} to {slot.endTime || '--'}</span>
+                  </div>
+                ) : null
+              ))}
+
+              {(!viewEventModalData.schedule?.startTime && (!viewEventModalData.schedule?.dailyTimeSlots || viewEventModalData.schedule.dailyTimeSlots.length === 0) && (!viewEventModalData.schedule?.weeklyTimeSlots || viewEventModalData.schedule.weeklyTimeSlots.length === 0)) && (
+                <div className="p-3 bg-slate-50 border rounded-lg text-slate-400">No time slots recorded.</div>
+              )}
             </div>
-          )}
+          </div>
+          
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div className="space-y-3">
