@@ -832,8 +832,7 @@ const formatDateToDDMMYYYY = (dateStr) => {
   if (!year || !month || !day) return dateStr;
   return `${day}-${month}-${year}`;
 };
-// 1. Helper function to gather all inputs safely
-  const buildPayload = () => ({
+const buildPayload = () => ({
     eventId: createdEventId || undefined,
     seatMapId: selectedSeatMapId || undefined, 
     currentActiveStep: activeStep,
@@ -862,12 +861,11 @@ const formatDateToDDMMYYYY = (dateStr) => {
     schedule: {
       eventScheduleType: formData.eventScheduleType || 'single',
       recurringType: formData.eventScheduleType === 'recurring' ? (formData.recurringType || 'daily') : null,
-      startDate: formData.startDate ? formatDateToDDMMYYYY(formData.startDate) : null,
-      endDate: formData.endDate ? formatDateToDDMMYYYY(formData.endDate) : null,
+      startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+      endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
       startTime: formData.eventScheduleType !== 'recurring' ? (formData.startTime || '') : '',
       endTime: formData.eventScheduleType !== 'recurring' ? (formData.endTime || '') : '',
       
-      // Single event duration hours & minutes
       durationHours: formData.eventScheduleType !== 'recurring' && formData.startTime && formData.endTime 
         ? String(getSlotDuration(formData.startTime, formData.endTime).hours) 
         : '',
@@ -875,26 +873,28 @@ const formatDateToDDMMYYYY = (dateStr) => {
         ? String(getSlotDuration(formData.startTime, formData.endTime).minutes) 
         : '',
 
-      // Daily time slots with calculated duration per slot
       dailyTimeSlots: formData.eventScheduleType === 'recurring' && formData.recurringType === 'daily' 
         ? (formData.dailyTimeSlots || []).map(slot => {
             const dur = getSlotDuration(slot.startTime, slot.endTime);
             return {
               ...slot,
+              date: formData.startDate ? new Date(formData.startDate).toISOString() : null,
               durationHours: slot.startTime && slot.endTime ? String(dur.hours) : '',
               durationMinutes: slot.startTime && slot.endTime ? String(dur.minutes) : ''
             };
           }) 
         : [],
 
-      selectedWeeklyDates: formData.eventScheduleType === 'recurring' && formData.recurringType === 'weekly' ? (formData.selectedWeeklyDates || []) : [],
+      selectedWeeklyDates: formData.eventScheduleType === 'recurring' && formData.recurringType === 'weekly' 
+        ? (formData.selectedWeeklyDates || []).map(d => new Date(d).toISOString()) 
+        : [],
       
-      // Weekly time slots with calculated duration per slot
       weeklyTimeSlots: formData.eventScheduleType === 'recurring' && formData.recurringType === 'weekly' 
         ? (formData.weeklyTimeSlots || []).map(slot => {
             const dur = getSlotDuration(slot.startTime, slot.endTime);
             return {
               ...slot,
+              date: slot.date && slot.date !== 'all' ? new Date(slot.date).toISOString() : null,
               durationHours: slot.startTime && slot.endTime ? String(dur.hours) : '',
               durationMinutes: slot.startTime && slot.endTime ? String(dur.minutes) : ''
             };
@@ -914,25 +914,24 @@ const formatDateToDDMMYYYY = (dateStr) => {
           : ''
       )
     },
-  ticketTiers: (savedTickets || []).map((t) => ({
+    ticketTiers: (savedTickets || []).map((t) => ({
       ticketType: t.ticketType || 'paid',
       ticketName: t.name || '',
-      // If it's free, allow 0 or empty; if paid, parse number
       price: t.ticketType === 'free' ? 0 : (Number(t.price) || 0),
       quantity: t.ticketType === 'free' ? (Number(t.qty) || 0) : (Number(t.qty) || 0),
       available: t.ticketType === 'free' ? (Number(t.available) || 0) : (Number(t.available) || 0),
-      slotDate: t.slotDate || '',
+      slotDate: t.slotDate && t.slotDate !== 'all' ? new Date(t.slotDate).toISOString() : null,
       eventStartTime: t.startTime || '',
       eventEndTime: t.endTime || '',
-      startDate: t.startDate || '',
+      startDate: t.startDate ? new Date(t.startDate).toISOString() : null,
       startTime: t.startTime || '',
-      endDate: t.endDate || '',
+      endDate: t.endDate ? new Date(t.endDate).toISOString() : null,
       endTime: t.endTime || '',
       ebPrice: t.ebPrice || '-',
       ebQty: t.ebQty || '-',
-      ebStart: t.ebStart || '-',
+      ebStart: t.ebStart && t.ebStart !== '-' ? new Date(t.ebStart).toISOString() : null,
       ebStartTime: t.ebStartTime || '-',
-      ebEnd: t.ebEnd || '-',
+      ebEnd: t.ebEnd && t.ebEnd !== '-' ? new Date(t.ebEnd).toISOString() : null,
       ebEndTime: t.ebEndTime || '-'
     })),
     guideResponses: (formData.guideResponses || []).filter(g => {

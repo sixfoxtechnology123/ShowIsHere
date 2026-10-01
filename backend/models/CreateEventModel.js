@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const timeSlotSchema = new mongoose.Schema({
-  date: { type: String, default: '' },
+  date: { type: Date, default: null },
   startTime: { type: String, default: '' },
   endTime: { type: String, default: '' },
   durationHours: { type: String, default: '' },
@@ -14,18 +14,18 @@ const ticketTierSchema = new mongoose.Schema({
   price: { type: Number, default: 0 },         
   quantity: { type: Number, default: 0 },    
   available: { type: Number, default: 0 },
-  slotDate: { type: String, default: '' },
+  slotDate: { type: Date, default: null },
   eventStartTime: { type: String, default: '' },
   eventEndTime: { type: String, default: '' },
-  startDate: { type: String, default: '' },
+  startDate: { type: Date, default: null },
   startTime: { type: String, default: '' },
-  endDate: { type: String, default: '' },
+  endDate: { type: Date, default: null },
   endTime: { type: String, default: '' },
   ebPrice: { type: String, default: '-' },
   ebQty: { type: String, default: '-' },
-  ebStart: { type: String, default: '-' },
+  ebStart: { type: Date, default: null },
   ebStartTime: { type: String, default: '-' },
-  ebEnd: { type: String, default: '-' },
+  ebEnd: { type: Date, default: null },
   ebEndTime: { type: String, default: '-' }
 }, { _id: false });
 
@@ -89,8 +89,8 @@ orgkycId: {
   schedule: {
     eventScheduleType: { type: String, default: 'single' },
     recurringType: { type: String, default: 'daily' },
-    startDate: { type: String, default: '' }, 
-    endDate: { type: String, default: '' },
+    startDate: { type: Date, default: null }, 
+    endDate: { type: Date, default: null },
     startTime: { type: String, default: '' },
     endTime: { type: String, default: '' },
     durationHours: { type: String, default: '' },   

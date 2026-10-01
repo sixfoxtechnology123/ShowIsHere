@@ -17,6 +17,15 @@ import {
 } from '../styles/MasterCSSClass';
 
 
+const getSlotDuration = (start, end) => {
+  if (!start || !end) return { hours: 0, minutes: 0 };
+  const [sH, sM] = start.split(':').map(Number);
+  const [eH, eM] = end.split(':').map(Number);
+  let diff = (eH * 60 + eM) - (sH * 60 + sM);
+  if (diff < 0) diff += 1440; // wrap-around
+  return { hours: Math.floor(diff / 60), minutes: diff % 60 };
+};
+
 const formatDateDisplay = (dateStr) => {
     if (!dateStr) return '';
     const cleanDate = dateStr.split('T')[0];
@@ -394,7 +403,7 @@ const handleChange = (e) => {
   setEventData((prev) => ({ ...prev, [name]: value }));
   setDirtyTabs(prev => ({ ...prev, [activeTab]: true }));
 };
-
+ 
 const handleSave = async () => {
   try {
     const createEventId = localStorage.getItem('createEventId');
@@ -1263,52 +1272,66 @@ const handleSave = async () => {
                                     </div>
                                   </div>
 
-                                      {/* Time slots row underneath */}
-                                      <div className="space-y-3">
-                                        {timeSlots.map((slot, slotIdx) => (
-                                          <div key={slotIdx} className="flex items-center gap-3">
-                                            <div className="flex-1">
-                                              <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">Start time</label>
-                                              <input 
-                                                type="time" 
-                                                readOnly={!isRowEditable}
-                                                value={slot.startTime || ''} 
-                                                onChange={(e) => {
-                                                  const updated = [...eventData.schedules];
-                                                  updated[index].timeSlots[slotIdx].startTime = e.target.value;
-                                                  setEventData({ ...eventData, schedules: updated });
-                                                  setIsDirty(true);
-                                                }}
-                                                className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                    {/* Time slots row underneath */}
+                                  <div className="space-y-3">
+                                    {timeSlots.map((slot, slotIdx) => (
+                                      <div key={slotIdx} className="space-y-2">
+                                        <div className="flex items-center gap-3">
+                                          <div className="flex-1">
+                                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Start time</label>
+                                            <input 
+                                              type="time" 
+                                              readOnly={!isRowEditable}
+                                              value={slot.startTime || ''} 
+                                              onChange={(e) => {
+                                                const updated = [...eventData.schedules];
+                                                updated[index].timeSlots[slotIdx].startTime = e.target.value;
+                                                setEventData({ ...eventData, schedules: updated });
+                                                setIsDirty(true);
+                                              }}
+                                              className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
                                                 !isRowEditable 
                                                   ? 'bg-slate-100 cursor-default border-slate-200' 
                                                   : 'bg-white border-slate-300'
                                               }`} 
-                                              />
-                                            </div>
-                                            <span className="text-slate-400 pt-5">-</span>
-                                            <div className="flex-1">
-                                              <label className="block text-[11px] font-semibold text-slate-600  mb-0.5">End time</label>
-                                              <input 
-                                                type="time" 
-                                                readOnly={!isRowEditable}
-                                                value={slot.endTime || ''} 
-                                                onChange={(e) => {
-                                                  const updated = [...eventData.schedules];
-                                                  updated[index].timeSlots[slotIdx].endTime = e.target.value;
-                                                  setEventData({ ...eventData, schedules: updated });
-                                                  setIsDirty(true);
-                                                }}
-                                           className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
-                                          !isRowEditable 
-                                            ? 'bg-slate-100 cursor-default border-slate-200' 
-                                            : 'bg-white border-slate-300'
-                                        }`} 
-                                              />
-                                            </div>
+                                            />
                                           </div>
-                                        ))}
+                                          <span className="text-slate-400 pt-5">-</span>
+                                          <div className="flex-1">
+                                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">End time</label>
+                                            <input 
+                                              type="time" 
+                                              readOnly={!isRowEditable}
+                                              value={slot.endTime || ''} 
+                                              onChange={(e) => {
+                                                const updated = [...eventData.schedules];
+                                                updated[index].timeSlots[slotIdx].endTime = e.target.value;
+                                                setEventData({ ...eventData, schedules: updated });
+                                                setIsDirty(true);
+                                              }}
+                                              className={`w-full border rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 ${
+                                                !isRowEditable 
+                                                  ? 'bg-slate-100 cursor-default border-slate-200' 
+                                                  : 'bg-white border-slate-300'
+                                              }`} 
+                                            />
+                                          </div>
+                                        </div>
+
+                                        {/* ── ADDED DURATION BADGE ── */}
+                                        {(slot.startTime && slot.endTime) && (() => {
+                                          const dur = getSlotDuration(slot.startTime, slot.endTime);
+                                          return (
+                                            <div>
+                                              <div className="inline-block bg-blue-50 border border-blue-100 text-blue-800 text-xs font-medium px-4 py-1.5 rounded-md mt-1">
+                                                Duration : {dur.hours} Hours {dur.minutes} Minutes
+                                              </div>
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
+                                    ))}
+                                  </div>
 
                                     </div>
                                   );
