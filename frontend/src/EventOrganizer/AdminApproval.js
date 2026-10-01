@@ -65,6 +65,57 @@ const AdminApproval = () => {
   }, []);
 
 
+const renderCellData = (data, fieldName) => {
+  if (!data) return '-';
+
+  // Handle Arrays (like artists, hashtags, etc.)
+  if (Array.isArray(data)) {
+    if (fieldName === 'artists') {
+      return (
+        <div className="space-y-2 max-h-40 overflow-y-auto py-1">
+          {data.map((artist, idx) => (
+            <div key={idx} className="flex items-center gap-2.5 ">
+              {artist.photoUrl ? (
+                <img 
+                  src={artist.photoUrl} 
+                  alt={artist.artistName} 
+                  className="w-10 h-10 object-cover rounded-full shrink-0 border border-slate-200" 
+                />
+              ) : (
+                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-[10px] text-slate-500 font-bold shrink-0">
+                  No Pic
+                </div>
+              )}
+              <div className="text-left leading-tight">
+                <div className="font-bold text-slate-900">{artist.artistName || 'Unnamed'}</div>
+                <div className="text-[10px] text-slate-500">{artist.role || 'Artist'} {artist.description ? `• ${artist.description}` : ''}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return JSON.stringify(data, null, 2);
+  }
+
+  // Handle single direct image strings (like bannerImage, thumbnailImage, etc.)
+  const stringVal = typeof data === 'object' ? JSON.stringify(data) : String(data);
+  const isImage = stringVal.startsWith('data:image') || stringVal.startsWith('http://') || stringVal.startsWith('https://');
+
+  if (isImage && (fieldName.toLowerCase().includes('image') || fieldName.toLowerCase().includes('photo') || fieldName.toLowerCase().includes('banner') || fieldName.toLowerCase().includes('media'))) {
+    return (
+      <img 
+        src={stringVal} 
+        alt="Preview" 
+        className="w-12 h-12 object-cover rounded border border-slate-200 shadow-2xs" 
+      />
+    );
+  }
+
+  return typeof data === 'object' ? JSON.stringify(data) : stringVal;
+};
+
+
 const handleApprovalChangeRequest = async (eventItem, changeEntryId, action) => {
   const label = action === 'accept' ? 'accept' : 'reject';
   if (!window.confirm(`Are you sure you want to ${label} this change request?`)) return;
@@ -505,11 +556,11 @@ const submitCancelRejection = async () => {
                             <div className="text-[10px] text-slate-400 font-normal">{event.createEventId}</div>
                           </td>
                           <td className="px-4 py-4 font-semibold text-blue-600">{item.fieldName}</td>
-                          <td className="px-4 py-4 text-slate-600 max-w-xs truncate">
-                            {typeof item.oldData === 'object' ? JSON.stringify(item.oldData) : String(item.oldData || '-')}
+                         <td className="px-4 py-4 text-slate-600 max-w-xs truncate">
+                            {renderCellData(item.oldData, item.fieldName)}
                           </td>
                           <td className="px-4 py-4 text-slate-900 font-medium max-w-xs truncate">
-                            {typeof item.newData === 'object' ? JSON.stringify(item.newData) : String(item.newData || '-')}
+                            {renderCellData(item.newData, item.fieldName)}
                           </td>
                           <td className="px-4 py-4 text-slate-500">
                             {item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}

@@ -79,7 +79,7 @@ const buildEventStatus = (event) => {
   if (statusUpper === 'DRAFT') {
     return { label: 'Draft', statusColor: 'bg-slate-500', rightBarColor: 'bg-slate-400', muted: false };
   }
-  if (statusUpper === 'CANCELED' || statusUpper === 'CANCEL') {
+  if (statusUpper === 'CANCELLED' || statusUpper === 'CANCEL') {
     return { label: 'Cancelled', statusColor: 'bg-rose-700', rightBarColor: 'bg-rose-700', muted: true };
   }
   if (statusUpper === 'REJECTED') {

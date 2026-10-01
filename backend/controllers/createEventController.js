@@ -979,8 +979,7 @@ exports.updateSingleChangeRequest = async (req, res) => {
   try {
     const { id, changeId } = req.params;
     const { action } = req.body; // 'accept' or 'reject'
-    const targetStatus = action === 'accept' ? 'accepted' : 'rejected';
-    const approvalBool = action === 'accept'; // true for accept, false for reject
+    const label = action === 'accept' ? 'accepted' : 'rejected';
 
     const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
     const event = await CreateEvent.findOne(query);
@@ -1009,21 +1008,35 @@ exports.updateSingleChangeRequest = async (req, res) => {
       }
     }
 
+    // ── CREATE NOTIFICATION MESSAGE FOR resonNotification ARRAY ──
+    const notificationMsg = action === 'accept'
+      ? `Your change request for field '${targetChange.fieldName}' has been accepted.`
+      : `Your change request for field '${targetChange.fieldName}' has been rejected.`;
+
+    const notificationEntry = {
+      reason: notificationMsg,
+      link: `/event-details`,
+      createdAt: new Date()
+    };
+
+    // ── REMOVE FROM changesRequest AND PUSH INTO resonNotification ──
+    const updateOps = {
+      $pull: { changesRequest: { _id: targetChange._id } },$push: { resonNotification: notificationEntry }
+    };
+
+    if (Object.keys(setFields).length > 0) {
+      updateOps.$set = setFields;
+    }
+
     const updated = await CreateEvent.findOneAndUpdate(
-      { _id: event._id, "changesRequest._id": changeId },
-      {
-        $set: {
-          "changesRequest.$.status": targetStatus,
-          "changesRequest.$.approvalStatus": approvalBool,
-          ...setFields // If rejected, setFields is empty, so the main event database remains untouched!
-        }
-      },
+      query,
+      updateOps,
       { returnDocument: 'after' }
     );
 
     return res.status(200).json({ 
       success: true, 
-      message: `Change request ${targetStatus} successfully.`, 
+      message: `Change request ${label} successfully and notification recorded.`, 
       data: updated 
     });
   } catch (error) {
