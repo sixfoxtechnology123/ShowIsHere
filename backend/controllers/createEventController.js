@@ -83,6 +83,99 @@ exports.saveEventStepData = async (req, res) => {
         return res.status(404).json({ success: false, message: 'Event not found.' });
       }
 
+ if (existingEvent.status === 'APPROVED') {
+        const changeEntries = [];
+        const cleanedEventData = {};
+
+        // Helper to check if two values are genuinely different (treating empty strings, null, and undefined as equal)
+        const isActuallyDifferent = (oldVal, newVal) => {
+          const cleanOld = (oldVal === null || oldVal === undefined) ? '' : String(oldVal).trim();
+          const cleanNew = (newVal === null || newVal === undefined) ? '' : String(newVal).trim();
+          return cleanOld !== cleanNew;
+        };
+
+        Object.keys(eventData).forEach((key) => {
+          // Skip internal metadata fields
+          if (['eventId', 'status', 'currentActiveStep', 'tenantKey', 'orgkycId', 'loginMobileNumber', 'eventCategoryId'].includes(key)) {
+            return;
+          }
+
+          const newVal = eventData[key];
+          const oldVal = existingEvent[key];
+
+          // ── 1. HANDLE NESTED OBJECTS (contactPerson, venue, media, etc.) ──
+          if (newVal && typeof newVal === 'object' && !Array.isArray(newVal)) {
+            const oldObj = (oldVal && typeof oldVal === 'object') ? oldVal : {};
+            const cleanedSubObj = {};
+            let hasSubChanges = false;
+
+            Object.keys(newVal).forEach((subKey) => {
+              const subNewVal = newVal[subKey];
+              const subOldVal = oldObj[subKey];
+              const nestedFieldName = `${key}.${subKey}`;
+
+              if (isActuallyDifferent(subOldVal, subNewVal)) {
+                hasSubChanges = true;
+                cleanedSubObj[subKey] = subNewVal;
+                changeEntries.push({
+                  fieldName: nestedFieldName,
+                  oldData: subOldVal !== undefined ? subOldVal : null,
+                  newData: subNewVal !== undefined ? subNewVal : null,
+                  createdAt: new Date()
+                });
+              } else {
+                // Keep the original value so we don't wipe it out if needed, or omit it
+                cleanedSubObj[subKey] = subOldVal;
+              }
+            });
+
+            if (hasSubChanges) {
+              cleanedEventData[key] = cleanedSubObj;
+            }
+          } 
+          // ── 2. HANDLE ARRAYS (artists, hashtags, guideResponses, etc.) ──
+          else if (Array.isArray(newVal)) {
+            if (JSON.stringify(oldVal || []) !== JSON.stringify(newVal)) {
+              cleanedEventData[key] = newVal;
+              changeEntries.push({
+                fieldName: key,
+                oldData: oldVal !== undefined ? oldVal : null,
+                newData: newVal !== undefined ? newVal : null,
+                createdAt: new Date()
+              });
+            }
+          } 
+          // ── 3. HANDLE REGULAR TOP-LEVEL FIELDS (eventName, minAgeLimit, etc.) ──
+          else {
+            if (isActuallyDifferent(oldVal, newVal)) {
+              cleanedEventData[key] = newVal;
+              changeEntries.push({
+                fieldName: key,
+                oldData: oldVal !== undefined ? oldVal : null,
+                newData: newVal !== undefined ? newVal : null,
+                createdAt: new Date()
+              });
+            }
+          }
+        });
+
+        let updatedEvent = existingEvent;
+        if (changeEntries.length > 0) {
+          updatedEvent = await CreateEvent.findOneAndUpdate(
+            query,
+            { 
+              $push: { changesRequest: { $each: changeEntries } },$set: cleanedEventData // Only updates the exact fields that changed!
+            },
+            { returnDocument: 'after', runValidators: false }
+          );
+        }
+
+        return res.status(200).json({
+          success: true,
+          data: updatedEvent,
+          message: changeEntries.length > 0 ? 'Changes submitted for admin approval.' : 'No changes detected.'
+        });
+      }
       if (existingEvent.status === 'APPROVED') {
         eventData.status = 'PENDING';
       }
@@ -136,7 +229,7 @@ exports.saveEventStepData = async (req, res) => {
             resubmit: !isFullyResolved
           }
         },
-        { new: true, runValidators: false }
+        { returnDocument: 'after', runValidators: false }
       );
 
       return res.status(200).json({

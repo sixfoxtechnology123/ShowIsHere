@@ -49,6 +49,7 @@ const EventDetails = () => {
   const [newArtistPhoto, setNewArtistPhoto] = useState('');
   const [isSavingArtist, setIsSavingArtist] = useState(false);
   const [isHashtagsEditable, setIsHashtagsEditable] = useState(false);
+  const [originalEventData, setOriginalEventData] = useState({});
   const [dirtyTabs, setDirtyTabs] = useState({
   Basics: false,
   'Artists & Tags': false,
@@ -149,6 +150,12 @@ useEffect(() => {
   }, []);
 
 
+  const hasFieldChanged = (newValue, oldValue) => {
+  const cleanNew = newValue === null || newValue === undefined ? '' : String(newValue).trim();
+  const cleanOld = oldValue === null || oldValue === undefined ? '' : String(oldValue).trim();
+  return cleanNew !== cleanOld;
+};
+
 const handleCancelSubmit = async () => {
   if (!cancelReason || cancelReason === 'Select reason') {
     toast.error('Please select a reason for cancellation.');
@@ -220,6 +227,7 @@ const handleCancelSubmit = async () => {
         const data = eventsList.find(evt => evt.createEventId === createEventId || evt._id === createEventId);
 
         if (data) {
+          setOriginalEventData(data);
           const mappedArtists = Array.isArray(data.artists)
             ? data.artists.map(a => {
                 const searchId = a.artistId || a.id || '';
@@ -405,115 +413,118 @@ const handleChange = (e) => {
 };
  
 const handleSave = async () => {
-  try {
-    const createEventId = localStorage.getItem('createEventId');
-    if (!createEventId) {
-      toast.error('Event ID not found.');
-      return;
-    }
-
-    // ✅ Always include eventName and eventCategoryId to satisfy backend validation
-    let payload = {
-      eventId: createEventId,
-      status: 'PENDING',
-      eventName: eventData.title,
-      eventCategoryId: eventData.eventCategoryId || 'DEFAULT_CAT'
-    };
-
-    if (activeTab === 'Basics') {
-      payload.eventCategoryName = eventData.eventCategoryName || '';
-      payload.eventFormat = eventData.subTitle || eventData.eventType;
-      payload.eventDescription = eventData.fullDescription;
-      payload.media = {
-        bannerImage: eventData.bannerImage,
-        thumbnailImage: eventData.thumbnailImage
-      };
-    } else if (activeTab === 'Artists & Tags') {
-      payload.artists = eventData.artists.map(a => ({
-        artistId: a.id,
-        artistName: a.name,
-        role: a.role,
-        description: a.description,
-        photoUrl: a.photo
-      }));
-      payload.hashtags = eventData.hashtags;
-    } else if (activeTab === 'Date & Location') {
-      payload.venue = {
-        name: eventData.venueName,
-        addressLine1: eventData.address,
-        city: eventData.city,
-        pincode: eventData.pinCode
-      };
-    } else if (activeTab === 'Features') {
-      payload.minAgeLimit = eventData.minAgeLimit;
-      payload.durationHours = eventData.durationHours;
-      payload.durationMinutes = eventData.durationMinutes;
-      payload.guideResponses = eventData.guideResponses;
-   } else if (activeTab === 'Contact') {
-      const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-      const mobileRegex = /^\d{10}$/;
-
-      if (eventData.contactEmail && !emailRegex.test(eventData.contactEmail)) {
-        toast.error('Please enter a valid Gmail address (e.g., name@gmail.com).', { id: 'contact-error' });
-        return;
-      }
-      
-      if (eventData.contactMobile && !mobileRegex.test(eventData.contactMobile)) {
-        toast.error('Mobile number must be exactly 10 digits.', { id: 'contact-error' });
+    try {
+      const createEventId = localStorage.getItem('createEventId');
+      if (!createEventId) {
+        toast.error('Event ID not found.');
         return;
       }
 
-      payload.contactPerson = {
-        name: eventData.contactName,
-        email: eventData.contactEmail,
-        mobile: eventData.contactMobile
+      let payload = {
+        eventId: createEventId,
+        status: eventStatus,
+        eventName: eventData.title,
+        eventCategoryId: eventData.eventCategoryId || 'DEFAULT_CAT'
       };
-    
-    }
 
-    const response = await API.post('/events/save-step', payload);
-    const result = response?.success !== undefined ? response : response?.data;
+      const original = originalEventData || {};
 
-    if (result?.success) {
-      setDirtyTabs(prev => ({ ...prev, [activeTab]: false }));
-
-      const updatedEvent = result.data || result;
-      if (Array.isArray(updatedEvent.resubmitFields)) {
-        setResubmitFieldsList(updatedEvent.resubmitFields);
-      }
-      if (updatedEvent.resubmit === false) {
-        setIsResubmitMode(false);
-      }
-
-      // Lock only the active tab's edit states
+      // ── BASICS TAB: Send ONLY modified fields ──
       if (activeTab === 'Basics') {
-        setIsTitleEditable(false);
-        setIsDescEditable(false);
-        setIsImagesEditable(false);
-      } else if (activeTab === 'Artists & Tags') {
-        setIsArtistsEditable(false);
-        setIsHashtagsEditable(false);
-      } else if (activeTab === 'Date & Location') {
-        setEditScheduleIndex(null);
-        setIsVenueEditable(false);
-      } else if (activeTab === 'Features') {
-        setIsAgeEditable(false);
-        setIsDurationEditable(false);
-        setIsGuideEditable(false);
-      } else if (activeTab === 'Contact') {
-        setIsContactEditable(false);
+        if (eventData.title !== original.eventName) payload.eventName = eventData.title;
+        if (eventData.eventCategoryName !== original.eventCategoryName) payload.eventCategoryName = eventData.eventCategoryName;
+        if (eventData.fullDescription !== original.eventDescription) payload.eventDescription = eventData.fullDescription;
+        
+        if (eventData.bannerImage !== original.media?.bannerImage || eventData.thumbnailImage !== original.media?.thumbnailImage) {
+          payload.media = {
+            bannerImage: eventData.bannerImage,
+            thumbnailImage: eventData.thumbnailImage
+          };
+        }
+      } 
+      // ── ARTISTS & TAGS TAB: Send ONLY if modified ──
+      else if (activeTab === 'Artists & Tags') {
+        if (JSON.stringify(eventData.artists) !== JSON.stringify(original.artists || [])) {
+          payload.artists = eventData.artists.map(a => ({
+            artistId: a.id,
+            artistName: a.name,
+            role: a.role,
+            description: a.description,
+            photoUrl: a.photo
+          }));
+        }
+        if (JSON.stringify(eventData.hashtags) !== JSON.stringify(original.hashtags || [])) {
+          payload.hashtags = eventData.hashtags;
+        }
+      } 
+      // ── DATE & LOCATION TAB: Send ONLY if venue fields changed ──
+      else if (activeTab === 'Date & Location') {
+        if (
+          eventData.venueName !== original.venue?.name ||
+          eventData.address !== original.venue?.addressLine1 ||
+          eventData.city !== original.venue?.city ||
+          eventData.pinCode !== (original.venue?.pincode || original.venue?.pinCode)
+        ) {
+          payload.venue = {
+            name: eventData.venueName,
+            addressLine1: eventData.address,
+            city: eventData.city,
+            pincode: eventData.pinCode
+          };
+        }
+      } 
+      // ── FEATURES TAB: Send ONLY if modified ──
+      else if (activeTab === 'Features') {
+        if (String(eventData.minAgeLimit || '') !== String(original.minAgeLimit || '')) {
+          payload.minAgeLimit = eventData.minAgeLimit;
+        }
+        if (String(eventData.durationHours || '') !== String(original.durationHours || '')) {
+          payload.durationHours = eventData.durationHours;
+        }
+        if (String(eventData.durationMinutes || '') !== String(original.durationMinutes || '')) {
+          payload.durationMinutes = eventData.durationMinutes;
+        }
+        if (JSON.stringify(eventData.guideResponses) !== JSON.stringify(original.guideResponses || [])) {
+          payload.guideResponses = eventData.guideResponses;
+        }
+      } 
+      // ── CONTACT TAB: Send ONLY if specific contact field changed ──
+      else if (activeTab === 'Contact') {
+        const origContact = original.contactPerson || {};
+        if (
+          eventData.contactName !== origContact.name ||
+          eventData.contactEmail !== origContact.email ||
+          eventData.contactMobile !== origContact.mobile
+        ) {
+          payload.contactPerson = {
+            name: eventData.contactName,
+            email: eventData.contactEmail,
+            mobile: eventData.contactMobile
+          };
+        }
       }
 
-      toast.success(result.message || `${activeTab} details updated successfully!`);
-    } else {
-      toast.error(result?.message || 'Failed to save changes.');
-    }
-  } catch (err) {
-    console.error('Save error:', err);
-    toast.error(err.response?.data?.message || 'Error saving event details.');
-  }
-};
+      const response = await API.post('/events/save-step', payload);
+      const result = response?.success !== undefined ? response : response?.data;
 
+      if (result?.success) {
+        setDirtyTabs(prev => ({ ...prev, [activeTab]: false }));
+        
+        // Update original data so subsequent edits track correctly
+        const updatedEvent = result.data || result;
+        if (updatedEvent) {
+          setOriginalEventData(updatedEvent);
+        }
+
+        toast.success(result.message || `${activeTab} details updated successfully!`);
+      } else {
+        toast.error(result?.message || 'Failed to save changes.');
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error(err.response?.data?.message || 'Error saving event details.');
+    }
+  };
   return (
     <div className={dashLayoutWrapper}>
       <EventOrgHeader />

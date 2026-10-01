@@ -177,6 +177,12 @@ cancelHistory: [{
   cancelledAt: { type: Date, default: Date.now },
   cancelRequest: { type: String, enum: ['', 'pending', 'accept', 'reject'], default: 'pending' }
 }],
+changesRequest: [{
+  fieldName: { type: String, default: '' },
+  oldData: { type: mongoose.Schema.Types.Mixed, default: null },
+  newData: { type: mongoose.Schema.Types.Mixed, default: null },
+  createdAt: { type: Date, default: Date.now }
+}],
   rejectionReason: { type: String, default: '' },
   approvalHistory: [{
     status: { type: String, enum: ['pending', 'approved', 'rejected'] },
