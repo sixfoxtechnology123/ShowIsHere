@@ -64,6 +64,36 @@ const AdminApproval = () => {
     fetchApprovals();
   }, []);
 
+
+const handleApprovalChangeRequest = async (eventItem, changeEntryId, action) => {
+  const label = action === 'accept' ? 'accept' : 'reject';
+  if (!window.confirm(`Are you sure you want to ${label} this change request?`)) return;
+
+  try {
+    const response = await API.put(`/events/admin/events/${eventItem._id}/changes-request/${changeEntryId}`, { action });
+    const updated = response.data.data || response.data;
+    setEvents((prev) => prev.map((item) => (item._id === eventItem._id ? updated : item)));
+    toast.success(`Change request ${label}ed successfully.`);
+  } catch (error) {
+    toast.error(error.response?.data?.message || error.message || 'API request failed');
+  }
+};
+
+const handleBulkApprovalChangeRequest = async (eventItem, action) => {
+  const label = action === 'accept' ? 'accept all' : 'reject all';
+  if (!window.confirm(`Are you sure you want to ${label} changes for this event?`)) return;
+
+  try {
+    const response = await API.put(`/events/admin/events/${eventItem._id}/changes-request/bulk`, { action });
+    const updated = response.data.data || response.data;
+    setEvents((prev) => prev.map((item) => (item._id === eventItem._id ? updated : item)));
+    toast.success(`All changes ${label}ed successfully.`);
+  } catch (error) {
+    toast.error(error.message || `Failed to ${label} changes.`);
+  }
+};
+
+
 const updateEventStatus = async (eventItem, status) => {
   const label = status === 'approved' ? 'approve' : 'reject';
   if (!window.confirm(`Are you sure you want to ${label} this event?`)) return;
@@ -440,9 +470,96 @@ const submitCancelRejection = async () => {
                 </tbody>
               </table>
             </div>
-          ) : activeSection === 'events' && eventSubTab === 'changes' ? (
-            <div className="bg-white border border-slate-200 px-5 py-12 text-center text-xs font-semibold text-slate-500">
-              Changes Request table will go here...
+         ) : activeSection === 'events' && eventSubTab === 'changes' ? (
+            <div className="bg-white border border-slate-200 overflow-auto">
+              <table className="min-w-full text-xs">
+                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="text-left px-4 py-3">Event Name</th>
+                    <th className="text-left px-4 py-3">Field Name</th>
+                    <th className="text-left px-4 py-3">Old Data</th>
+                    <th className="text-left px-4 py-3">New Data</th>
+                    <th className="text-left px-4 py-3">Requested Date</th>
+                    <th className="text-left px-4 py-3">Status</th>
+                    <th className="text-right px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(events || [])
+                    .flatMap((event) => 
+                      (event.changesRequest || []).map((changeItem) => ({
+                        ...changeItem,
+                        eventRef: event
+                      }))
+                    )
+                    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+                    .map((item) => {
+                      const event = item.eventRef;
+                      const status = (item.status || 'pending').toLowerCase();
+                      const isProcessed = status === 'accepted' || status === 'rejected';
+
+                      return (
+                        <tr key={item._id} className="align-middle">
+                          <td className="px-4 py-4 font-bold text-slate-900">
+                            <div>{event.eventName || 'Untitled'}</div>
+                            <div className="text-[10px] text-slate-400 font-normal">{event.createEventId}</div>
+                          </td>
+                          <td className="px-4 py-4 font-semibold text-blue-600">{item.fieldName}</td>
+                          <td className="px-4 py-4 text-slate-600 max-w-xs truncate">
+                            {typeof item.oldData === 'object' ? JSON.stringify(item.oldData) : String(item.oldData || '-')}
+                          </td>
+                          <td className="px-4 py-4 text-slate-900 font-medium max-w-xs truncate">
+                            {typeof item.newData === 'object' ? JSON.stringify(item.newData) : String(item.newData || '-')}
+                          </td>
+                          <td className="px-4 py-4 text-slate-500">
+                            {item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              status === 'accepted' ? 'bg-emerald-50 text-emerald-700' : status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="inline-flex items-center gap-2">
+                              <button 
+                                type="button" 
+                                disabled={isProcessed} 
+                                onClick={() => handleApprovalChangeRequest(event, item._id, 'accept')} 
+                                className={`px-3 py-1.5 rounded text-xs font-bold shadow-sm ${
+                                  isProcessed 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer'
+                                }`}
+                              >
+                                Accept
+                              </button>
+                              <button 
+                                type="button" 
+                                disabled={isProcessed} 
+                                onClick={() => handleApprovalChangeRequest(event, item._id, 'reject')} 
+                                className={`px-3 py-1.5 rounded text-xs font-bold shadow-sm ${
+                                  isProcessed 
+                                    ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed pointer-events-none' 
+                                    : 'bg-red-600 text-white hover:bg-red-700 cursor-pointer'
+                                }`}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                  {(events || []).flatMap(e => e.changesRequest || []).length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="px-4 py-8 text-center text-slate-500 font-semibold">No changes requests found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           ) : activeSection === 'events' && eventSubTab === 'cancel' ? (
             <div className="bg-white border border-slate-200 overflow-auto">

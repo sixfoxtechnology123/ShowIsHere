@@ -83,11 +83,9 @@ exports.saveEventStepData = async (req, res) => {
         return res.status(404).json({ success: false, message: 'Event not found.' });
       }
 
- if (existingEvent.status === 'APPROVED') {
+if (existingEvent.status === 'APPROVED') {
         const changeEntries = [];
-        const cleanedEventData = {};
 
-        // Helper to check if two values are genuinely different (treating empty strings, null, and undefined as equal)
         const isActuallyDifferent = (oldVal, newVal) => {
           const cleanOld = (oldVal === null || oldVal === undefined) ? '' : String(oldVal).trim();
           const cleanNew = (newVal === null || newVal === undefined) ? '' : String(newVal).trim();
@@ -95,7 +93,6 @@ exports.saveEventStepData = async (req, res) => {
         };
 
         Object.keys(eventData).forEach((key) => {
-          // Skip internal metadata fields
           if (['eventId', 'status', 'currentActiveStep', 'tenantKey', 'orgkycId', 'loginMobileNumber', 'eventCategoryId'].includes(key)) {
             return;
           }
@@ -103,56 +100,61 @@ exports.saveEventStepData = async (req, res) => {
           const newVal = eventData[key];
           const oldVal = existingEvent[key];
 
-          // ── 1. HANDLE NESTED OBJECTS (contactPerson, venue, media, etc.) ──
+          // 1. NESTED OBJECTS
           if (newVal && typeof newVal === 'object' && !Array.isArray(newVal)) {
             const oldObj = (oldVal && typeof oldVal === 'object') ? oldVal : {};
-            const cleanedSubObj = {};
-            let hasSubChanges = false;
 
             Object.keys(newVal).forEach((subKey) => {
               const subNewVal = newVal[subKey];
               const subOldVal = oldObj[subKey];
               const nestedFieldName = `${key}.${subKey}`;
 
-              if (isActuallyDifferent(subOldVal, subNewVal)) {
-                hasSubChanges = true;
-                cleanedSubObj[subKey] = subNewVal;
+              const alreadyPending = (existingEvent.changesRequest || []).some(
+                req => req.fieldName === nestedFieldName && (!req.status || req.status === 'pending')
+              );
+
+              if (!alreadyPending && isActuallyDifferent(subOldVal, subNewVal)) {
                 changeEntries.push({
                   fieldName: nestedFieldName,
                   oldData: subOldVal !== undefined ? subOldVal : null,
                   newData: subNewVal !== undefined ? subNewVal : null,
+                  approvalStatus: false,
+                  status: 'pending',
                   createdAt: new Date()
                 });
-              } else {
-                // Keep the original value so we don't wipe it out if needed, or omit it
-                cleanedSubObj[subKey] = subOldVal;
               }
             });
-
-            if (hasSubChanges) {
-              cleanedEventData[key] = cleanedSubObj;
-            }
           } 
-          // ── 2. HANDLE ARRAYS (artists, hashtags, guideResponses, etc.) ──
+          // 2. ARRAYS
           else if (Array.isArray(newVal)) {
-            if (JSON.stringify(oldVal || []) !== JSON.stringify(newVal)) {
-              cleanedEventData[key] = newVal;
+            const alreadyPending = (existingEvent.changesRequest || []).some(
+              req => req.fieldName === key && (!req.status || req.status === 'pending')
+            );
+
+            if (!alreadyPending && JSON.stringify(oldVal || []) !== JSON.stringify(newVal)) {
               changeEntries.push({
                 fieldName: key,
                 oldData: oldVal !== undefined ? oldVal : null,
                 newData: newVal !== undefined ? newVal : null,
+                approvalStatus: false,
+                status: 'pending',
                 createdAt: new Date()
               });
             }
           } 
-          // ── 3. HANDLE REGULAR TOP-LEVEL FIELDS (eventName, minAgeLimit, etc.) ──
+          // 3. TOP-LEVEL FIELDS
           else {
-            if (isActuallyDifferent(oldVal, newVal)) {
-              cleanedEventData[key] = newVal;
+            const alreadyPending = (existingEvent.changesRequest || []).some(
+              req => req.fieldName === key && (!req.status || req.status === 'pending')
+            );
+
+            if (!alreadyPending && isActuallyDifferent(oldVal, newVal)) {
               changeEntries.push({
                 fieldName: key,
                 oldData: oldVal !== undefined ? oldVal : null,
                 newData: newVal !== undefined ? newVal : null,
+                approvalStatus: false,
+                status: 'pending',
                 createdAt: new Date()
               });
             }
@@ -164,7 +166,7 @@ exports.saveEventStepData = async (req, res) => {
           updatedEvent = await CreateEvent.findOneAndUpdate(
             query,
             { 
-              $push: { changesRequest: { $each: changeEntries } },$set: cleanedEventData // Only updates the exact fields that changed!
+              $push: { changesRequest: {$each: changeEntries } }
             },
             { returnDocument: 'after', runValidators: false }
           );
@@ -176,6 +178,7 @@ exports.saveEventStepData = async (req, res) => {
           message: changeEntries.length > 0 ? 'Changes submitted for admin approval.' : 'No changes detected.'
         });
       }
+
       if (existingEvent.status === 'APPROVED') {
         eventData.status = 'PENDING';
       }
@@ -907,6 +910,124 @@ exports.deleteEvent = async (req, res) => {
     if (!deleted) return res.status(404).json({ success: false, message: 'Event not found.' });
     return res.status(200).json({ success: true, message: 'Event permanently deleted.' });
   } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+exports.bulkUpdateChangesRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body; // 'accept' or 'reject'
+    const targetStatus = action === 'accept' ? 'accepted' : 'rejected';
+
+    const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
+    const event = await CreateEvent.findOne(query);
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    const setFields = {};
+    if (action === 'accept') {
+      // Apply all pending changes into the actual event document fields
+      (event.changesRequest || []).forEach((item) => {
+        if (!item.status || item.status === 'pending') {
+          const keys = item.fieldName.split('.');
+          if (keys.length === 1) {
+            setFields[keys[0]] = item.newData;
+          } else if (keys.length === 2) {
+            if (!setFields[keys[0]]) setFields[keys[0]] = { ...(event[keys[0]] || {}) };
+            setFields[keys[0]][keys[1]] = item.newData;
+          }
+        }
+      });
+    }
+
+    // Mark all pending changes as accepted/rejected
+    const updatedChanges = (event.changesRequest || []).map((item) => {
+      const plainItem = item.toObject ? item.toObject() : item;
+      if (!plainItem.status || plainItem.status === 'pending') {
+        return { ...plainItem, status: targetStatus };
+      }
+      return plainItem;
+    });
+
+    const updated = await CreateEvent.findOneAndUpdate(
+      query,
+      {
+        $set: {
+          changesRequest: updatedChanges,
+          ...setFields
+        }
+      },
+      { returnDocument: 'after' }
+    );
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `All changes ${targetStatus} successfully.`, 
+      data: updated 
+    });
+  } catch (error) {
+    console.error('Bulk Changes Request Error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.updateSingleChangeRequest = async (req, res) => {
+  try {
+    const { id, changeId } = req.params;
+    const { action } = req.body; // 'accept' or 'reject'
+    const targetStatus = action === 'accept' ? 'accepted' : 'rejected';
+    const approvalBool = action === 'accept'; // true for accept, false for reject
+
+    const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { createEventId: id };
+    const event = await CreateEvent.findOne(query);
+
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    const targetChange = (event.changesRequest || []).id(changeId) || 
+                         (event.changesRequest || []).find(item => String(item._id) === String(changeId));
+
+    if (!targetChange) {
+      return res.status(404).json({ success: false, message: 'Change request entry not found.' });
+    }
+
+    const setFields = {};
+    
+    // ── ONLY UPDATE MAIN EVENT DATABASE IF ACTION IS 'ACCEPT' ──
+    if (action === 'accept') {
+      const keys = targetChange.fieldName.split('.');
+      if (keys.length === 1) {
+        setFields[keys[0]] = targetChange.newData;
+      } else if (keys.length === 2) {
+        if (!setFields[keys[0]]) setFields[keys[0]] = { ...(event[keys[0]] || {}) };
+        setFields[keys[0]][keys[1]] = targetChange.newData;
+      }
+    }
+
+    const updated = await CreateEvent.findOneAndUpdate(
+      { _id: event._id, "changesRequest._id": changeId },
+      {
+        $set: {
+          "changesRequest.$.status": targetStatus,
+          "changesRequest.$.approvalStatus": approvalBool,
+          ...setFields // If rejected, setFields is empty, so the main event database remains untouched!
+        }
+      },
+      { returnDocument: 'after' }
+    );
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `Change request ${targetStatus} successfully.`, 
+      data: updated 
+    });
+  } catch (error) {
+    console.error('Single Change Request Update Error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };

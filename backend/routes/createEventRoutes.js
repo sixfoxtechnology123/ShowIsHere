@@ -16,6 +16,8 @@ router.post('/cancel', createEventController.cancelEvent);
 router.put('/admin/events/:id/cancel-request/:cancelRequestId', createEventController.updateCancelRequestStatus);
 router.put('/admin/events/:id/resubmit', createEventController.resubmitEvent);
 router.delete('/admin/events/:id', createEventController.deleteEvent);
+router.put('/admin/events/:id/changes-request/bulk', createEventController.bulkUpdateChangesRequest);
+router.put('/admin/events/:id/changes-request/:changeId', createEventController.updateSingleChangeRequest);
 
 module.exports = router;
  
