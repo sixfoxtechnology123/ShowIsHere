@@ -43,7 +43,24 @@ const AdminApproval = () => {
   const [resubmitEventItem, setResubmitEventItem] = useState(null);
   const [resubmitFields, setResubmitFields] = useState([]);
   const [resubmitReason, setResubmitReason] = useState('');
+  const [viewEventModalData, setViewEventModalData] = useState(null);
+  const [masterArtists, setMasterArtists] = useState([]);
+  const [seatMapImage, setSeatMapImage] = useState(null);
+  const [isSeatMapModalOpen, setIsSeatMapModalOpen] = useState(false);
+  const [modalZoom, setModalZoom] = useState(1);
+  const [modalPan, setModalPan] = useState({ x: 0, y: 0 });
+  const [isDraggingModalImg, setIsDraggingModalImg] = useState(false);
+  const [modalDragOrigin, setModalDragOrigin] = useState({ x: 0, y: 0 });
 
+
+  useEffect(() => {
+  API.get('/artists')
+    .then((res) => {
+      const artistArray = Array.isArray(res) ? res : (res?.data || res?.artists || []);
+      setMasterArtists(artistArray);
+    })
+    .catch((err) => console.error("Error loading artists:", err));
+}, []);
   const fetchApprovals = async () => {
     setLoading(true);
     try {
@@ -416,11 +433,13 @@ const submitCancelRejection = async () => {
                             <div>{event.schedule?.startTime || '--'} to {event.schedule?.endTime || '--'}</div>
                             <div>{[event.venue?.name, event.venue?.city].filter(Boolean).join(', ') || 'No venue'}</div>
                           </td>
-                          <td className="px-4 py-2 text-slate-700">
-                            <div>Format: {event.eventFormat || '-'}</div>
-                            <div>Languages: {(event.eventLanguages || []).join(', ') || '-'}</div>
-                            <div>Tickets: {event.ticketTiers?.length || 0}</div>
-                          </td>
+                         <button
+                          type="button"
+                          onClick={() => setViewEventModalData(event)}
+                          className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded text-[11px] font-bold cursor-pointer"
+                        >
+                          View Event Application
+                        </button>
                          
                          
                         <td className="px-4 py-4">
@@ -832,6 +851,405 @@ const submitCancelRejection = async () => {
           )}
         </div>
       </main>
+
+      
+{viewEventModalData && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+    <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      
+      {/* Modal Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Event Application Review</h3>
+          <p className="text-[11px] text-slate-500">{viewEventModalData.eventName} ({viewEventModalData.createEventId})</p>
+        </div>
+        <button 
+          type="button" 
+          onClick={() => setViewEventModalData(null)} 
+          className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 text-xs font-bold cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Modal Body */}
+      <div className="p-8 overflow-y-auto space-y-8 text-xs">
+        
+        {/* STEP 1: EVENT DETAILS */}
+        <div className="space-y-4">
+          <h4 className="font-bold text-sm text-blue-600 border-b pb-2">1. Event Details</h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Event Title</label>
+              <div className="p-3 bg-slate-50 border rounded-lg text-slate-800 font-medium">{viewEventModalData.eventName || '-'}</div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Event Category</label>
+              <div className="p-3 bg-slate-50 border rounded-lg text-slate-800 font-medium">{viewEventModalData.eventCategoryName || viewEventModalData.eventCategoryId || '-'}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Event Sub-Category</label>
+              <div className="p-3 bg-slate-50 border rounded-lg text-slate-800 font-medium">{viewEventModalData.subCategories?.[0]?.subCategoryName || '-'}</div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Event Type</label>
+              <div className="p-3 bg-slate-50 border rounded-lg text-slate-800 font-medium">{viewEventModalData.eventTypes?.[0]?.typeName || '-'}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Event Languages</label>
+              <div className="p-3 bg-slate-50 border rounded-lg text-slate-800 font-medium">
+                {(viewEventModalData.eventLanguages || []).join(', ') || '-'}
+              </div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Event Format</label>
+              <div className="p-3 bg-slate-50 border rounded-lg text-slate-800 font-medium">{viewEventModalData.eventFormat || '-'}</div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Full Description</label>
+            <div className="p-3 bg-slate-50 border rounded-lg text-slate-800 whitespace-pre-wrap leading-relaxed">{viewEventModalData.eventDescription || '-'}</div>
+          </div>
+
+          {/* Banner & Thumbnail Images */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div className="md:col-span-2 space-y-1">
+              <label className="block font-bold text-slate-700">Banner Image</label>
+              {viewEventModalData.media?.bannerImage ? (
+                <img src={viewEventModalData.media.bannerImage} alt="Banner" className="h-40 w-full object-cover rounded-lg border shadow-2xs" />
+              ) : (
+                <div className="h-40 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">No Banner Image</div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="block font-bold text-slate-700">Thumbnail Image</label>
+              {viewEventModalData.media?.thumbnailImage ? (
+                <img src={viewEventModalData.media.thumbnailImage} alt="Thumbnail" className="h-40 w-full object-cover rounded-lg border shadow-2xs" />
+              ) : (
+                <div className="h-40 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">No Thumbnail Image</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* STEP 2: ARTISTS & HASHTAGS */}
+        <div className="space-y-4 pt-4 border-t">
+          <h4 className="font-bold text-sm text-blue-600 border-b pb-2">2. Artist & Content</h4>
+          <div>
+            <label className="block font-bold text-slate-700 mb-2">Artists List</label>
+            <div className="grid grid-cols-2 sm:grid-cols-8 gap-2">
+              {(viewEventModalData.artists || []).map((art, idx) => {
+                // 1. Try finding photo from the event artist object itself
+                let picUrl = art.photoUrl || art.photo || art.photoBase64 || art.photoBase64Data || '';
+
+                // 2. If not found, cross-reference with masterArtists state using artistId or artistName
+                if (!picUrl && masterArtists.length > 0) {
+                  const matchedMaster = masterArtists.find(
+                    (m) => String(m.artistId) === String(art.artistId) || 
+                          String(m._id) === String(art.artistId) || 
+                          (m.artistName && m.artistName.toLowerCase() === (art.artistName || art.name || '').toLowerCase())
+                  );
+                  if (matchedMaster) {
+                    picUrl = matchedMaster.photoUrl || matchedMaster.photoBase64 || matchedMaster.photo || '';
+                  }
+                }
+
+                // 3. Ensure base64 prefix if needed
+                if (picUrl && !picUrl.startsWith('data:image') && !picUrl.startsWith('http')) {
+                  picUrl = `data:image/jpeg;base64,${picUrl}`;
+                }
+
+                return (
+                  <div key={idx} className="flex flex-col items-center text-center ">
+                    {picUrl ? (
+                      <img 
+                        src={picUrl} 
+                        alt={art.artistName || art.name} 
+                        className="w-16 h-16 rounded-full object-cover mb-2 shadow-2xs" 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-slate-200 mb-2 flex items-center justify-center text-[10px] text-slate-500 font-bold">No Photo</div>
+                    )}
+                    <span className="font-bold text-slate-900">{art.artistName || art.name || 'Unnamed'}</span>
+                    <span className="text-[10px] text-slate-500 font-semibold">{art.role || 'Artist'}</span>
+                  </div>
+                );
+              })}
+              {(!viewEventModalData.artists || viewEventModalData.artists.length === 0) && (
+                <div className="col-span-full text-slate-400 py-2">No artists added.</div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-2">Hashtags</label>
+            <div className="flex flex-wrap gap-2">
+              {(viewEventModalData.hashtags || []).map((tag, idx) => (
+                tag ? <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md font-semibold">{tag}</span> : null
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* STEP 3: SCHEDULE & VENUE */}
+        <div className="space-y-4 pt-4 border-t">
+          <h4 className="font-bold text-sm text-blue-600 border-b pb-2">3. Date & Venue</h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Event Schedule Type</label>
+              <div className="p-3 bg-slate-50 border rounded-lg uppercase font-semibold">{viewEventModalData.schedule?.eventScheduleType || 'single'}</div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Recurring Type</label>
+              <div className="p-3 bg-slate-50 border rounded-lg uppercase font-semibold">{viewEventModalData.schedule?.recurringType || '-'}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Start Date</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">
+                {viewEventModalData.schedule?.startDate ? new Date(viewEventModalData.schedule.startDate).toLocaleDateString() : '-'}
+              </div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Start Time</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">
+                {viewEventModalData.schedule?.startTime || '-'}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">End Date</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">
+                {viewEventModalData.schedule?.endDate ? new Date(viewEventModalData.schedule.endDate).toLocaleDateString() : '-'}
+              </div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">End Time</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">
+                {viewEventModalData.schedule?.endTime || '-'}
+              </div>
+            </div>
+          </div>
+
+          {/* Weekly Time Slots Display */}
+          {Array.isArray(viewEventModalData.schedule?.weeklyTimeSlots) && viewEventModalData.schedule.weeklyTimeSlots.length > 0 && (
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Weekly / Recurring Slots</label>
+              <div className="space-y-1.5">
+                {viewEventModalData.schedule.weeklyTimeSlots.map((slot, sIdx) => (
+                  <div key={sIdx} className="p-2.5 bg-slate-50 border rounded-md flex justify-between">
+                    <span>Date: {slot.date ? new Date(slot.date).toLocaleDateString() : 'All Dates'}</span>
+                    <span className="font-bold">Time: {slot.startTime || '--'} to {slot.endTime || '--'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="space-y-3">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Venue Name</label>
+                <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.venue?.name || '-'}</div>
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Venue Address</label>
+                <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.venue?.addressLine1 || '-'}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">City</label>
+                  <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.venue?.city || '-'}</div>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">PIN Code</label>
+                  <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.venue?.pincode || '-'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Seat Map Image</label>
+              {viewEventModalData.media?.seatMapImage ? (
+                <div 
+                  onClick={() => {
+                    setSeatMapImage(viewEventModalData.media.seatMapImage);
+                    setModalZoom(1);
+                    setModalPan({ x: 0, y: 0 });
+                    setIsSeatMapModalOpen(true);
+                  }}
+                  className="h-44 w-full bg-slate-100 rounded-lg border flex items-center justify-center cursor-zoom-in overflow-hidden relative group"
+                  title="Click to zoom seat map"
+                >
+                  <img src={viewEventModalData.media.seatMapImage} alt="Seat Map" className="h-full w-full object-contain p-2" />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-xs">
+                    Click to Zoom
+                  </div>
+                </div>
+              ) : (
+                <div className="h-44 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">No Seat Map Uploaded</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+     {/* STEP 4: TICKETS & EARLY BIRD (COLUMN-WISE TABLE) */}
+<div className="space-y-4 pt-4 border-t">
+  <h4 className="font-bold text-sm text-blue-600 border-b pb-2">4. Complete Ticket Tiers & Sales Configuration</h4>
+  <div className="border rounded-lg overflow-x-auto">
+    <table className="min-w-full text-xs border-collapse">
+      <thead className="bg-slate-100 text-slate-600">
+        <tr>
+          <th className="p-2.5 text-left border-b">Type</th>
+          <th className="p-2.5 text-left border-b">Name</th>
+          <th className="p-2.5 text-left border-b">Price</th>
+          <th className="p-2.5 text-left border-b">Qty</th>
+          <th className="p-2.5 text-left border-b">Available</th>
+          <th className="p-2.5 text-left border-b">Slot Date</th>
+          <th className="p-2.5 text-left border-b">General Sales Period</th>
+          <th className="p-2.5 text-left border-b border-l bg-blue-50/60">EB Price</th>
+          <th className="p-2.5 text-left border-b  bg-blue-50/60">EB Qty</th>
+          <th className="p-2.5 text-left border-b  bg-blue-50/60">EB Period</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {(viewEventModalData.ticketTiers || []).map((t, idx) => (
+          <tr key={idx} className="hover:bg-slate-50/50">
+            <td className="p-2.5 uppercase font-bold text-blue-600">{t.ticketType || '-'}</td>
+            <td className="p-2.5 font-medium text-slate-900">{t.ticketName || t.name || '-'}</td>
+            <td className="p-2.5 font-semibold text-emerald-700">₹{t.price ?? 0}</td>
+            <td className="p-2.5">{t.quantity ?? t.qty ?? 0}</td>
+            <td className="p-2.5">{t.available ?? 0}</td>
+            <td className="p-2.5 whitespace-nowrap">{t.slotDate ? new Date(t.slotDate).toLocaleDateString() : 'All Dates'}</td>
+            <td className="p-2.5 text-[11px] text-slate-600 whitespace-nowrap">
+              {t.startDate ? new Date(t.startDate).toLocaleDateString() : '--'} to {t.endDate ? new Date(t.endDate).toLocaleDateString() : '--'}
+            </td>
+            <td className="p-2.5 bg-blue-50/30 border-l border-slate-200 font-semibold text-emerald-800">
+              {t.ebPrice && t.ebPrice !== '-' ? `₹${t.ebPrice}` : '-'}
+            </td>
+            <td className="p-2.5 bg-blue-50/30  border-slate-200 font-semibold">{t.ebQty && t.ebQty !== '-' ? t.ebQty : '-'}</td>
+            <td className="p-2.5 bg-blue-50/30  border-slate-200 text-[11px] text-slate-600 whitespace-nowrap">
+              {t.ebStart && t.ebStart !== '-' ? new Date(t.ebStart).toLocaleDateString() : '--'} to {t.ebEnd && t.ebEnd !== '-' ? new Date(t.ebEnd).toLocaleDateString() : '--'}
+            </td>
+          </tr>
+        ))}
+        {(!viewEventModalData.ticketTiers || viewEventModalData.ticketTiers.length === 0) && (
+          <tr>
+            <td colSpan="10" className="p-4 text-center text-slate-400">No tickets configured.</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+        {/* STEP 5 & 6: FEATURES & CONTACT */}
+        <div className="space-y-4 pt-4 border-t">
+          <h4 className="font-bold text-sm text-blue-600 border-b pb-2">5 & 6. Features & Contact Details</h4>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Minimum Age Limit</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.minAgeLimit || '-'}</div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Contact Person Name</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.contactPerson?.name || '-'}</div>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Contact Email</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.contactPerson?.email || '-'}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Contact Mobile Number</label>
+              <div className="p-3 bg-slate-50 border rounded-lg font-medium">{viewEventModalData.contactPerson?.mobile || '-'}</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
+
+
+      
+      {/* FULL SCREEN SEAT MAP PREVIEW MODAL WITH ZOOM & PAN */}
+{isSeatMapModalOpen && seatMapImage && (
+  <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div className="relative w-full h-full flex flex-col items-center justify-center">
+      {/* Close Button */}
+      <button
+        type="button"
+        onClick={() => setIsSeatMapModalOpen(false)}
+        className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center font-bold text-lg z-50 cursor-pointer transition"
+      >
+        ✕
+      </button>
+
+      {/* Zoom Instructions Badge */}
+      <div className="absolute top-5 left-5 bg-black/50 text-white px-3 py-1.5 rounded-md text-xs z-50 pointer-events-none">
+        Scroll mouse wheel to Zoom In/Out • Click & drag to move
+      </div>
+
+      {/* Zoomable Image Container */}
+      <div
+        onWheel={(e) => {
+          e.preventDefault();
+          const delta = e.deltaY < 0 ? 0.15 : -0.15;
+          setModalZoom((prev) => Math.min(6, Math.max(0.5, Number((prev + delta).toFixed(2)))));
+        }}
+        onMouseDown={(e) => {
+          setIsDraggingModalImg(true);
+          setModalDragOrigin({ x: e.clientX - modalPan.x, y: e.clientY - modalPan.y });
+        }}
+        onMouseMove={(e) => {
+          if (!isDraggingModalImg) return;
+          setModalPan({
+            x: e.clientX - modalDragOrigin.x,
+            y: e.clientY - modalDragOrigin.y
+          });
+        }}
+        onMouseUp={() => setIsDraggingModalImg(false)}
+        onMouseLeave={() => setIsDraggingModalImg(false)}
+        className={`w-full h-full flex items-center justify-center overflow-hidden ${
+          isDraggingModalImg ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+      >
+        <img
+          src={seatMapImage}
+          alt="Full Seat Map Preview"
+          draggable={false}
+          style={{
+            transform: `translate(${modalPan.x}px, ${modalPan.y}px) scale(${modalZoom})`,
+            transformOrigin: 'center center',
+            transition: isDraggingModalImg ? 'none' : 'transform 0.05s ease-out'
+          }}
+          className="max-w-[90vw] max-h-[90vh] object-contain pointer-events-none"
+        />
+      </div>
+    </div>
+  </div>
+)}
+
+
 {resubmitEventItem && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
     <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
